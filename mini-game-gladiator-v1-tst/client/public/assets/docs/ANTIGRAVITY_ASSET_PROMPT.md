@@ -1,0 +1,1 @@
+Use este pacote como base do projeto Arena do No Rest for the Wicked. Monte primeiro a arena, depois o player, HUD, combate offline, VFX e SFX; só então avance para multiplayer com Colyseus. Use os JSONs em data/ como defaults iniciais.

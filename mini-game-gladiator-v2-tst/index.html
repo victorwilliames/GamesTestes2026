@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stickman Gladiator Arena 3D</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- Error overlay for debugging -->
+  <div id="error-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); color: #ff5555; padding: 30px; font-family: monospace; font-size: 16px; z-index: 99999; overflow: auto; pointer-events: auto;">
+    <h2 style="color: #ff3333; margin-bottom: 20px;">JS Debugger - Error Detected:</h2>
+    <pre id="error-msg" style="white-space: pre-wrap; word-wrap: break-word; font-size: 14px; color: #fff;"></pre>
+  </div>
+  <script>
+    window.addEventListener('error', function(e) {
+      document.getElementById('error-overlay').style.display = 'block';
+      document.getElementById('error-msg').textContent += '\n[ERROR] ' + e.message + ' at ' + e.filename + ':' + e.lineno + ':' + e.colno;
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      document.getElementById('error-overlay').style.display = 'block';
+      document.getElementById('error-msg').textContent += '\n[UNHANDLED REJECTION] ' + e.reason + (e.reason && e.reason.stack ? '\n' + e.reason.stack : '');
+    });
+  </script>
+
+  <!-- Three.js Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <!-- HUD Overlay -->
+  <div id="hud">
+    <!-- Top Left Player Stats -->
+    <div class="hud-top-left">
+      <div class="level-badge">5</div>
+      <div class="bars-container">
+        <div class="bar-wrapper health-bar-wrapper">
+          <div class="bar health-bar" style="width: 74.2%;"></div>
+          <span class="bar-text">312 / 420</span>
+        </div>
+        <div class="bar-wrapper stamina-bar-wrapper">
+          <div class="bar stamina-bar" style="width: 65%;"></div>
+          <span class="bar-text">78 / 120</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Right Resources -->
+    <div class="hud-top-right">
+      <div class="resource-item gold-item">
+        <div class="resource-icon gold-icon"></div>
+        <span class="resource-value">1,235</span>
+      </div>
+      <div class="resource-item gem-item">
+        <div class="resource-icon gem-icon"></div>
+        <span class="resource-value">3</span>
+      </div>
+      <button class="menu-button" id="menu-btn">
+        <span class="menu-line"></span>
+        <span class="menu-line"></span>
+        <span class="menu-line"></span>
+    </div>
+
+    <!-- Performance Overlay (MSI Afterburner Style) -->
+    <div class="perf-overlay">
+      <div class="perf-row perf-fps-row">
+        <span class="perf-label">FPS</span>
+        <span id="perf-fps" class="perf-value perf-main-value">60</span>
+      </div>
+      <div class="perf-row">
+        <span class="perf-label">FRAME</span>
+        <span id="perf-time" class="perf-value">16.7 ms</span>
+      </div>
+      <div class="perf-row">
+        <span class="perf-label">RAM</span>
+        <span id="perf-mem" class="perf-value">-- MB</span>
+      </div>
+      <div class="perf-row">
+        <span class="perf-label">DRAWS</span>
+        <span id="perf-draws" class="perf-value">--</span>
+      </div>
+      <div class="perf-row">
+        <span class="perf-label">TRIS</span>
+        <span id="perf-tris" class="perf-value">--</span>
+      </div>
+    </div>
+
+    <!-- Bottom Left Joystick -->
+    <div class="hud-bottom-left">
+      <div class="joystick-base">
+        <div class="joystick-handle"></div>
+        <div class="joystick-arrow arrow-up">▲</div>
+        <div class="joystick-arrow arrow-right">▶</div>
+        <div class="joystick-arrow arrow-down">▼</div>
+        <div class="joystick-arrow arrow-left">◀</div>
+      </div>
+    </div>
+
+    <!-- Bottom Right Controls -->
+    <div class="hud-bottom-right">
+      <!-- Potion Button -->
+      <div class="action-btn-wrapper secondary-btn-wrapper potion-btn-wrapper">
+        <button class="action-btn potion-btn">
+          <div class="potion-icon"></div>
+        </button>
+        <span class="potion-count">2</span>
+      </div>
+
+      <!-- Dash Button -->
+      <div class="action-btn-wrapper secondary-btn-wrapper dash-btn-wrapper">
+        <button class="action-btn dash-btn">
+          <div class="dash-icon"></div>
+        </button>
+      </div>
+
+      <!-- Attack Button -->
+      <div class="action-btn-wrapper main-btn-wrapper attack-btn-wrapper">
+        <button class="action-btn attack-btn">
+          <div class="attack-icon"></div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Camera Preset & Style Panel (Top Center) -->
+    <div class="hud-top-center">
+      <button id="cam-diablo" class="debug-btn active">Diablo View</button>
+      <button id="cam-action" class="debug-btn">Witcher View</button>
+      <button id="cam-cinematic" class="debug-btn">Cinematic Tour</button>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

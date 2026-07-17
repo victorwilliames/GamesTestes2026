@@ -1,0 +1,1 @@
+Cobertura: cenário, personagens base, armas principais, HUD mobile base, VFX base, SFX placeholders e parâmetros de gameplay. Futuro: animações dedicadas, boss avançado, áudio final e polimento.

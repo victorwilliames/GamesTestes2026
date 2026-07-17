@@ -1,0 +1,7 @@
+{
+  "arenaTheme": "golden_hour_coliseum",
+  "useFog": true,
+  "fogColor": "#75664b",
+  "shadowMainLightOnly": true,
+  "maxPixelRatio": 1.5
+}

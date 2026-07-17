@@ -1,0 +1,23 @@
+# Dependency directories
+**/node_modules/
+node_modules/
+**/node_modules_old/
+
+# Build outputs
+**/dist/
+**/build/
+**/.vite/
+**/.cache/
+
+# Environment files
+**/.env
+**/.env.*
+
+# Logs and system files
+**/*.log
+**/*.log*
+.DS_Store
+Thumbs.db
+desktop.ini
+**/.gemini/
+**/*.tmp

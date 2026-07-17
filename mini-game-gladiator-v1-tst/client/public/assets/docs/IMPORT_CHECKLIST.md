@@ -1,0 +1,6 @@
+- [ ] Carregar a arena
+- [ ] Carregar o player
+- [ ] Configurar HUD mobile
+- [ ] Aplicar JSON de render e UI
+- [ ] Testar VFX e áudio
+- [ ] Testar no navegador e no celular

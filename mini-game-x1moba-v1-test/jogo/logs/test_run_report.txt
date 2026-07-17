@@ -1,0 +1,281 @@
+RELATÓRIO DE EXECUÇÃO DE TESTE - MOBATEST
+Data: 7/16/2026, 11:21:12 PM
+Resultado: SUCESSO
+==================================================
+
+[vite] connecting...
+[vite] connected.
+Failed to load resource: the server responded with a status of 404 (Not Found)
+[ANIM] Caitlyn: 46 animacoes encontradas no GLB.
+  [ANIM] Caitlyn clip[0]: "attack_to_run.anm" (2.83s, 420 tracks)
+  [ANIM] Caitlyn clip[1]: "attack1.anm" (0.27s, 420 tracks)
+  [ANIM] Caitlyn clip[2]: "attack1_to_idle.anm" (2.73s, 420 tracks)
+  [ANIM] Caitlyn clip[3]: "attack2.anm" (0.33s, 420 tracks)
+  [ANIM] Caitlyn clip[4]: "attack2_to_idle.anm" (3.83s, 420 tracks)
+  [ANIM] Caitlyn clip[5]: "channel.anm" (0.97s, 420 tracks)
+  [ANIM] Caitlyn clip[6]: "channelin.anm" (1.60s, 420 tracks)
+  [ANIM] Caitlyn clip[7]: "crit.anm" (0.27s, 369 tracks)
+  [ANIM] Caitlyn clip[8]: "dance_in.anm" (1.17s, 420 tracks)
+  [ANIM] Caitlyn clip[9]: "dance_loop.anm" (5.20s, 420 tracks)
+  [ANIM] Caitlyn clip[10]: "death.anm" (2.93s, 420 tracks)
+  [ANIM] Caitlyn clip[11]: "idle_in.anm" (4.07s, 420 tracks)
+  [ANIM] Caitlyn clip[12]: "idle1.anm" (4.07s, 420 tracks)
+  [ANIM] Caitlyn clip[13]: "idle2.anm" (5.37s, 420 tracks)
+  [ANIM] Caitlyn clip[14]: "idle3.anm" (4.30s, 420 tracks)
+  [ANIM] Caitlyn clip[15]: "joke.anm" (7.80s, 420 tracks)
+  [ANIM] Caitlyn clip[16]: "knockup_loop.anm" (1.30s, 420 tracks)
+  [ANIM] Caitlyn clip[17]: "knockup_start.anm" (0.33s, 420 tracks)
+  [ANIM] Caitlyn clip[18]: "laugh.anm" (5.33s, 420 tracks)
+  [ANIM] Caitlyn clip[19]: "passive.anm" (0.30s, 420 tracks)
+  [ANIM] Caitlyn clip[20]: "passive_to_idle.anm" (3.53s, 420 tracks)
+  [ANIM] Caitlyn clip[21]: "recall.anm" (8.67s, 378 tracks)
+  [ANIM] Caitlyn clip[22]: "run.anm" (0.93s, 420 tracks)
+  [ANIM] Caitlyn clip[23]: "run_fast.anm" (1.03s, 420 tracks)
+  [ANIM] Caitlyn clip[24]: "run_fast_variant.anm" (4.23s, 420 tracks)
+  [ANIM] Caitlyn clip[25]: "run_haste.anm" (0.93s, 420 tracks)
+  [ANIM] Caitlyn clip[26]: "run_in.anm" (0.40s, 420 tracks)
+  [ANIM] Caitlyn clip[27]: "run_variant.anm" (4.63s, 420 tracks)
+  [ANIM] Caitlyn clip[28]: "run_variant2.anm" (4.63s, 420 tracks)
+  [ANIM] Caitlyn clip[29]: "spawn.anm" (2.97s, 420 tracks)
+  [ANIM] Caitlyn clip[30]: "spell1.anm" (1.07s, 420 tracks)
+  [ANIM] Caitlyn clip[31]: "spell1_to_idle.anm" (1.70s, 420 tracks)
+  [ANIM] Caitlyn clip[32]: "spell1_to_run.anm" (3.27s, 420 tracks)
+  [ANIM] Caitlyn clip[33]: "spell2.anm" (0.63s, 420 tracks)
+  [ANIM] Caitlyn clip[34]: "spell2_to_idle.anm" (1.30s, 420 tracks)
+  [ANIM] Caitlyn clip[35]: "spell2_to_run.anm" (1.30s, 420 tracks)
+  [ANIM] Caitlyn clip[36]: "spell3.anm" (1.07s, 420 tracks)
+  [ANIM] Caitlyn clip[37]: "spell3_to_idle.anm" (0.57s, 420 tracks)
+  [ANIM] Caitlyn clip[38]: "spell3_toidle.anm" (0.37s, 318 tracks)
+  [ANIM] Caitlyn clip[39]: "spell4.anm" (2.23s, 420 tracks)
+  [ANIM] Caitlyn clip[40]: "spell4_90.anm" (2.23s, 420 tracks)
+  [ANIM] Caitlyn clip[41]: "spell4_-90.anm" (2.23s, 420 tracks)
+  [ANIM] Caitlyn clip[42]: "spell4_to_idle.anm" (2.50s, 420 tracks)
+  [ANIM] Caitlyn clip[43]: "spell4_to_run.anm" (1.43s, 420 tracks)
+  [ANIM] Caitlyn clip[44]: "stunned.anm" (1.00s, 420 tracks)
+  [ANIM] Caitlyn clip[45]: "taunt.anm" (4.23s, 420 tracks)
+  [ANIM] Caitlyn: Mapeando "attack_to_run.anm" -> key="run"
+  [ANIM] Caitlyn: Mapeando "attack1.anm" -> key="attack"
+  [ANIM] Caitlyn: Mapeando "attack1_to_idle.anm" -> key="idle"
+  [ANIM] Caitlyn: Mapeando "attack2.anm" -> key="attack"
+  [ANIM] Caitlyn: Mapeando "attack2_to_idle.anm" -> key="idle"
+  [ANIM] Caitlyn: Mapeando "channel.anm" -> key="channel.anm"
+  [ANIM] Caitlyn: Mapeando "channelin.anm" -> key="channelin.anm"
+  [ANIM] Caitlyn: Mapeando "crit.anm" -> key="crit.anm"
+  [ANIM] Caitlyn: Mapeando "dance_in.anm" -> key="dance_in.anm"
+  [ANIM] Caitlyn: Mapeando "dance_loop.anm" -> key="dance_loop.anm"
+  [ANIM] Caitlyn: Mapeando "death.anm" -> key="death"
+  [ANIM] Caitlyn: Mapeando "idle_in.anm" -> key="idle"
+  [ANIM] Caitlyn: Mapeando "idle1.anm" -> key="idle"
+  [ANIM] Caitlyn: Mapeando "idle2.anm" -> key="idle"
+  [ANIM] Caitlyn: Mapeando "idle3.anm" -> key="idle"
+  [ANIM] Caitlyn: Mapeando "joke.anm" -> key="joke.anm"
+  [ANIM] Caitlyn: Mapeando "knockup_loop.anm" -> key="knockup_loop.anm"
+  [ANIM] Caitlyn: Mapeando "knockup_start.anm" -> key="knockup_start.anm"
+  [ANIM] Caitlyn: Mapeando "laugh.anm" -> key="laugh.anm"
+  [ANIM] Caitlyn: Mapeando "passive.anm" -> key="passive.anm"
+  [ANIM] Caitlyn: Mapeando "passive_to_idle.anm" -> key="idle"
+  [ANIM] Caitlyn: Mapeando "recall.anm" -> key="recall.anm"
+  [ANIM] Caitlyn: Mapeando "run.anm" -> key="run"
+  [ANIM] Caitlyn: Mapeando "run_fast.anm" -> key="run"
+  [ANIM] Caitlyn: Mapeando "run_fast_variant.anm" -> key="run"
+  [ANIM] Caitlyn: Mapeando "run_haste.anm" -> key="run"
+  [ANIM] Caitlyn: Mapeando "run_in.anm" -> key="run"
+  [ANIM] Caitlyn: Mapeando "run_variant.anm" -> key="run"
+  [ANIM] Caitlyn: Mapeando "run_variant2.anm" -> key="run"
+  [ANIM] Caitlyn: Mapeando "spawn.anm" -> key="spawn.anm"
+  [ANIM] Caitlyn: Mapeando "spell1.anm" -> key="cast"
+  [ANIM] Caitlyn: Mapeando "spell1_to_idle.anm" -> key="idle"
+  [ANIM] Caitlyn: Mapeando "spell1_to_run.anm" -> key="run"
+  [ANIM] Caitlyn: Mapeando "spell2.anm" -> key="cast"
+  [ANIM] Caitlyn: Mapeando "spell2_to_idle.anm" -> key="idle"
+  [ANIM] Caitlyn: Mapeando "spell2_to_run.anm" -> key="run"
+  [ANIM] Caitlyn: Mapeando "spell3.anm" -> key="cast"
+  [ANIM] Caitlyn: Mapeando "spell3_to_idle.anm" -> key="idle"
+  [ANIM] Caitlyn: Mapeando "spell3_toidle.anm" -> key="idle"
+  [ANIM] Caitlyn: Mapeando "spell4.anm" -> key="cast"
+  [ANIM] Caitlyn: Mapeando "spell4_90.anm" -> key="cast"
+  [ANIM] Caitlyn: Mapeando "spell4_-90.anm" -> key="cast"
+  [ANIM] Caitlyn: Mapeando "spell4_to_idle.anm" -> key="idle"
+  [ANIM] Caitlyn: Mapeando "spell4_to_run.anm" -> key="run"
+  [ANIM] Caitlyn: Mapeando "stunned.anm" -> key="stunned.anm"
+  [ANIM] Caitlyn: Mapeando "taunt.anm" -> key="taunt.anm"
+  [ANIM] Caitlyn: Idle animation FORÇADA a tocar.
+[ANIM] MasterYi: 28 animacoes encontradas no GLB.
+  [ANIM] MasterYi clip[0]: "Spell1" (1.83s, 270 tracks)
+  [ANIM] MasterYi clip[1]: "Spell3" (0.81s, 48 tracks)
+  [ANIM] MasterYi clip[2]: "masteryi_2013_attack1.anm" (1.83s, 270 tracks)
+  [ANIM] MasterYi clip[3]: "masteryi_2013_attack2.anm" (1.83s, 270 tracks)
+  [ANIM] MasterYi clip[4]: "Channel" (0.97s, 270 tracks)
+  [ANIM] MasterYi clip[5]: "masteryi_2013_crit.anm" (1.83s, 270 tracks)
+  [ANIM] MasterYi clip[6]: "Death" (1.70s, 270 tracks)
+  [ANIM] MasterYi clip[7]: "masteryi_2013_idle1.anm" (4.00s, 270 tracks)
+  [ANIM] MasterYi clip[8]: "masteryi_2013_idle2.anm" (8.00s, 270 tracks)
+  [ANIM] MasterYi clip[9]: "masteryi_2013_joke.anm" (2.60s, 270 tracks)
+  [ANIM] MasterYi clip[10]: "masteryi_2013_laugh.anm" (2.50s, 270 tracks)
+  [ANIM] MasterYi clip[11]: "Recall_In" (4.70s, 270 tracks)
+  [ANIM] MasterYi clip[12]: "Run" (2.00s, 270 tracks)
+  [ANIM] MasterYi clip[13]: "masteryi_2013_spell2.anm" (0.30s, 270 tracks)
+  [ANIM] MasterYi clip[14]: "masteryi_2013_taunt.anm" (3.97s, 270 tracks)
+  [ANIM] MasterYi clip[15]: "masteryi_2013_idle_enter.anm" (1.33s, 270 tracks)
+  [ANIM] MasterYi clip[16]: "Spell2_In" (0.30s, 270 tracks)
+  [ANIM] MasterYi clip[17]: "Spell2_Loop" (1.67s, 270 tracks)
+  [ANIM] MasterYi clip[18]: "Recall_Loop" (2.00s, 270 tracks)
+  [ANIM] MasterYi clip[19]: "Stun" (2.13s, 270 tracks)
+  [ANIM] MasterYi clip[20]: "masteryi_2013_passive.anm" (1.83s, 270 tracks)
+  [ANIM] MasterYi clip[21]: "Channel_Wndup" (1.00s, 270 tracks)
+  [ANIM] MasterYi clip[22]: "Dance" (7.00s, 270 tracks)
+  [ANIM] MasterYi clip[23]: "Run_Fast" (2.00s, 270 tracks)
+  [ANIM] MasterYi clip[24]: "Run_Haste" (1.60s, 270 tracks)
+  [ANIM] MasterYi clip[25]: "2013_Run_Haste" (1.60s, 270 tracks)
+  [ANIM] MasterYi clip[26]: "Recall_Winddown" (2.67s, 270 tracks)
+  [ANIM] MasterYi clip[27]: "Respawn" (2.67s, 270 tracks)
+  [ANIM] MasterYi: Mapeando "Spell1" -> key="cast"
+  [ANIM] MasterYi: Mapeando "Spell3" -> key="cast"
+  [ANIM] MasterYi: Mapeando "masteryi_2013_attack1.anm" -> key="attack"
+  [ANIM] MasterYi: Mapeando "masteryi_2013_attack2.anm" -> key="attack"
+  [ANIM] MasterYi: Mapeando "Channel" -> key="channel"
+  [ANIM] MasterYi: Mapeando "masteryi_2013_crit.anm" -> key="masteryi_2013_crit.anm"
+  [ANIM] MasterYi: Mapeando "Death" -> key="death"
+  [ANIM] MasterYi: Mapeando "masteryi_2013_idle1.anm" -> key="idle"
+  [ANIM] MasterYi: Mapeando "masteryi_2013_idle2.anm" -> key="idle"
+  [ANIM] MasterYi: Mapeando "masteryi_2013_joke.anm" -> key="masteryi_2013_joke.anm"
+  [ANIM] MasterYi: Mapeando "masteryi_2013_laugh.anm" -> key="masteryi_2013_laugh.anm"
+  [ANIM] MasterYi: Mapeando "Recall_In" -> key="recall_in"
+  [ANIM] MasterYi: Mapeando "Run" -> key="run"
+  [ANIM] MasterYi: Mapeando "masteryi_2013_spell2.anm" -> key="cast"
+  [ANIM] MasterYi: Mapeando "masteryi_2013_taunt.anm" -> key="masteryi_2013_taunt.anm"
+  [ANIM] MasterYi: Mapeando "masteryi_2013_idle_enter.anm" -> key="idle"
+  [ANIM] MasterYi: Mapeando "Spell2_In" -> key="cast"
+  [ANIM] MasterYi: Mapeando "Spell2_Loop" -> key="cast"
+  [ANIM] MasterYi: Mapeando "Recall_Loop" -> key="recall_loop"
+  [ANIM] MasterYi: Mapeando "Stun" -> key="stun"
+  [ANIM] MasterYi: Mapeando "masteryi_2013_passive.anm" -> key="masteryi_2013_passive.anm"
+  [ANIM] MasterYi: Mapeando "Channel_Wndup" -> key="channel_wndup"
+  [ANIM] MasterYi: Mapeando "Dance" -> key="dance"
+  [ANIM] MasterYi: Mapeando "Run_Fast" -> key="run"
+  [ANIM] MasterYi: Mapeando "Run_Haste" -> key="run"
+  [ANIM] MasterYi: Mapeando "2013_Run_Haste" -> key="run"
+  [ANIM] MasterYi: Mapeando "Recall_Winddown" -> key="recall_winddown"
+  [ANIM] MasterYi: Mapeando "Respawn" -> key="respawn"
+  [ANIM] MasterYi: Idle animation FORÇADA a tocar.
+[23:19:02] [SYSTEM] Módulo de testes e FPS monitor inicializado.
+[ANIM] Gromp Aliado: 13 animacoes encontradas no GLB.
+  [ANIM] Gromp Aliado clip[0]: "Death" (1.17s, 96 tracks)
+  [ANIM] Gromp Aliado clip[1]: "Idle" (3.13s, 96 tracks)
+  [ANIM] Gromp Aliado clip[2]: "Idle_Attacking" (1.67s, 96 tracks)
+  [ANIM] Gromp Aliado clip[3]: "Idle_Weapon" (3.13s, 96 tracks)
+  [ANIM] Gromp Aliado clip[4]: "PickUp" (1.25s, 96 tracks)
+  [ANIM] Gromp Aliado clip[5]: "Punch" (0.75s, 96 tracks)
+  [ANIM] Gromp Aliado clip[6]: "RecieveHit" (0.63s, 96 tracks)
+  [ANIM] Gromp Aliado clip[7]: "Roll" (1.00s, 96 tracks)
+  [ANIM] Gromp Aliado clip[8]: "Run" (0.88s, 96 tracks)
+  [ANIM] Gromp Aliado clip[9]: "Run_Weapon" (0.88s, 96 tracks)
+  [ANIM] Gromp Aliado clip[10]: "Sword_Attack" (0.83s, 96 tracks)
+  [ANIM] Gromp Aliado clip[11]: "Sword_Attack2" (0.83s, 96 tracks)
+  [ANIM] Gromp Aliado clip[12]: "Walk" (1.25s, 96 tracks)
+  [ANIM] Gromp Aliado: Mapeando "Death" -> key="death"
+  [ANIM] Gromp Aliado: Mapeando "Idle" -> key="idle"
+  [ANIM] Gromp Aliado: Mapeando "Idle_Attacking" -> key="idle"
+  [ANIM] Gromp Aliado: Mapeando "Idle_Weapon" -> key="idle"
+  [ANIM] Gromp Aliado: Mapeando "PickUp" -> key="pickup"
+  [ANIM] Gromp Aliado: Mapeando "Punch" -> key="punch"
+  [ANIM] Gromp Aliado: Mapeando "RecieveHit" -> key="attack"
+  [ANIM] Gromp Aliado: Mapeando "Roll" -> key="roll"
+  [ANIM] Gromp Aliado: Mapeando "Run" -> key="run"
+  [ANIM] Gromp Aliado: Mapeando "Run_Weapon" -> key="run"
+  [ANIM] Gromp Aliado: Mapeando "Sword_Attack" -> key="attack"
+  [ANIM] Gromp Aliado: Mapeando "Sword_Attack2" -> key="attack"
+  [ANIM] Gromp Aliado: Mapeando "Walk" -> key="run"
+  [ANIM] Gromp Aliado: Idle animation FORÇADA a tocar.
+[ANIM] Gromp Inimigo: 13 animacoes encontradas no GLB.
+  [ANIM] Gromp Inimigo clip[0]: "Death" (1.17s, 96 tracks)
+  [ANIM] Gromp Inimigo clip[1]: "Idle" (3.13s, 96 tracks)
+  [ANIM] Gromp Inimigo clip[2]: "Idle_Attacking" (1.67s, 96 tracks)
+  [ANIM] Gromp Inimigo clip[3]: "Idle_Weapon" (3.13s, 96 tracks)
+  [ANIM] Gromp Inimigo clip[4]: "PickUp" (1.25s, 96 tracks)
+  [ANIM] Gromp Inimigo clip[5]: "Punch" (0.75s, 96 tracks)
+  [ANIM] Gromp Inimigo clip[6]: "RecieveHit" (0.63s, 96 tracks)
+  [ANIM] Gromp Inimigo clip[7]: "Roll" (1.00s, 96 tracks)
+  [ANIM] Gromp Inimigo clip[8]: "Run" (0.88s, 96 tracks)
+  [ANIM] Gromp Inimigo clip[9]: "Run_Weapon" (0.88s, 96 tracks)
+  [ANIM] Gromp Inimigo clip[10]: "Sword_Attack" (0.83s, 96 tracks)
+  [ANIM] Gromp Inimigo clip[11]: "Sword_Attack2" (0.83s, 96 tracks)
+  [ANIM] Gromp Inimigo clip[12]: "Walk" (1.25s, 96 tracks)
+  [ANIM] Gromp Inimigo: Mapeando "Death" -> key="death"
+  [ANIM] Gromp Inimigo: Mapeando "Idle" -> key="idle"
+  [ANIM] Gromp Inimigo: Mapeando "Idle_Attacking" -> key="idle"
+  [ANIM] Gromp Inimigo: Mapeando "Idle_Weapon" -> key="idle"
+  [ANIM] Gromp Inimigo: Mapeando "PickUp" -> key="pickup"
+  [ANIM] Gromp Inimigo: Mapeando "Punch" -> key="punch"
+  [ANIM] Gromp Inimigo: Mapeando "RecieveHit" -> key="attack"
+  [ANIM] Gromp Inimigo: Mapeando "Roll" -> key="roll"
+  [ANIM] Gromp Inimigo: Mapeando "Run" -> key="run"
+  [ANIM] Gromp Inimigo: Mapeando "Run_Weapon" -> key="run"
+  [ANIM] Gromp Inimigo: Mapeando "Sword_Attack" -> key="attack"
+  [ANIM] Gromp Inimigo: Mapeando "Sword_Attack2" -> key="attack"
+  [ANIM] Gromp Inimigo: Mapeando "Walk" -> key="run"
+  [ANIM] Gromp Inimigo: Idle animation FORÇADA a tocar.
+[ANIM] Blue Buff Aliado: 13 animacoes encontradas no GLB.
+  [ANIM] Blue Buff Aliado clip[0]: "Death" (1.17s, 96 tracks)
+  [ANIM] Blue Buff Aliado clip[1]: "Idle" (3.13s, 96 tracks)
+  [ANIM] Blue Buff Aliado clip[2]: "Idle_Attacking" (1.67s, 96 tracks)
+  [ANIM] Blue Buff Aliado clip[3]: "Idle_Weapon" (3.13s, 96 tracks)
+  [ANIM] Blue Buff Aliado clip[4]: "PickUp" (1.25s, 96 tracks)
+  [ANIM] Blue Buff Aliado clip[5]: "Punch" (0.75s, 96 tracks)
+  [ANIM] Blue Buff Aliado clip[6]: "RecieveHit" (0.63s, 96 tracks)
+  [ANIM] Blue Buff Aliado clip[7]: "Roll" (1.00s, 96 tracks)
+  [ANIM] Blue Buff Aliado clip[8]: "Run" (0.88s, 96 tracks)
+  [ANIM] Blue Buff Aliado clip[9]: "Run_Weapon" (0.88s, 96 tracks)
+  [ANIM] Blue Buff Aliado clip[10]: "Sword_Attack" (0.83s, 96 tracks)
+  [ANIM] Blue Buff Aliado clip[11]: "Sword_Attack2" (0.83s, 96 tracks)
+  [ANIM] Blue Buff Aliado clip[12]: "Walk" (1.25s, 96 tracks)
+  [ANIM] Blue Buff Aliado: Mapeando "Death" -> key="death"
+  [ANIM] Blue Buff Aliado: Mapeando "Idle" -> key="idle"
+  [ANIM] Blue Buff Aliado: Mapeando "Idle_Attacking" -> key="idle"
+  [ANIM] Blue Buff Aliado: Mapeando "Idle_Weapon" -> key="idle"
+  [ANIM] Blue Buff Aliado: Mapeando "PickUp" -> key="pickup"
+  [ANIM] Blue Buff Aliado: Mapeando "Punch" -> key="punch"
+  [ANIM] Blue Buff Aliado: Mapeando "RecieveHit" -> key="attack"
+  [ANIM] Blue Buff Aliado: Mapeando "Roll" -> key="roll"
+  [ANIM] Blue Buff Aliado: Mapeando "Run" -> key="run"
+  [ANIM] Blue Buff Aliado: Mapeando "Run_Weapon" -> key="run"
+  [ANIM] Blue Buff Aliado: Mapeando "Sword_Attack" -> key="attack"
+  [ANIM] Blue Buff Aliado: Mapeando "Sword_Attack2" -> key="attack"
+  [ANIM] Blue Buff Aliado: Mapeando "Walk" -> key="run"
+  [ANIM] Blue Buff Aliado: Idle animation FORÇADA a tocar.
+[ANIM] Red Buff Inimigo: 13 animacoes encontradas no GLB.
+  [ANIM] Red Buff Inimigo clip[0]: "Death" (1.17s, 96 tracks)
+  [ANIM] Red Buff Inimigo clip[1]: "Idle" (3.13s, 96 tracks)
+  [ANIM] Red Buff Inimigo clip[2]: "Idle_Attacking" (1.67s, 96 tracks)
+  [ANIM] Red Buff Inimigo clip[3]: "Idle_Weapon" (3.13s, 96 tracks)
+  [ANIM] Red Buff Inimigo clip[4]: "PickUp" (1.25s, 96 tracks)
+  [ANIM] Red Buff Inimigo clip[5]: "Punch" (0.75s, 96 tracks)
+  [ANIM] Red Buff Inimigo clip[6]: "RecieveHit" (0.63s, 96 tracks)
+  [ANIM] Red Buff Inimigo clip[7]: "Roll" (1.00s, 96 tracks)
+  [ANIM] Red Buff Inimigo clip[8]: "Run" (0.88s, 96 tracks)
+  [ANIM] Red Buff Inimigo clip[9]: "Run_Weapon" (0.88s, 96 tracks)
+  [ANIM] Red Buff Inimigo clip[10]: "Sword_Attack" (0.83s, 96 tracks)
+  [ANIM] Red Buff Inimigo clip[11]: "Sword_Attack2" (0.83s, 96 tracks)
+  [ANIM] Red Buff Inimigo clip[12]: "Walk" (1.25s, 96 tracks)
+  [ANIM] Red Buff Inimigo: Mapeando "Death" -> key="death"
+  [ANIM] Red Buff Inimigo: Mapeando "Idle" -> key="idle"
+  [ANIM] Red Buff Inimigo: Mapeando "Idle_Attacking" -> key="idle"
+  [ANIM] Red Buff Inimigo: Mapeando "Idle_Weapon" -> key="idle"
+  [ANIM] Red Buff Inimigo: Mapeando "PickUp" -> key="pickup"
+  [ANIM] Red Buff Inimigo: Mapeando "Punch" -> key="punch"
+  [ANIM] Red Buff Inimigo: Mapeando "RecieveHit" -> key="attack"
+  [ANIM] Red Buff Inimigo: Mapeando "Roll" -> key="roll"
+  [ANIM] Red Buff Inimigo: Mapeando "Run" -> key="run"
+  [ANIM] Red Buff Inimigo: Mapeando "Run_Weapon" -> key="run"
+  [ANIM] Red Buff Inimigo: Mapeando "Sword_Attack" -> key="attack"
+  [ANIM] Red Buff Inimigo: Mapeando "Sword_Attack2" -> key="attack"
+  [ANIM] Red Buff Inimigo: Mapeando "Walk" -> key="run"
+  [ANIM] Red Buff Inimigo: Idle animation FORÇADA a tocar.
+[23:19:02] [TEST_OK] Validação OK. Sistema íntegro. Entidades ativas: 12.
+[23:19:04] [TEST_OK] Validação OK. Sistema íntegro. Entidades ativas: 12.
+[23:19:05] [TEST_OK] Validação OK. Sistema íntegro. Entidades ativas: 12.
+[23:19:06] [TEST_OK] Validação OK. Sistema íntegro. Entidades ativas: 12.
+[23:19:06] [SYSTEM] Auto-Play ATIVADO. Caitlyn está sendo controlada pela IA de Teste.
+[23:19:06] [SYSTEM] Menu Inicial fechado. Iniciando contagem regressiva para a partida!
+[23:19:07] [SYSTEM] QUE A BATALHA COMECE!
+Spawning Wave of Minions!

@@ -1,0 +1,466 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body, html {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #0b0b0d;
+  font-family: 'Outfit', sans-serif;
+  color: #f3f3f6;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+#game-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#ui-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#ui-container * {
+  pointer-events: auto;
+}
+
+/* OVERLAYS & LOADING SCREEN */
+.overlay-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, #1b1712 0%, #0c0a08 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.overlay-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.spinner {
+  width: 60px;
+  height: 60px;
+  border: 3px solid rgba(224, 169, 109, 0.1);
+  border-left-color: #e0a96d;
+  border-top-color: #e0a96d;
+  border-radius: 50%;
+  animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 0 8px rgba(224, 169, 109, 0.4));
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+h2 {
+  font-size: 1.1rem;
+  font-weight: 300;
+  letter-spacing: 0.2em;
+  color: #e0a96d;
+  text-transform: uppercase;
+  text-shadow: 0 0 12px rgba(224, 169, 109, 0.4);
+  margin-bottom: 24px;
+}
+
+/* PROGRESS BAR DE LOADING */
+.progress-bar-wrapper {
+  width: 240px;
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  overflow: hidden;
+  border: 1px solid rgba(224, 169, 109, 0.15);
+}
+
+.progress-bar-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #b5814c, #e0a96d);
+  box-shadow: 0 0 6px rgba(224, 169, 109, 0.8);
+  transition: width 0.1s ease-out;
+}
+
+/* ==========================================================================
+   HUD MOBILE - LAYOUT & ELEMENTOS
+   ========================================================================== */
+
+/* 1. Barra de Status (Canto Superior Esquerdo) */
+.player-status-container {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.hud-level-diamond {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.6));
+}
+
+.hud-level-diamond img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.hud-level-diamond .level-value {
+  position: absolute;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  margin-top: -1px;
+}
+
+.bars-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bar-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.bar-wrapper.health {
+  width: 250px;
+  height: 24px;
+}
+
+.bar-wrapper.stamina {
+  width: 210px;
+  height: 20px;
+}
+
+.bar-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+.bar-fill-bg {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.65);
+  border-radius: 2px;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.bar-wrapper.health .bar-fill-bg {
+  top: 5px;
+  left: 17px;
+  width: 221px;
+  height: 14px;
+}
+
+.bar-wrapper.stamina .bar-fill-bg {
+  top: 4px;
+  left: 14px;
+  width: 182px;
+  height: 12px;
+}
+
+.bar-fill {
+  width: 100%;
+  height: 100%;
+  border-radius: 1px;
+  transition: width 0.15s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.bar-wrapper.health .bar-fill {
+  background: linear-gradient(90deg, #9a1a1a, #e63946);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.25), 0 0 8px rgba(230, 57, 70, 0.55);
+}
+
+.bar-wrapper.stamina .bar-fill {
+  background: linear-gradient(90deg, #e08316, #ffb703);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,0.25), 0 0 6px rgba(255, 183, 3, 0.5);
+}
+
+.bar-fill.stamina-low {
+  background: linear-gradient(90deg, #7c5825, #ca8115) !important;
+  animation: pulse-stamina 0.5s infinite alternate;
+}
+
+@keyframes pulse-stamina {
+  0% { opacity: 0.5; }
+  100% { opacity: 1.0; }
+}
+
+.bar-text {
+  position: absolute;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  z-index: 6;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.95);
+  pointer-events: none;
+}
+
+.bar-wrapper.health .bar-text {
+  left: 17px;
+  width: 221px;
+  font-size: 0.72rem;
+  line-height: 24px;
+}
+
+.bar-wrapper.stamina .bar-text {
+  left: 14px;
+  width: 182px;
+  font-size: 0.65rem;
+  line-height: 20px;
+}
+
+/* 2. Recursos (Canto Superior Direito) */
+.resources-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  pointer-events: none;
+}
+
+.resource-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+}
+
+.resource-item img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.resource-item span {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.85);
+}
+
+.hud-menu-btn {
+  background: none;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
+  transition: transform 0.1s;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+}
+
+.hud-menu-btn:active {
+  transform: scale(0.9);
+}
+
+.hud-menu-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* 3. Joystick Virtual (Canto Inferior Esquerdo) */
+.joystick-base {
+  position: absolute;
+  bottom: 45px;
+  left: 45px;
+  width: 130px;
+  height: 130px;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0.9;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.55));
+  touch-action: none;
+}
+
+.joystick-knob {
+  width: 58px;
+  height: 58px;
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-radius: 50%;
+  touch-action: none;
+  will-change: transform;
+}
+
+/* 4. Botões de Ação (Canto Inferior Direito) */
+.action-buttons-container {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  width: 220px;
+  height: 220px;
+  pointer-events: none;
+}
+
+.action-btn {
+  position: absolute;
+  background: none;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  border-radius: 50%;
+  pointer-events: auto;
+  opacity: 0.9;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
+  transition: transform 0.1s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.15s;
+}
+
+.action-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.action-btn:active, .action-btn.active {
+  transform: scale(0.85);
+  opacity: 1.0;
+}
+
+.action-btn.cooldown-inactive {
+  opacity: 0.45;
+  pointer-events: none;
+  filter: grayscale(0.8) drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+}
+
+/* Posicionamento radial estético de acordo com prints */
+.action-btn.attack-light {
+  width: 82px;
+  height: 82px;
+  right: 0px;
+  bottom: 0px;
+  z-index: 10;
+}
+
+.action-btn.dash {
+  width: 60px;
+  height: 60px;
+  right: 90px;
+  bottom: 50px;
+}
+
+.action-btn.heal {
+  width: 54px;
+  height: 54px;
+  right: 140px;
+  bottom: 0px;
+}
+
+.action-btn.attack-heavy {
+  width: 54px;
+  height: 54px;
+  right: 0px;
+  bottom: 96px;
+}
+
+/* Botão de Poção Extra */
+.action-btn.potion {
+  width: 54px;
+  height: 54px;
+  right: 90px;
+  bottom: 120px;
+}
+
+/* ==========================================================================
+   EFEITOS VISUAIS E COMBATE EM TELA (HTML/CSS)
+   ========================================================================== */
+
+/* Números de Dano Flutuantes */
+.damage-number {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  text-align: center;
+  pointer-events: none;
+  z-index: 20;
+  animation: floatUp 0.75s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.damage-number.light {
+  color: #ffd875;
+  font-size: 1.5rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9), 0 0 6px rgba(224, 169, 109, 0.8);
+}
+
+.damage-number.heavy {
+  color: #ff3c3c;
+  font-size: 2.1rem;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.95), 0 0 10px rgba(255, 0, 0, 0.9);
+  font-style: italic;
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translate(-50%, 0) scale(0.4);
+    opacity: 1;
+  }
+  15% {
+    transform: translate(-50%, -25px) scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--x-offset)), -90px) scale(0.85);
+    opacity: 0;
+  }
+}

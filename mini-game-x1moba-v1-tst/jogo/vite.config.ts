@@ -8,7 +8,7 @@ export default defineConfig({
     open: true,
   },
   base: './',
-  publicDir: '../../assets',
+  publicDir: '../assets',
   plugins: [
     {
       name: 'log-saver',

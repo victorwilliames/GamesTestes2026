@@ -1,0 +1,17 @@
+{
+  "name": "games-testes-2026-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Central de scripts para gerenciar os subprojetos de jogos",
+  "scripts": {
+    "install:all": "npm.cmd run install:gladiator-v1 && npm.cmd run install:gladiator-v2 && npm.cmd run install:x1moba-v1 && npm.cmd run install:x1moba-v2",
+    "install:gladiator-v1": "npm.cmd run install:all --prefix mini-game-gladiator-v1-tst",
+    "install:gladiator-v2": "npm.cmd install --prefix mini-game-gladiator-v2-tst",
+    "install:x1moba-v1": "npm.cmd install --prefix mini-game-x1moba-v1-tst/jogo",
+    "install:x1moba-v2": "npm.cmd install --prefix mini-game-x1moba-v2-tst-backup/jogo",
+    "dev:gladiator-v1": "npm.cmd run dev --prefix mini-game-gladiator-v1-tst",
+    "dev:gladiator-v2": "npm.cmd run dev --prefix mini-game-gladiator-v2-tst",
+    "dev:x1moba-v1": "npm.cmd run dev --prefix mini-game-x1moba-v1-tst/jogo",
+    "dev:x1moba-v2": "npm.cmd run dev --prefix mini-game-x1moba-v2-tst-backup/jogo"
+  }
+}

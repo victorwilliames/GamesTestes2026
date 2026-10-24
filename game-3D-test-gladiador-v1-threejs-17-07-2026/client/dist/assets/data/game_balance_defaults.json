@@ -1,0 +1,26 @@
+{
+  "player": {
+    "maxHealth": 420,
+    "maxStamina": 120,
+    "lightAttackDamage": 22,
+    "heavyAttackDamage": 40,
+    "dashCost": 28,
+    "potionHeal": 110
+  },
+  "enemy_sword": {
+    "maxHealth": 80,
+    "damage": 18
+  },
+  "enemy_shield": {
+    "maxHealth": 95,
+    "damage": 14
+  },
+  "enemy_spear": {
+    "maxHealth": 70,
+    "damage": 20
+  },
+  "elite": {
+    "maxHealth": 180,
+    "damage": 28
+  }
+}

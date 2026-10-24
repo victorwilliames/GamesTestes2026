@@ -7,9 +7,13 @@ node_modules/
 **/.godot/
 .godot/
 
-# Build outputs
+# Build outputs (allow specific game dists for GitHub Pages)
 **/dist/
 **/build/
+!**/client/dist/**
+!**/jogo/dist/**
+!**/build/web/**
+
 **/.vite/
 **/.cache/
 

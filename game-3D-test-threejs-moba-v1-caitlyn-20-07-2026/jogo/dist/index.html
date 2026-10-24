@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOBATest - League of Legends 3D Recreation</title>
+  <!-- Fonte do Google para estética premium -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script type="module" crossorigin src="./assets/index-xcy8CJjo.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-Vgl3VJVV.css">
+</head>
+<body>
+  <!-- Canvas Principal do Jogo 3D -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- Container para as barras de vida flutuantes (3D to 2D) -->
+  <div id="health-bars-container"></div>
+
+  <!-- HUD Principal do Jogador (Estilo LoL) -->
+  <div id="hud">
+    <!-- Esquerda: Informações do Campeão (Foto, Nível) -->
+    <div class="hud-champion-info">
+      <div class="hud-portrait">
+        <div class="hud-level" id="player-level">1</div>
+      </div>
+      <div class="hud-stats">
+        <div class="hud-stat-item"><span class="icon">⚔️</span> <span id="stat-ad">60</span></div>
+        <div class="hud-stat-item"><span class="icon">🛡️</span> <span id="stat-armor">35</span></div>
+        <div class="hud-stat-item"><span class="icon">⚡</span> <span id="stat-as">0.68</span></div>
+        <div class="hud-stat-item"><span class="icon">👟</span> <span id="stat-ms">330</span></div>
+      </div>
+    </div>
+
+    <!-- Centro: Barras de Recursos e Habilidades -->
+    <div class="hud-center">
+      <!-- Barras de Vida e Mana -->
+      <div class="hud-bars">
+        <div class="hud-bar-container hp">
+          <div class="hud-bar-fill" id="player-hp-fill" style="width: 100%;"></div>
+          <span class="hud-bar-text" id="player-hp-text">600 / 600</span>
+        </div>
+        <div class="hud-bar-container mp">
+          <div class="hud-bar-fill" id="player-mp-fill" style="width: 100%;"></div>
+          <span class="hud-bar-text" id="player-mp-text">350 / 350</span>
+        </div>
+      </div>
+
+      <!-- Espaços de Habilidades (Q, W, E, R) -->
+      <div class="hud-skills">
+        <div class="hud-skill-slot" id="skill-q">
+          <div class="key-bind">Q</div>
+          <div class="cooldown-overlay"><span class="cooldown-text"></span></div>
+          <div class="skill-icon q-icon">
+            <svg viewBox="0 0 64 64" width="100%" height="100%" style="display:block;">
+              <defs>
+                <linearGradient id="grad-q" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#d4af37"/>
+                  <stop offset="100%" stop-color="#85530f"/>
+                </linearGradient>
+              </defs>
+              <rect width="64" height="64" fill="url(#grad-q)"/>
+              <path d="M12,48 L32,32 L52,32" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round"/>
+              <circle cx="32" cy="32" r="12" stroke="#ffffff" stroke-width="2" stroke-dasharray="4,2" fill="none"/>
+              <path d="M42,22 L52,32 L42,42" stroke="#ffffff" stroke-width="3" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="skill-tooltip">
+            <strong>Piltover Peacemaker</strong>
+            <p>Dispara um projétil linear penetrante que causa dano físico.</p>
+          </div>
+        </div>
+        <div class="hud-skill-slot" id="skill-w">
+          <div class="key-bind">W</div>
+          <div class="cooldown-overlay"><span class="cooldown-text"></span></div>
+          <div class="skill-icon w-icon">
+            <svg viewBox="0 0 64 64" width="100%" height="100%" style="display:block;">
+              <defs>
+                <linearGradient id="grad-w" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#6a0dad"/>
+                  <stop offset="100%" stop-color="#2d004d"/>
+                </linearGradient>
+              </defs>
+              <rect width="64" height="64" fill="url(#grad-w)"/>
+              <!-- Bear Trap Jaws -->
+              <path d="M16,38 C16,24 48,24 48,38 L16,38" stroke="#ffffff" stroke-width="3" fill="none"/>
+              <path d="M16,38 L22,30 L26,38 L32,30 L38,38 L42,30 L48,38" stroke="#ffffff" stroke-width="2.5" fill="none" stroke-linejoin="round"/>
+              <circle cx="32" cy="38" r="4" fill="#ffcc00"/>
+            </svg>
+          </div>
+          <div class="skill-tooltip">
+            <strong>Yordle Snap Trap</strong>
+            <p>Coloca uma armadilha no chão. Enraíza inimigos por 1.5s.</p>
+          </div>
+        </div>
+        <div class="hud-skill-slot" id="skill-e">
+          <div class="key-bind">E</div>
+          <div class="cooldown-overlay"><span class="cooldown-text"></span></div>
+          <div class="skill-icon e-icon">
+            <svg viewBox="0 0 64 64" width="100%" height="100%" style="display:block;">
+              <defs>
+                <linearGradient id="grad-e" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#00a896"/>
+                  <stop offset="100%" stop-color="#023e3a"/>
+                </linearGradient>
+              </defs>
+              <rect width="64" height="64" fill="url(#grad-e)"/>
+              <!-- Net Pattern -->
+              <path d="M16,16 L48,48 M16,32 L32,48 M32,16 L48,32 M16,48 L48,16 M16,32 L32,16 M32,48 L48,32" stroke="#ffffff" stroke-width="2" opacity="0.6" fill="none"/>
+              <rect x="22" y="22" width="20" height="20" rx="2" stroke="#ffffff" stroke-width="3" fill="none"/>
+            </svg>
+          </div>
+          <div class="skill-tooltip">
+            <strong>9-Caliber Net</strong>
+            <p>Dispara uma rede que empurra Caitlyn para trás e causa lentidão ao inimigo.</p>
+          </div>
+        </div>
+        <div class="hud-skill-slot" id="skill-r">
+          <div class="key-bind">R</div>
+          <div class="cooldown-overlay"><span class="cooldown-text"></span></div>
+          <div class="skill-icon r-icon">
+            <svg viewBox="0 0 64 64" width="100%" height="100%" style="display:block;">
+              <defs>
+                <linearGradient id="grad-r" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#d62222"/>
+                  <stop offset="100%" stop-color="#5c0000"/>
+                </linearGradient>
+              </defs>
+              <rect width="64" height="64" fill="url(#grad-r)"/>
+              <!-- Crosshair -->
+              <circle cx="32" cy="32" r="16" stroke="#ffffff" stroke-width="3" fill="none"/>
+              <line x1="32" y1="8" x2="32" y2="56" stroke="#ffffff" stroke-width="2"/>
+              <line x1="8" y1="32" x2="56" y2="32" stroke="#ffffff" stroke-width="2"/>
+              <circle cx="32" cy="32" r="3" fill="#ffffff"/>
+            </svg>
+          </div>
+          <div class="skill-tooltip">
+            <strong>Ace in the Hole</strong>
+            <p>Canaliza e dispara uma bala teleguiada de longo alcance com alto dano.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Direita: Gold, KDA e Minimapa -->
+    <div class="hud-right">
+      <div class="hud-scoreboard">
+        <span class="game-clock" id="game-timer">00:00</span>
+        <span class="kda"><span id="player-kills">0</span> / <span id="player-deaths">0</span> / 0</span>
+        <span class="gold">🪙 <span id="player-gold">500</span></span>
+      </div>
+      <div class="hud-minimap">
+        <!-- O minimapa pode ser renderizado dinamicamente via canvas secundário se viável, ou um placeholder estiloso -->
+        <canvas id="minimap-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Anúncio de Abate de Jogo -->
+  <div id="announcement" class="hidden">
+    <div class="announcement-title" id="announcement-title">UM INIMIGO FOI ABATIDO!</div>
+    <div class="announcement-subtitle" id="announcement-subtitle">Caitlyn abateu Master Yi</div>
+  </div>
+
+  <!-- Tela de Game Over -->
+  <div id="game-over" class="hidden">
+    <div class="game-over-panel">
+      <h1 id="game-over-title">VITÓRIA</h1>
+      <p id="game-over-desc">Você destruiu o inimigo!</p>
+      <button id="restart-btn" class="premium-button">Jogar Novamente</button>
+    </div>
+  </div>
+
+  <!-- Menu de Configurações (ESC) -->
+  <div id="game-menu" class="hidden">
+    <div class="menu-panel">
+      <h2>CONFIGURAÇÕES</h2>
+      <div class="menu-content">
+        <div class="menu-item">
+          <label for="simulation-toggle">Modo Auto-Play (IA)</label>
+          <input type="checkbox" id="simulation-toggle">
+        </div>
+        <div class="menu-item">
+          <label for="camera-lock-toggle">Travar Câmera</label>
+          <input type="checkbox" id="camera-lock-toggle" checked>
+        </div>
+        <div class="menu-item">
+          <label for="graphics-quality">Qualidade Gráfica</label>
+          <select id="graphics-quality">
+            <option value="high">Alta (Sombras + AA)</option>
+            <option value="medium">Média (Sem Sombras)</option>
+            <option value="low">Baixa (Desempenho)</option>
+          </select>
+        </div>
+        <div class="menu-item">
+          <label for="volume-slider">Volume de Efeitos</label>
+          <input type="range" id="volume-slider" min="0" max="100" value="70">
+        </div>
+      </div>
+      <div class="menu-buttons">
+        <button id="resume-btn" class="premium-button">Retornar ao Jogo</button>
+        <button id="menu-restart-btn" class="premium-button sec-btn">Reiniciar Partida</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tela de Carregamento Inicial -->
+  <div id="loading-screen">
+    <div class="loading-content">
+      <div class="logo">MOBATest</div>
+      <div class="spinner"></div>
+      <div class="loading-status" id="loading-status">Carregando os modelos 3D (Caitlyn, Master Yi, Mapa)...</div>
+      <div class="loading-bar">
+        <div class="loading-bar-fill" id="loading-bar-fill" style="width: 0%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Menu Inicial -->
+  <div id="main-menu">
+    <div class="main-menu-panel">
+      <h1 class="main-title">SUMMONER'S RIFT</h1>
+      <p class="main-subtitle">MOBATest 1x1 Arena (Caitlyn vs Master Yi)</p>
+      <div class="menu-nav-list">
+        <button id="menu-start-normal" class="menu-nav-btn premium-button">Iniciar Partida</button>
+        <button id="menu-start-auto" class="menu-nav-btn premium-button sec-btn">Iniciar com Auto-Play</button>
+        <button id="menu-options" class="menu-nav-btn premium-button sec-btn">Opções</button>
+        <button id="menu-exit" class="menu-nav-btn premium-button sec-btn">Sair</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Overlay de Contagem Regressiva -->
+  <div id="countdown-overlay" class="hidden">
+    <div id="countdown-text">3</div>
+  </div>
+
+</body>
+</html>

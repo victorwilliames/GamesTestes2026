@@ -774,24 +774,32 @@
     <div class="timeline-item" data-cat="2d">
       <div class="node-marker"></div>
       <div class="test-card">
-        <div class="step-banner">ESSE FOI O 6º TESTE MEU</div>
+        <div class="step-banner" style="color: #f59e0b; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); padding: 2px 10px; border-radius: 6px;">
+          ESSE FOI O 6º TESTE MEU • 1ª TENTATIVA PROCEDURAL (QUASE DESISTI AQUI! ⚠️)
+        </div>
         <div class="card-header-flex">
-          <h2 class="game-title">O Grande Bake-Off 2D Multi-IA (RafaxLab)</h2>
+          <h2 class="game-title">O Bake-Off 2D & O Fiasco do "Bando de PNGs"</h2>
           <span class="date-badge">19/10/2026</span>
         </div>
         <div class="card-body has-media">
           <div class="card-info">
             <p class="story-text">
-              Inspirado pelo canal do YouTube RafaxLab (Rafael + Claude), iniciei o desafio de criar um RPG de ação 2.5D no estilo Hades onde o herói NÃO usa imagens ou spritesheets: todo o boneco é desenhado 100% por código vetorial procedural no HTML5 Canvas 2D nativo! Coloquei ChatGPT, Codex, DeepSeek e Antigravity competindo em um bake-off.
+              Foi aqui que comecei a tentar o método procedural (inspirado no canal RafaxLab / Rafael + Claude). Mas nos primeiros testes deu tudo errado: criei o personagem inteiro, mas na hora de montar no procedural não funcionou — <strong>ficou só um bando de PNGs recortados colados que não se moviam direito e não prestavam!</strong>
+            </p>
+            <p class="story-text">
+              Fui quebrando a cabeça e melhorando aos poucos até chegar nesse protótipo jogável do Bake-Off (colocando ChatGPT, Codex, DeepSeek e Antigravity para competir desenhando por código). Só que mesmo esse resultado que ficou jogável <em>ainda parecia um monte de PNG e não um personagem verdadeiramente procedural</em>.
+            </p>
+            <p class="story-text" style="color: #fca5a5;">
+              <strong>Eu estava quase desistindo de gamedev aqui!</strong> A frustração foi enorme, mas respirei fundo e resolvi continuar tentando nas próximas fases... e ainda bem que continuei!
             </p>
             <div class="tech-used">
-              <strong>O que usei:</strong> HTML5 Canvas 2D puro, prompts de engenharia reversa do RafaxLab, relatórios comparativos e testes de rig procedural.
+              <strong>O que usei:</strong> HTML5 Canvas 2D nativo, tentativa inicial de montagem de PNGs, primeiros passos de rig procedural e disputa entre 4 IAs.
             </div>
             <div class="card-actions">
               <a href="game-2D-test-bakeoff-multi-ia-19-10-2026/prototypes/antigravity/desenho-v1-antigravity/index.html" target="_blank" class="btn-play">
                 🎮 JOGAR AGORA ↗
               </a>
-              <button class="btn-concept" onclick="openConcept('assets-referencias-heros-23-10-2026/hero-carequinha/model-like-hades-2-5d.png', 'Arte Alvo Estilo Hades', 'A arte conceitual original inspirada em Hades que as IAs precisavam desenhar 100% via código.')">
+              <button class="btn-concept" onclick="openConcept('assets-referencias-heros-23-10-2026/hero-carequinha/model-like-hades-2-5d.png', 'Arte Alvo Estilo Hades', 'A arte conceitual original estilo Hades que queríamos desenhar 100% via código sem usar recortes de PNG.')">
                 🎯 Ver Conceito Alvo
               </button>
               <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-bakeoff-multi-ia-19-10-2026" target="_blank" class="btn-secondary">
@@ -800,8 +808,8 @@
             </div>
           </div>
           <div class="thumb-wrap">
-            <img src="game-2D-test-bakeoff-multi-ia-19-10-2026/prototypes/antigravity/desenho-v1-antigravity/screenshots/03-compare-body.png" alt="Print Real do Desenho das IAs" class="card-thumb">
-            <span class="thumb-tag">📸 Print Real do Jogo</span>
+            <img src="game-2D-test-bakeoff-multi-ia-19-10-2026/prototypes-nao-aprovados/rig-01-antigravity/screenshots/01-rig-arena-idle.png" alt="Print Real da 1ª Tentativa de Rig" class="card-thumb">
+            <span class="thumb-tag">📸 Print do "Bando de PNGs"</span>
           </div>
         </div>
       </div>

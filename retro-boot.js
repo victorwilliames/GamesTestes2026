@@ -32,6 +32,7 @@ function clearTimers(){bootTimers.forEach(clearTimeout);bootTimers=[]}
 function enableGameAudio(){try{if(typeof consoleSoundUnlocked!=="undefined")consoleSoundUnlocked=true;if(typeof startConsoleSoundscape==="function"&&typeof currentIndex!=="undefined")startConsoleSoundscape(currentIndex)}catch{}}
 function showIntro(){
   clearTimers();powering=false;intro.hidden=false;intro.dataset.state="off";
+  try{if(typeof stopConsoleSoundscape==="function")stopConsoleSoundscape()}catch{}
   document.body.classList.add("retro-boot-visible");
   get("retro-power-btn").disabled=false;get("retro-start-btn").disabled=false;
   get("retro-start-btn").textContent="⏻  Ligar console";

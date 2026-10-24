@@ -3,15 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PlayStation 5 Hub • Minha Trajetória GameDev 2026 - Victor Williames</title>
+  <title>Console Hub • Minha Trajetória GameDev 2026 - Victor Williames</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-dark: #07090e;
+      --bg-dark: #06080d;
       --ps5-blue: #0070d1;
-      --ps5-glow: rgba(0, 112, 209, 0.5);
       --cyan: #00f2fe;
       --purple: #a855f7;
       --gold: #f59e0b;
@@ -29,17 +28,16 @@
       padding: 0;
     }
 
-    body {
+    html, body {
+      height: 100vh;
+      overflow: hidden; /* STRICT 100VH - NO PAGE SCROLL */
       background-color: var(--bg-dark);
       color: var(--text-main);
       font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-      line-height: 1.5;
-      overflow-x: hidden;
-      min-height: 100vh;
       user-select: none;
     }
 
-    /* FULLSCREEN DYNAMIC BACKDROP (CRISP & CLEAR LIKE PS5) */
+    /* FULLSCREEN DYNAMIC BACKDROP (CRISP & CLEAR HERO SCREENSHOT) */
     #ps5-backdrop-container {
       position: fixed;
       top: 0;
@@ -59,10 +57,10 @@
       height: 100%;
       background-size: cover;
       background-position: center;
-      transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s ease-out;
+      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s ease-out;
       opacity: 0;
       transform: scale(1.02);
-      filter: brightness(0.68) contrast(1.08); /* CRISP, NO HEAVY BLUR */
+      filter: brightness(0.72) contrast(1.1); /* CRISP, NO HEAVY BLUR */
     }
 
     .backdrop-image.active {
@@ -77,30 +75,30 @@
       width: 100%;
       height: 100%;
       background: 
-        radial-gradient(circle at 65% 35%, rgba(7, 9, 14, 0.15) 0%, rgba(7, 9, 14, 0.75) 65%, #07090e 100%),
-        linear-gradient(to top, #07090e 12%, rgba(7, 9, 14, 0.6) 45%, rgba(7, 9, 14, 0.85) 100%),
-        linear-gradient(to right, rgba(7, 9, 14, 0.95) 0%, rgba(7, 9, 14, 0.5) 45%, rgba(7, 9, 14, 0.8) 100%);
+        radial-gradient(circle at 70% 30%, rgba(6, 8, 13, 0.1) 0%, rgba(6, 8, 13, 0.65) 65%, #06080d 100%),
+        linear-gradient(to top, #06080d 15%, rgba(6, 8, 13, 0.4) 45%, rgba(6, 8, 13, 0.8) 100%),
+        linear-gradient(to right, rgba(6, 8, 13, 0.95) 0%, rgba(6, 8, 13, 0.4) 45%, rgba(6, 8, 13, 0.75) 100%);
     }
 
-    /* TOP SYSTEM BAR (EXACT PS5 UI STYLE) */
+    /* TOP SYSTEM BAR */
     .ps5-topbar {
-      position: fixed;
+      position: absolute;
       top: 0;
       left: 0;
       width: 100%;
-      height: 65px;
+      height: 60px;
       padding: 0 40px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      z-index: 100;
-      background: linear-gradient(180deg, rgba(7, 9, 14, 0.8) 0%, transparent 100%);
+      z-index: 50;
+      background: linear-gradient(180deg, rgba(6, 8, 13, 0.85) 0%, transparent 100%);
     }
 
     @media (max-width: 768px) {
       .ps5-topbar {
         padding: 0 16px;
-        height: 55px;
+        height: 50px;
       }
     }
 
@@ -111,16 +109,13 @@
     }
 
     .ps5-nav-item {
-      font-size: 1.15rem;
+      font-size: 1.1rem;
       font-weight: 800;
       color: rgba(255, 255, 255, 0.6);
       cursor: pointer;
       position: relative;
       transition: color 0.2s ease;
       letter-spacing: 0.5px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
     }
 
     .ps5-nav-item:hover, .ps5-nav-item.active {
@@ -142,17 +137,17 @@
     .ps5-top-right {
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 18px;
     }
 
     .user-profile-tag {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
       background: rgba(255, 255, 255, 0.08);
       padding: 4px 12px;
       border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
     .status-dot {
@@ -187,20 +182,104 @@
       color: #fff;
     }
 
-    /* MAIN CONSOLE VIEWPORT */
+    /* MAIN CONSOLE VIEWPORT (STRICT 100VH) */
     #console-view {
       position: relative;
       z-index: 10;
-      padding-top: 75px;
-      min-height: 100vh;
+      width: 100vw;
+      height: 100vh;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      overflow: hidden;
     }
 
-    /* HORIZONTAL PS5 GAMES RIBBON (LOCATED HIGH LIKE REAL PS5) */
+    /* HERO UPPER AREA (CLEAN & CINEMATIC - MINIMAL CLUTTER) */
+    .hero-stage {
+      padding: 85px 45px 0;
+      max-width: 900px;
+      transition: opacity 0.3s ease;
+    }
+
+    @media (max-width: 768px) {
+      .hero-stage {
+        padding: 65px 20px 0;
+      }
+    }
+
+    .hero-step-banner {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      width: fit-content;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    }
+
+    .hero-step-banner.standard { background: rgba(0, 242, 254, 0.16); color: var(--cyan); border: 1px solid rgba(0, 242, 254, 0.4); }
+    .hero-step-banner.failure  { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.5); }
+    .hero-step-banner.success  { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.5); }
+    .hero-step-banner.warning  { background: rgba(245, 158, 11, 0.2); color: #fde047; border: 1px solid rgba(245, 158, 11, 0.5); }
+    .hero-step-banner.special  { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.5); }
+    .hero-step-banner.highlight{ background: rgba(245, 158, 11, 0.22); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.5); }
+
+    .hero-title {
+      font-size: clamp(2.2rem, 4.2vw, 3.8rem);
+      font-weight: 900;
+      line-height: 1.1;
+      color: #ffffff;
+      margin-bottom: 12px;
+      text-shadow: 0 4px 30px rgba(0, 0, 0, 0.9);
+    }
+
+    .hero-tags {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .hero-tag {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .hero-callout-hint {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.7);
+      background: rgba(0, 0, 0, 0.4);
+      padding: 8px 16px;
+      border-radius: 999px;
+      width: fit-content;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* CARDS RIBBON AT THE BOTTOM (ANEXO 2 / BATOCERA / CONSOLE RETRO) */
+    .bottom-section {
+      width: 100%;
+      padding-bottom: 10px;
+      background: linear-gradient(0deg, rgba(6, 8, 13, 0.95) 0%, rgba(6, 8, 13, 0.8) 70%, transparent 100%);
+    }
+
     .ribbon-wrapper {
-      padding: 10px 40px 15px;
+      padding: 10px 40px 14px;
       position: relative;
     }
 
@@ -212,10 +291,10 @@
 
     .ribbon-track {
       display: flex;
-      gap: 16px;
+      gap: 18px;
       overflow-x: auto;
       scroll-behavior: smooth;
-      padding: 10px 6px 18px 6px;
+      padding: 10px 8px 16px;
       scrollbar-width: none;
       -ms-overflow-style: none;
     }
@@ -224,54 +303,69 @@
       display: none;
     }
 
-    /* PS5 COMPACT GAME TILE */
-    .game-tile {
-      flex: 0 0 130px;
-      height: 130px;
-      border-radius: 18px;
-      background: #121824;
-      border: 2px solid transparent;
+    /* PS5 / CONSOLE GAME CARD (DOCKED AT BOTTOM) */
+    .game-card-dock {
+      flex: 0 0 170px;
+      border-radius: 16px;
+      background: rgba(18, 24, 38, 0.85);
+      backdrop-filter: blur(12px);
+      border: 2px solid rgba(255, 255, 255, 0.1);
       overflow: hidden;
       cursor: pointer;
       position: relative;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
     }
 
     @media (max-width: 768px) {
-      .game-tile {
-        flex: 0 0 105px;
-        height: 105px;
-        border-radius: 14px;
+      .game-card-dock {
+        flex: 0 0 140px;
       }
     }
 
-    .game-tile:hover {
-      transform: translateY(-4px) scale(1.04);
+    .game-card-dock:hover {
+      transform: translateY(-6px) scale(1.03);
       border-color: rgba(255, 255, 255, 0.4);
     }
 
-    .game-tile.active {
-      transform: translateY(-6px) scale(1.08);
+    .game-card-dock.active {
+      transform: translateY(-10px) scale(1.06);
       border: 3px solid #ffffff;
-      box-shadow: 0 0 35px rgba(255, 255, 255, 0.45), 0 14px 35px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 0 35px rgba(255, 255, 255, 0.5), 0 16px 40px rgba(0, 0, 0, 0.9);
+      background: rgba(26, 34, 52, 0.95);
     }
 
-    .game-tile img {
+    .card-thumb-box {
+      width: 100%;
+      height: 110px;
+      position: relative;
+      overflow: hidden;
+      background: #000;
+    }
+
+    @media (max-width: 768px) {
+      .card-thumb-box {
+        height: 90px;
+      }
+    }
+
+    .card-thumb-box img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
+      transition: transform 0.3s ease;
     }
 
-    .tile-step-badge {
+    .card-step-badge {
       position: absolute;
       top: 6px;
       left: 6px;
-      background: rgba(0, 0, 0, 0.8);
-      backdrop-filter: blur(4px);
+      background: rgba(0, 0, 0, 0.85);
       padding: 2px 7px;
-      border-radius: 6px;
+      border-radius: 4px;
       font-size: 0.7rem;
       font-weight: 800;
       color: #fff;
@@ -279,120 +373,177 @@
       border: 1px solid rgba(255, 255, 255, 0.15);
     }
 
-    .game-tile.active .tile-step-badge {
+    .game-card-dock.active .card-step-badge {
       background: var(--ps5-blue);
-      border-color: #ffffff;
+      border-color: #fff;
     }
 
-    /* ACTIVE GAME HERO PRESENTATION */
-    .game-hub {
-      padding: 10px 40px 30px;
-      max-width: 1440px;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 30px;
-      align-items: start;
+    .card-details-strip {
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
     }
 
-    @media (min-width: 1080px) {
-      .game-hub {
-        grid-template-columns: 1.25fr 0.95fr;
-      }
+    .card-game-title {
+      font-size: 0.82rem;
+      font-weight: 800;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-tech-tag {
+      font-size: 0.68rem;
+      color: var(--cyan);
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* FOOTER BAR (KEY HINTS) */
+    .console-footer-bar {
+      padding: 6px 40px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     @media (max-width: 768px) {
-      .game-hub {
-        padding: 5px 16px 25px;
+      .console-footer-bar {
+        padding: 6px 16px 8px;
       }
     }
 
-    .hub-left {
+    .footer-hints {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .hint-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-key-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.68rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    /* ============================================================ */
+    /* DETAILS DRAWER (OPENS WHEN USER CLICKS ONCE ON A GAME CARD) */
+    /* ============================================================ */
+    #details-drawer {
+      position: fixed;
+      bottom: -100%;
+      left: 0;
+      width: 100vw;
+      height: 82vh;
+      background: rgba(10, 14, 22, 0.94);
+      backdrop-filter: blur(24px);
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 24px 24px 0 0;
+      z-index: 9000;
+      transition: bottom 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.9);
       display: flex;
       flex-direction: column;
     }
 
-    .hub-step-banner {
+    #details-drawer.open {
+      bottom: 0;
+    }
+
+    .drawer-header {
+      padding: 18px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(6, 8, 13, 0.6);
+    }
+
+    @media (max-width: 768px) {
+      .drawer-header {
+        padding: 14px 16px;
+      }
+    }
+
+    .drawer-title-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .drawer-game-title {
+      font-size: 1.5rem;
+      font-weight: 900;
+      color: #ffffff;
+    }
+
+    .drawer-close-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      font-weight: 800;
+      padding: 8px 18px;
+      border-radius: 999px;
+      cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 800;
-      letter-spacing: 1px;
-      font-family: 'JetBrains Mono', monospace;
-      text-transform: uppercase;
-      margin-bottom: 12px;
-      width: fit-content;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      gap: 6px;
+      transition: all 0.2s;
     }
 
-    .hub-step-banner.standard {
-      background: rgba(0, 242, 254, 0.14);
-      color: var(--cyan);
-      border: 1px solid rgba(0, 242, 254, 0.4);
+    .drawer-close-btn:hover {
+      background: rgba(239, 68, 68, 0.3);
+      border-color: #ef4444;
+      color: #fff;
     }
 
-    .hub-step-banner.failure {
-      background: rgba(239, 68, 68, 0.18);
-      color: #fca5a5;
-      border: 1px solid rgba(239, 68, 68, 0.45);
+    .drawer-body {
+      padding: 24px 40px 40px;
+      overflow-y: auto;
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 28px;
     }
 
-    .hub-step-banner.success {
-      background: rgba(16, 185, 129, 0.2);
-      color: #6ee7b7;
-      border: 1px solid rgba(16, 185, 129, 0.5);
+    @media (min-width: 992px) {
+      .drawer-body {
+        grid-template-columns: 1.1fr 1fr;
+      }
     }
 
-    .hub-step-banner.warning {
-      background: rgba(245, 158, 11, 0.2);
-      color: #fde047;
-      border: 1px solid rgba(245, 158, 11, 0.5);
+    @media (max-width: 768px) {
+      .drawer-body {
+        padding: 16px 16px 30px;
+      }
     }
 
-    .hub-step-banner.special {
-      background: rgba(168, 85, 247, 0.2);
-      color: #d8b4fe;
-      border: 1px solid rgba(168, 85, 247, 0.5);
-    }
-
-    .hub-step-banner.highlight {
-      background: rgba(245, 158, 11, 0.22);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.5);
-    }
-
-    .hub-title {
-      font-size: clamp(2.1rem, 4vw, 3.6rem);
-      font-weight: 900;
-      line-height: 1.1;
-      color: #ffffff;
-      margin-bottom: 14px;
-      text-shadow: 0 4px 25px rgba(0, 0, 0, 0.8);
-    }
-
-    .hub-meta-tags {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 22px;
-    }
-
-    .meta-tag {
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      padding: 4px 12px;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #cbd5e1;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    /* PS5 PRIMARY ACTION ROW */
-    .hub-actions {
+    /* ACTION BUTTONS INSIDE DRAWER */
+    .drawer-actions-row {
       display: flex;
       gap: 14px;
       flex-wrap: wrap;
@@ -425,8 +576,7 @@
     }
 
     .btn-ps5-compare {
-      background: rgba(245, 158, 11, 0.18);
-      backdrop-filter: blur(10px);
+      background: rgba(245, 158, 11, 0.2);
       border: 1px solid rgba(245, 158, 11, 0.5);
       color: #fde047;
       font-weight: 700;
@@ -441,15 +591,13 @@
     }
 
     .btn-ps5-compare:hover {
-      background: rgba(245, 158, 11, 0.3);
+      background: rgba(245, 158, 11, 0.35);
       color: #ffffff;
       transform: translateY(-2px);
-      box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
     }
 
     .btn-ps5-secondary {
       background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(10px);
       border: 1px solid rgba(255, 255, 255, 0.2);
       color: #ffffff;
       font-weight: 700;
@@ -470,8 +618,8 @@
       transform: translateY(-2px);
     }
 
-    /* SUB BUILDS BAR (Carequinha, etc.) */
-    .sub-builds-row {
+    /* SUB BUILDS PILLS */
+    .drawer-subbuilds {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
@@ -482,8 +630,8 @@
       border-radius: 12px;
     }
 
-    .sub-build-btn {
-      background: rgba(255, 255, 255, 0.07);
+    .sub-pill-btn {
+      background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.15);
       color: #f1f5f9;
       font-size: 0.82rem;
@@ -497,52 +645,10 @@
       transition: all 0.2s;
     }
 
-    .sub-build-btn:hover {
+    .sub-pill-btn:hover {
       background: rgba(255, 255, 255, 0.2);
       border-color: #ffffff;
       transform: translateY(-2px);
-    }
-
-    /* PS5 DETAILS CARDS (RIGHT SIDE) */
-    .hub-right {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .ps5-card {
-      background: rgba(14, 18, 28, 0.85);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: var(--radius);
-      padding: 22px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    }
-
-    .ps5-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-      padding-bottom: 8px;
-    }
-
-    .ps5-card-title {
-      font-size: 0.95rem;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      color: #fff;
-      text-transform: uppercase;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .ps5-card-body {
-      font-size: 0.95rem;
-      color: #cbd5e1;
-      line-height: 1.6;
     }
 
     /* PHASE BLOCKS (P1, P2, P3) */
@@ -552,10 +658,6 @@
       border-radius: 10px;
       padding: 12px 14px;
       margin-bottom: 10px;
-    }
-
-    .phase-block:last-child {
-      margin-bottom: 0;
     }
 
     .phase-badge {
@@ -570,78 +672,20 @@
       font-family: 'JetBrains Mono', monospace;
     }
 
-    .phase-badge.p1 {
-      background: rgba(239, 68, 68, 0.2);
-      color: #fca5a5;
-      border: 1px solid rgba(239, 68, 68, 0.4);
-    }
+    .phase-badge.p1 { background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
+    .phase-badge.p2 { background: rgba(245, 158, 11, 0.2); color: #fde047; border: 1px solid rgba(245, 158, 11, 0.4); }
+    .phase-badge.p3 { background: rgba(16, 185, 129, 0.2); color: #86efac; border: 1px solid rgba(16, 185, 129, 0.4); }
 
-    .phase-badge.p2 {
-      background: rgba(245, 158, 11, 0.2);
-      color: #fde047;
-      border: 1px solid rgba(245, 158, 11, 0.4);
-    }
-
-    .phase-badge.p3 {
-      background: rgba(16, 185, 129, 0.2);
-      color: #86efac;
-      border: 1px solid rgba(16, 185, 129, 0.4);
-    }
-
-    /* CONTROLLER FOOTER */
-    .ps5-footer-bar {
-      padding: 14px 40px;
-      background: rgba(7, 9, 14, 0.85);
-      backdrop-filter: blur(12px);
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 15px;
-      font-size: 0.85rem;
-      color: var(--text-dim);
-    }
-
-    @media (max-width: 768px) {
-      .ps5-footer-bar {
-        padding: 12px 16px;
-      }
-    }
-
-    .controller-hints {
-      display: flex;
-      gap: 18px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .controller-hint-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .controller-btn-icon {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.7rem;
-      font-weight: 800;
-      color: #fff;
-    }
-
-    /* CLASSIC TIMELINE VIEW CONTAINER */
+    /* ============================================================ */
+    /* CLASSIC TIMELINE VIEW CONTAINER (ACCESSIBLE VIA TOP BAR)     */
+    /* ============================================================ */
     #timeline-view {
       display: none;
-      padding: 90px 20px 80px;
+      padding: 85px 20px 80px;
       max-width: 980px;
       margin: 0 auto;
+      height: 100vh;
+      overflow-y: auto; /* ALLOWS SCROLL ONLY IN TIMELINE MODE */
       position: relative;
       z-index: 10;
     }
@@ -691,11 +735,11 @@
     }
 
     .test-card {
-      background: rgba(18, 24, 38, 0.85);
+      background: rgba(18, 24, 38, 0.88);
       border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: var(--radius);
-      padding: 28px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      padding: 26px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
     }
 
     .card-header-flex {
@@ -708,7 +752,7 @@
     }
 
     .game-title {
-      font-size: 1.5rem;
+      font-size: 1.45rem;
       font-weight: 800;
       color: #fff;
     }
@@ -904,14 +948,14 @@
 </head>
 <body>
 
-  <!-- FULLSCREEN CRISP PS5 BACKDROP LAYER -->
+  <!-- FULLSCREEN DYNAMIC BACKDROP (CRISP & SHARP) -->
   <div id="ps5-backdrop-container">
     <div id="backdrop-img-1" class="backdrop-image active"></div>
     <div id="backdrop-img-2" class="backdrop-image"></div>
     <div class="backdrop-overlay"></div>
   </div>
 
-  <!-- TOP SYSTEM BAR (PS5 INTERFACE) -->
+  <!-- TOP SYSTEM BAR -->
   <header class="ps5-topbar">
     <div class="ps5-nav-group">
       <div class="ps5-nav-item active" id="nav-jogos" onclick="switchView('console')">
@@ -922,7 +966,7 @@
       </div>
     </div>
 
-    <!-- TOP RIGHT TOOLS & PROFILE -->
+    <!-- TOP RIGHT PROFILE & CLOCK -->
     <div class="ps5-top-right">
       <button class="tool-btn" id="audio-toggle-btn" onclick="toggleAudio()" title="Ativar/Desativar Efeitos Sonoros">
         🔊 Som: ON
@@ -935,110 +979,119 @@
     </div>
   </header>
 
-  <!-- ========================================== -->
-  <!-- 1. MODO CONSOLE HUB (PS5 EXPERIENCE)       -->
-  <!-- ========================================== -->
+  <!-- ============================================================ -->
+  <!-- 1. MODO CONSOLE HUB (100VH PURÍSSIMO - SEM SCROLL)           -->
+  <!-- ============================================================ -->
   <main id="console-view">
-    <div>
-      <!-- HORIZONTAL PS5 GAMES RIBBON -->
+
+    <!-- HERO UPPER STAGE (CLEAN & CINEMATIC) -->
+    <section class="hero-stage" id="hero-stage">
+      <div class="hero-step-banner standard" id="hero-step-banner">
+        ESSE FOI O 1º TESTE MEU
+      </div>
+      <h1 class="hero-title" id="hero-title">
+        Arena do Gladiador v1
+      </h1>
+      <div class="hero-tags" id="hero-tags">
+        <!-- Injected by JS -->
+      </div>
+      <div class="hero-callout-hint">
+        <span>🎮 Pressione ou clique no card para ver detalhes e</span>
+        <strong style="color: #00f2fe;">INICIAR JOGO ▶</strong>
+      </div>
+    </section>
+
+    <!-- BOTTOM DOCKED SECTION (CARDS ON THE BOTTOM - ANEXO 2 / BATOCERA) -->
+    <div class="bottom-section">
       <section class="ribbon-wrapper">
         <div class="ribbon-track" id="ribbon-track">
-          <!-- Game tiles generated dynamically by JS -->
+          <!-- Game cards generated dynamically by JS -->
         </div>
       </section>
 
-      <!-- ACTIVE GAME HERO SECTION -->
-      <section class="game-hub" id="game-hub">
-        
-        <!-- LEFT: TITLES & PRIMARY ACTIONS -->
-        <div class="hub-left">
-          <div class="hub-step-banner standard" id="hub-step-banner">
-            ESSE FOI O 1º TESTE MEU
+      <!-- CONSOLE FOOTER -->
+      <footer class="console-footer-bar">
+        <div class="footer-hints">
+          <div class="hint-item">
+            <span class="btn-key-icon">◄►</span>
+            <span>Navegar</span>
           </div>
-          
-          <h1 class="hub-title" id="hub-title">
-            Arena do Gladiador v1
-          </h1>
-
-          <div class="hub-meta-tags" id="hub-meta-tags">
-            <!-- Injected by JS -->
+          <div class="hint-item">
+            <span class="btn-key-icon" style="background: #0070d1;">✕</span>
+            <span>Abrir Detalhes / Jogar</span>
           </div>
-
-          <!-- PRIMARY ACTION BUTTONS -->
-          <div class="hub-actions">
-            <a href="#" target="_blank" class="btn-ps5-play" id="hub-btn-play" onclick="playLaunchSound()">
-              ▶ INICIAR JOGO ↗
-            </a>
-            <button class="btn-ps5-compare" id="hub-btn-compare" onclick="openActiveCompare()">
-              🎯 Comparar: Real vs Conceito
-            </button>
-            <a href="#" target="_blank" class="btn-ps5-secondary" id="hub-btn-code">
-              📁 Ver Código GitHub
-            </a>
+          <div class="hint-item">
+            <span class="btn-key-icon" style="background: #f59e0b;">□</span>
+            <span>Comparar Conceito</span>
           </div>
-
-          <!-- SUB BUILDS BAR (Carequinha, etc.) -->
-          <div class="sub-builds-row" id="hub-sub-builds" style="display: none;">
-            <!-- Sub builds buttons injected by JS -->
+          <div class="hint-item">
+            <span class="btn-key-icon" style="background: #10b981;">△</span>
+            <span>Linha do Tempo</span>
           </div>
         </div>
-
-        <!-- RIGHT: PS5 DETAILS & STORY CARDS -->
-        <div class="hub-right">
-          <!-- STORY CARD -->
-          <div class="ps5-card">
-            <div class="ps5-card-header">
-              <span class="ps5-card-title">📖 Bastidores & História Real</span>
-              <span style="font-size: 0.75rem; color: var(--cyan); font-family: 'JetBrains Mono', monospace;" id="hub-date-badge">17/07/2026</span>
-            </div>
-            <div class="ps5-card-body" id="hub-story-body">
-              <!-- Story content or P1/P2/P3 injected by JS -->
-            </div>
-          </div>
-
-          <!-- TECH CARD -->
-          <div class="ps5-card">
-            <div class="ps5-card-header">
-              <span class="ps5-card-title">⚙️ Ficha Técnica & Mecânicas</span>
-            </div>
-            <div class="ps5-card-body" id="hub-tech-body" style="font-size: 0.88rem; color: #94a3b8;">
-              <!-- Tech info injected by JS -->
-            </div>
-          </div>
+        <div id="gamepad-status" style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--cyan);">
+          🎮 Teclado / Controle Plug-and-Play
         </div>
-
-      </section>
+      </footer>
     </div>
 
-    <!-- CONTROLLER FOOTER -->
-    <footer class="ps5-footer-bar">
-      <div class="controller-hints">
-        <div class="controller-hint-item">
-          <span class="controller-btn-icon">◄►</span>
-          <span>Trocar Jogo</span>
-        </div>
-        <div class="controller-hint-item">
-          <span class="controller-btn-icon" style="background: #0070d1;">✕</span>
-          <span>Iniciar Jogo</span>
-        </div>
-        <div class="controller-hint-item">
-          <span class="controller-btn-icon" style="background: #f59e0b;">□</span>
-          <span>Comparar Conceito</span>
-        </div>
-        <div class="controller-hint-item">
-          <span class="controller-btn-icon" style="background: #10b981;">△</span>
-          <span>Alternar Modo</span>
-        </div>
-      </div>
-      <div id="gamepad-status" style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--cyan);">
-        🎮 Teclado Ativo • Suporte a Controle DualSense / Xbox Plug-and-Play
-      </div>
-    </footer>
   </main>
 
-  <!-- ========================================== -->
-  <!-- 2. MODO LINHA DO TEMPO CLÁSSICA           -->
-  <!-- ========================================== -->
+  <!-- ============================================================ -->
+  <!-- DETAILS DRAWER (SLIDES UP ON CARD CLICK)                     -->
+  <!-- ============================================================ -->
+  <div id="details-drawer">
+    <div class="drawer-header">
+      <div class="drawer-title-row">
+        <span class="hero-step-banner standard" id="drawer-step-banner">ESSE FOI O 1º TESTE MEU</span>
+        <h2 class="drawer-game-title" id="drawer-game-title">Arena do Gladiador v1</h2>
+      </div>
+      <button class="drawer-close-btn" onclick="closeDrawer()">
+        ✕ Fechar [ESC]
+      </button>
+    </div>
+
+    <div class="drawer-body">
+      <!-- LEFT: ACTIONS & SUB-BUILDS -->
+      <div>
+        <div class="drawer-actions-row">
+          <a href="#" target="_blank" class="btn-ps5-play" id="drawer-btn-play" onclick="playLaunchSound()">
+            ▶ INICIAR JOGO ↗
+          </a>
+          <button class="btn-ps5-compare" id="drawer-btn-compare" onclick="openActiveCompare()">
+            🎯 Comparar: Real vs Conceito
+          </button>
+          <a href="#" target="_blank" class="btn-ps5-secondary" id="drawer-btn-code">
+            📁 Ver Código GitHub ↗
+          </a>
+        </div>
+
+        <!-- SUB-BUILDS BAR (For Carequinha, Godot, etc.) -->
+        <div class="drawer-subbuilds" id="drawer-subbuilds" style="display: none;">
+          <!-- Injected by JS -->
+        </div>
+
+        <div style="background: rgba(0,0,0,0.3); border-left: 3px solid var(--cyan); padding: 14px 18px; border-radius: 8px; margin-top: 15px;">
+          <h4 style="font-size: 0.9rem; text-transform: uppercase; color: #fff; margin-bottom: 4px;">Ficha Técnica</h4>
+          <p id="drawer-tech-desc" style="font-size: 0.92rem; color: #cbd5e1;"></p>
+        </div>
+      </div>
+
+      <!-- RIGHT: STORY & P1/P2/P3 -->
+      <div style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 22px;">
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: #fff; text-transform: uppercase; margin-bottom: 14px; display: flex; align-items: center; gap: 8px;">
+          📖 Bastidores & História Real
+        </h3>
+        <div id="drawer-story-body">
+          <!-- Injected by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- 2. MODO LINHA DO TEMPO CLÁSSICA (COM SCROLL)                 -->
+  <!-- ============================================================ -->
   <section id="timeline-view">
     <div style="text-align: center; margin-bottom: 40px;">
       <h2 style="font-size: 2.2rem; font-weight: 900; color: #fff;">Linha do Tempo Completa</h2>
@@ -1074,14 +1127,14 @@
     </div>
   </div>
 
-  <!-- ========================================== -->
-  <!-- JAVASCRIPT & PS5 ENGINE                    -->
-  <!-- ========================================== -->
+  <!-- ============================================================ -->
+  <!-- JAVASCRIPT & MULTI-PRINT HOVER CYCLING                       -->
+  <!-- ============================================================ -->
   <script>
-    // CACHEBUSTER TIMESTAMP SO BROWSERS ALWAYS LOAD THE REAL SCREENSHOTS FRESH
-    const CB = "?v=20261024_0035";
+    // CACHEBUSTER TIMESTAMP
+    const CB = "?v=20261024_0045";
 
-    // 1. DATA SOURCE FOR ALL 7 GAME MILESTONES (100% REAL IN-GAME PRINTS)
+    // 1. DATA SOURCE FOR ALL 7 GAME MILESTONES (WITH MULTIPLE REAL GAMEPLAY PRINTS)
     const gamesData = [
       {
         id: "gladiador-v1",
@@ -1092,7 +1145,11 @@
         date: "17/07/2026",
         cat: "threejs",
         categoryLabel: "3D Three.js",
-        thumb: "assets-prints-reais/print-real-gladiador-v1.png" + CB,
+        techBadge: "Three.js 3D",
+        prints: [
+          "assets-prints-reais/print-real-gladiador-v1.png" + CB,
+          "assets-prints-reais/print-real-gladiador-v1-hud.png" + CB
+        ],
         conceptImg: "game-3D-test-gladiador-v1-threejs-17-07-2026/reference-prints-game/print1-gamee.png" + CB,
         conceptTitle: "Conceito da Arena",
         conceptDesc: "À direita está a arte conceitual do coliseu gerada por IA que usamos como objetivo inicial. À esquerda está o print 100% real do jogo em execução no Three.js, com os modelos low-poly de gladiadores, dummies de treino, chão de areia e HUD de combate.",
@@ -1110,10 +1167,14 @@
         date: "17/07/2026",
         cat: "threejs",
         categoryLabel: "3D Three.js",
-        thumb: "assets-prints-reais/print-real-gladiador-v2.png" + CB,
+        techBadge: "Three.js Procedural",
+        prints: [
+          "assets-prints-reais/print-real-gladiador-v2.png" + CB,
+          "assets-prints-reais/print-real-gladiador-v2-alt.png" + CB
+        ],
         conceptImg: "game-3D-test-gladiador-v2-stickman-17-07-2026/reference-prints-game/print2-game.png" + CB,
         conceptTitle: "Conceito Stickman",
-        conceptDesc: "À direita está a referência visual do stickman com iluminação e silhueta dinâmica. À esquerda está o print real do jogo com stickman procedural, arcos de golpe, poças de sangue, modos de câmera Diablo vs Witcher e 60 FPS estáveis.",
+        conceptDesc: "À direita está a referência visual do stickman procedural com iluminação e silhueta dinâmica. À esquerda está o print real do jogo com stickman procedural, arcos de golpe, poças de sangue, modos de câmera Diablo vs Witcher e 60 FPS estáveis.",
         playUrl: "game-3D-test-gladiador-v2-stickman-17-07-2026/index.html",
         codeUrl: "https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-gladiador-v2-stickman-17-07-2026",
         tech: "Three.js puro procedural, ES Modules nativos, OrbitControls, UnrealBloomPass e Procedural Mesh.",
@@ -1128,7 +1189,10 @@
         date: "15/10/2026",
         cat: "threejs",
         categoryLabel: "3D Three.js",
-        thumb: "assets-prints-reais/print-real-moba-v0.png" + CB,
+        techBadge: "Three.js Grid (Buggy)",
+        prints: [
+          "assets-prints-reais/print-real-moba-v0.png" + CB
+        ],
         conceptImg: "game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/UI/ref-ui-interface-lol-2026.png" + CB,
         conceptTitle: "Interface Alvo do MOBA",
         conceptDesc: "À direita está a referência profissional de MOBA que queríamos alcançar. À esquerda está o print real do fracasso inicial: o grid preto com a Caitlyn e os dois dummies vermelhos estáticos onde as texturas quebraram e os shaders deram erro.",
@@ -1146,10 +1210,13 @@
         date: "20/07/2026",
         cat: "threejs",
         categoryLabel: "3D Three.js & Godot",
-        thumb: "assets-prints-reais/print-real-moba-caitlyn.png" + CB,
+        techBadge: "Three.js + Godot 4.7",
+        prints: [
+          "assets-prints-reais/print-real-moba-caitlyn.png" + CB
+        ],
         conceptImg: "game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/UI/ref-ui-interface-lol-2026.png" + CB,
         conceptTitle: "Interface LoL 2026",
-        conceptDesc: "À direita está a referência do League of Legends. À esquerda está o print REAL da partida em execução: a Caitlyn, Master Yi bot inimigo, minions se enfrentando, barra de vida, torres e habilidades Q/W/E/R!",
+        conceptDesc: "À direita está a referência do League of Legends. À esquerda está o print REAL da partida em andamento: Caitlyn armada, Master Yi bot inimigo, tropas de minions se enfrentando, barras de vida, torres e habilidades Q/W/E/R!",
         playUrl: "game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/index.html",
         codeUrl: "https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-threejs-moba-v1-caitlyn-20-07-2026",
         tech: "Three.js, TypeScript, Finite State Machines (minions e bot Master Yi), torres defensivas e réplica no Godot Engine 4.7.",
@@ -1168,7 +1235,13 @@
         date: "19/10/2026",
         cat: "2d",
         categoryLabel: "2D Canvas Procedural",
-        thumb: "assets-prints-reais/print-real-bakeoff-png.png" + CB,
+        techBadge: "Canvas 2D / 4 IAs",
+        prints: [
+          "assets-prints-reais/print-real-bakeoff-png.png" + CB,
+          "assets-prints-reais/print-real-bakeoff-combo.png" + CB,
+          "assets-prints-reais/print-real-bakeoff-island.png" + CB,
+          "assets-prints-reais/print-real-bakeoff-hitboxes.png" + CB
+        ],
         conceptImg: "game-2D-test-bakeoff-multi-ia-19-10-2026/assets/references/ref-2d-hero/hero-complet-idle/hero-idle-s.png" + CB,
         conceptTitle: "Recortes do Bixo PNG",
         conceptDesc: "À direita está o sprite recortado original. À esquerda está o print REAL do jogo: o personagem montado na arena estilo submundo rodando a 647 FPS, mas com visual que ainda parecia recortes de PNG colados.",
@@ -1202,7 +1275,13 @@
         date: "20 a 22/10/2026",
         cat: "2d",
         categoryLabel: "2D Canvas Procedural",
-        thumb: "assets-prints-reais/print-real-carequinha.png" + CB,
+        techBadge: "Antigravity Motor 2.5D",
+        prints: [
+          "assets-prints-reais/print-real-carequinha.png" + CB,
+          "assets-prints-reais/print-real-carequinha-golpe.png" + CB,
+          "assets-prints-reais/print-real-carequinha-run.png" + CB,
+          "assets-prints-reais/print-real-carequinha-idle.png" + CB
+        ],
         conceptImg: "assets-referencias-heros-23-10-2026/hero-carequinha/model-like-hades-2-5d.png" + CB,
         conceptTitle: "Arte Hades do Carequinha",
         conceptDesc: "À direita está a arte conceitual estilo Hades que inspirou o projeto. À esquerda está o print REAL do Carequinha em ação: o boneco com rig de cinemática inversa, iluminação, turnaround 8 ângulos e espada.",
@@ -1241,7 +1320,12 @@
         date: "20 a 23/10/2026",
         cat: "2d",
         categoryLabel: "2D Canvas Procedural",
-        thumb: "assets-prints-reais/print-real-ruivo.png" + CB,
+        techBadge: "Antigravity Rigging IK",
+        prints: [
+          "assets-prints-reais/print-real-ruivo.png" + CB,
+          "assets-prints-reais/print-real-ruivo-bancada.png" + CB,
+          "assets-prints-reais/print-real-ruivo-turnaround.png" + CB
+        ],
         conceptImg: "assets-referencias-heros-23-10-2026/hero-cabeca-red/Folha de poses do cavaleiro ruivo chia.png" + CB,
         conceptTitle: "Folha de Poses Cavaleiro Ruivo",
         conceptDesc: "À direita está a folha modelo com 8 ângulos de visão. À esquerda está o print REAL do jogo: o herói ruivo na arena subterrânea com tochas, inimigos esqueletos, HUD de vida e bancada de comparação 1:1.",
@@ -1257,6 +1341,8 @@
     let activeBackdropLayer = 1;
     let currentView = 'console';
     let soundEnabled = true;
+    let hoverInterval = null;
+    let hoverPrintIndex = 0;
 
     // 3. SYNTHESIZED WEB AUDIO (PS5 SOUND FX)
     let audioCtx = null;
@@ -1335,35 +1421,77 @@
         timelineView.classList.remove('active-view');
         navJogos.classList.add('active');
         navLinhaTempo.classList.remove('active');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
+        closeDrawer();
         consoleView.classList.add('hidden-view');
         timelineView.classList.add('active-view');
         navJogos.classList.remove('active');
         navLinhaTempo.classList.add('active');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
       playTick();
     }
 
-    // 6. BUILD RIBBON TRACK
+    // 6. BUILD RIBBON TRACK (BOTTOM DOCKED CARDS)
     function buildRibbon() {
       const track = document.getElementById('ribbon-track');
       track.innerHTML = '';
 
       gamesData.forEach((game, idx) => {
-        const tile = document.createElement('div');
-        tile.className = 'game-tile' + (idx === 0 ? ' active' : '');
-        tile.id = 'tile-' + idx;
-        tile.onclick = () => selectGame(idx);
+        const card = document.createElement('div');
+        card.className = 'game-card-dock' + (idx === 0 ? ' active' : '');
+        card.id = 'dock-card-' + idx;
+        
+        // Single click: focus game and OPEN details drawer!
+        card.onclick = () => {
+          if (currentIndex === idx && !document.getElementById('details-drawer').classList.contains('open')) {
+            openDrawer();
+          } else {
+            selectGame(idx);
+            openDrawer();
+          }
+        };
 
-        tile.innerHTML = `
-          <span class="tile-step-badge">#${game.num}</span>
-          <img src="${game.thumb}" alt="${game.title}" loading="lazy">
+        // Hover: preview prints in card!
+        card.onmouseenter = () => startCardHover(idx, card);
+        card.onmouseleave = () => stopCardHover(idx, card);
+
+        card.innerHTML = `
+          <div class="card-thumb-box">
+            <span class="card-step-badge">#${game.num}</span>
+            <img src="${game.prints[0]}" alt="${game.title}" id="card-img-${idx}" loading="lazy">
+          </div>
+          <div class="card-details-strip">
+            <div class="card-game-title" title="${game.title}">${game.title}</div>
+            <div class="card-tech-tag">${game.techBadge}</div>
+          </div>
         `;
 
-        track.appendChild(tile);
+        track.appendChild(card);
       });
+    }
+
+    // MULTI-PRINT HOVER CYCLING
+    function startCardHover(idx, cardEl) {
+      const game = gamesData[idx];
+      if (!game.prints || game.prints.length <= 1) return;
+      
+      const imgEl = document.getElementById('card-img-' + idx);
+      hoverPrintIndex = 0;
+      clearInterval(hoverInterval);
+
+      hoverInterval = setInterval(() => {
+        hoverPrintIndex = (hoverPrintIndex + 1) % game.prints.length;
+        if (imgEl) imgEl.src = game.prints[hoverPrintIndex];
+      }, 1100);
+    }
+
+    function stopCardHover(idx, cardEl) {
+      clearInterval(hoverInterval);
+      const game = gamesData[idx];
+      const imgEl = document.getElementById('card-img-' + idx);
+      if (imgEl && game.prints && game.prints.length > 0) {
+        imgEl.src = game.prints[0];
+      }
     }
 
     // 7. BUILD CLASSIC TIMELINE LIST
@@ -1392,7 +1520,7 @@
         item.innerHTML = `
           <div class="node-marker"></div>
           <div class="test-card">
-            <div class="hub-step-banner ${game.bannerClass}" style="margin-bottom: 8px;">${game.banner}</div>
+            <div class="hero-step-banner ${game.bannerClass}" style="margin-bottom: 8px;">${game.banner}</div>
             <div class="card-header-flex">
               <h3 class="game-title">${game.title}</h3>
               <span class="date-badge">${game.date}</span>
@@ -1416,7 +1544,7 @@
                 </div>
               </div>
               <div class="thumb-wrap">
-                <img src="${game.thumb}" alt="${game.title}" class="card-thumb">
+                <img src="${game.prints[0]}" alt="${game.title}" class="card-thumb">
                 <span class="thumb-tag">📸 Print Real do Jogo</span>
               </div>
             </div>
@@ -1433,55 +1561,64 @@
       const game = gamesData[index];
 
       // Update Ribbon active tile
-      document.querySelectorAll('.game-tile').forEach((tile, i) => {
-        tile.classList.toggle('active', i === index);
+      document.querySelectorAll('.game-card-dock').forEach((card, i) => {
+        card.classList.toggle('active', i === index);
       });
 
       // Scroll ribbon into view
-      const activeTile = document.getElementById('tile-' + index);
-      if (activeTile) {
-        activeTile.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      const activeCard = document.getElementById('dock-card-' + index);
+      if (activeCard) {
+        activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
       }
 
       // Crisp Backdrop Crossfade
       const nextBackdrop = activeBackdropLayer === 1 ? document.getElementById('backdrop-img-2') : document.getElementById('backdrop-img-1');
       const currBackdrop = activeBackdropLayer === 1 ? document.getElementById('backdrop-img-1') : document.getElementById('backdrop-img-2');
 
-      nextBackdrop.style.backgroundImage = `url('${game.thumb}')`;
+      nextBackdrop.style.backgroundImage = `url('${game.prints[0]}')`;
       nextBackdrop.classList.add('active');
       currBackdrop.classList.remove('active');
       activeBackdropLayer = activeBackdropLayer === 1 ? 2 : 1;
 
-      // Update Hero Content
-      const bannerEl = document.getElementById('hub-step-banner');
-      bannerEl.className = 'hub-step-banner ' + game.bannerClass;
+      // Update Clean Hero Stage (Minimal & Cinematic)
+      const bannerEl = document.getElementById('hero-step-banner');
+      bannerEl.className = 'hero-step-banner ' + game.bannerClass;
       bannerEl.innerText = game.banner;
 
-      document.getElementById('hub-title').innerText = game.title;
-      document.getElementById('hub-date-badge').innerText = game.date;
+      document.getElementById('hero-title').innerText = game.title;
 
-      // Meta tags
-      const metaContainer = document.getElementById('hub-meta-tags');
+      // Meta tags in Hero Stage
+      const metaContainer = document.getElementById('hero-tags');
       metaContainer.innerHTML = `
-        <span class="meta-tag">${game.categoryLabel}</span>
-        <span class="meta-tag">📅 ${game.date}</span>
-        <span class="meta-tag">⚡ 60+ FPS</span>
-        <span class="meta-tag">100% WebGL / Canvas</span>
+        <span class="hero-tag">${game.categoryLabel}</span>
+        <span class="hero-tag">📅 ${game.date}</span>
+        <span class="hero-tag">⚡ 60+ FPS</span>
+        <span class="hero-tag">100% WebGL / Canvas</span>
       `;
 
-      // Play & Code Links
-      const playBtn = document.getElementById('hub-btn-play');
-      playBtn.href = game.playUrl;
+      // Update Drawer Content Ready for Open
+      populateDrawer(game);
 
-      const codeBtn = document.getElementById('hub-btn-code');
-      codeBtn.href = game.codeUrl;
+      playTick();
+    }
 
-      // Sub-Builds Bar
-      const subBuildsRow = document.getElementById('hub-sub-builds');
+    // 9. DETAILS DRAWER MANAGEMENT
+    function populateDrawer(game) {
+      const drawerBanner = document.getElementById('drawer-step-banner');
+      drawerBanner.className = 'hero-step-banner ' + game.bannerClass;
+      drawerBanner.innerText = game.banner;
+
+      document.getElementById('drawer-game-title').innerText = game.title;
+      document.getElementById('drawer-btn-play').href = game.playUrl;
+      document.getElementById('drawer-btn-code').href = game.codeUrl;
+      document.getElementById('drawer-tech-desc').innerText = game.tech;
+
+      // Sub-Builds
+      const subBuildsRow = document.getElementById('drawer-subbuilds');
       if (game.subBuilds && game.subBuilds.length > 0) {
         subBuildsRow.style.display = 'flex';
         subBuildsRow.innerHTML = game.subBuilds.map(sb => `
-          <a href="${sb.url}" target="_blank" class="sub-build-btn" onclick="playLaunchSound()">
+          <a href="${sb.url}" target="_blank" class="sub-pill-btn" onclick="playLaunchSound()">
             ${sb.label} ↗
           </a>
         `).join('');
@@ -1490,8 +1627,8 @@
         subBuildsRow.innerHTML = '';
       }
 
-      // Story & P1/P2/P3 Blocks
-      const storyContainer = document.getElementById('hub-story-body');
+      // Story & P1/P2/P3
+      const storyContainer = document.getElementById('drawer-story-body');
       if (game.phases) {
         storyContainer.innerHTML = game.phases.map(p => `
           <div class="phase-block">
@@ -1506,17 +1643,20 @@
         }
         storyContainer.innerHTML = content;
       }
+    }
 
-      // Tech details
-      document.getElementById('hub-tech-body').innerHTML = `
-        <p style="margin-bottom: 6px;"><strong style="color: #fff;">Tecnologias:</strong> ${game.tech}</p>
-        <p style="font-size: 0.8rem; color: var(--text-dim);">Executado 100% no navegador sem emulação ou necessidade de downloads.</p>
-      `;
-
+    function openDrawer() {
+      populateDrawer(gamesData[currentIndex]);
+      document.getElementById('details-drawer').classList.add('open');
       playTick();
     }
 
-    // 9. SIDE-BY-SIDE COMPARISON MODAL (REAL GAMEPLAY VS CONCEPT TARGET)
+    function closeDrawer() {
+      document.getElementById('details-drawer').classList.remove('open');
+      playTick();
+    }
+
+    // 10. SIDE-BY-SIDE COMPARISON MODAL
     function openActiveCompare() {
       openSpecificCompare(currentIndex);
     }
@@ -1524,11 +1664,10 @@
     function openSpecificCompare(index) {
       const game = gamesData[index];
       document.getElementById('compare-title').innerText = "🎯 Comparação: " + game.title;
-      document.getElementById('compare-real-img').src = game.thumb;
+      document.getElementById('compare-real-img').src = game.prints[0];
       document.getElementById('compare-concept-img').src = game.conceptImg;
       document.getElementById('compare-desc').innerHTML = "<strong>O que foi feito e aprendido:</strong> " + game.conceptDesc;
       document.getElementById('compare-modal').classList.add('active');
-      document.body.style.overflow = 'hidden';
       playTick();
     }
 
@@ -1536,18 +1675,24 @@
       document.getElementById('compare-modal').classList.remove('active');
       document.getElementById('compare-real-img').src = '';
       document.getElementById('compare-concept-img').src = '';
-      document.body.style.overflow = 'auto';
     }
 
     function closeCompareOnOverlay(e) {
       if (e.target === document.getElementById('compare-modal')) closeCompare();
     }
 
-    // 10. KEYBOARD CONTROLS
+    // 11. KEYBOARD CONTROLS
     window.addEventListener('keydown', (e) => {
+      // Escape closes modals or drawer
       if (e.key === 'Escape') {
-        closeCompare();
-        return;
+        if (document.getElementById('compare-modal').classList.contains('active')) {
+          closeCompare();
+          return;
+        }
+        if (document.getElementById('details-drawer').classList.contains('open')) {
+          closeDrawer();
+          return;
+        }
       }
 
       if (document.getElementById('compare-modal').classList.contains('active')) return;
@@ -1564,17 +1709,21 @@
         }
       } else if (e.key === 'Enter') {
         if (currentView === 'console') {
-          playLaunchSound();
-          window.open(gamesData[currentIndex].playUrl, '_blank');
+          if (!document.getElementById('details-drawer').classList.contains('open')) {
+            openDrawer();
+          } else {
+            playLaunchSound();
+            window.open(gamesData[currentIndex].playUrl, '_blank');
+          }
         }
-      } else if (e.key === 'i' || e.key === 'I' || e.key === 'c' || e.key === 'C') {
+      } else if (e.key === 'c' || e.key === 'C') {
         openActiveCompare();
       } else if (e.key === 't' || e.key === 'T') {
         switchView(currentView === 'console' ? 'timeline' : 'console');
       }
     });
 
-    // 11. GAMEPAD API (DUALSENSE / XBOX CONTROLLER SUPPORT)
+    // 12. GAMEPAD API (DUALSENSE / XBOX CONTROLLER SUPPORT)
     let lastButtonPress = 0;
 
     function pollGamepad() {
@@ -1592,27 +1741,36 @@
 
         const now = Date.now();
         if (now - lastButtonPress > 220) {
-          // D-Pad Left or Axis Left
+          // D-Pad Left
           if (gp.buttons[14]?.pressed || gp.axes[0] < -0.5) {
             const prev = (currentIndex - 1 + gamesData.length) % gamesData.length;
             selectGame(prev);
             lastButtonPress = now;
           }
-          // D-Pad Right or Axis Right
+          // D-Pad Right
           else if (gp.buttons[15]?.pressed || gp.axes[0] > 0.5) {
             const next = (currentIndex + 1) % gamesData.length;
             selectGame(next);
             lastButtonPress = now;
           }
-          // Button 0 (Cross / 'A') = Iniciar Jogo
+          // Button 0 (Cross / 'A') = Open Drawer or Play
           else if (gp.buttons[0]?.pressed) {
-            playLaunchSound();
-            window.open(gamesData[currentIndex].playUrl, '_blank');
+            if (!document.getElementById('details-drawer').classList.contains('open')) {
+              openDrawer();
+            } else {
+              playLaunchSound();
+              window.open(gamesData[currentIndex].playUrl, '_blank');
+            }
             lastButtonPress = now;
           }
-          // Button 2 (Square / 'X') = Comparar Conceito
+          // Button 2 (Square / 'X') = Compare
           else if (gp.buttons[2]?.pressed) {
             openActiveCompare();
+            lastButtonPress = now;
+          }
+          // Button 1 (Circle / 'B') = Close Drawer
+          else if (gp.buttons[1]?.pressed) {
+            closeDrawer();
             lastButtonPress = now;
           }
           // Button 3 (Triangle / 'Y') = Switch View
@@ -1627,7 +1785,7 @@
     }
     requestAnimationFrame(pollGamepad);
 
-    // 12. INITIALIZATION ON LOAD
+    // 13. INITIALIZATION ON LOAD
     window.addEventListener('DOMContentLoaded', () => {
       buildRibbon();
       buildClassicTimeline();

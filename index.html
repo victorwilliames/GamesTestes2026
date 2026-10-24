@@ -3,25 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Minha Trajetória GameDev 2026 - Victor Williames</title>
+  <title>PlayStation 5 Hub • Minha Trajetória GameDev 2026 - Victor Williames</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-main: #0b0e14;
-      --bg-card: #131722;
-      --bg-card-hover: #19202f;
-      --border-card: #222c3f;
-      --border-accent: #38bdf8;
+      --bg-dark: #07090e;
+      --bg-card: rgba(18, 24, 38, 0.85);
+      --border-card: rgba(255, 255, 255, 0.1);
+      --ps5-blue: #0070d1;
+      --ps5-glow: rgba(0, 112, 209, 0.4);
+      --cyan: #00f2fe;
+      --purple: #a855f7;
+      --gold: #f59e0b;
+      --green: #10b981;
+      --red: #ef4444;
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --text-dim: #64748b;
-      --cyan: #00f2fe;
-      --purple: #8b5cf6;
-      --gold: #f59e0b;
-      --green: #10b981;
-      --radius: 16px;
+      --radius: 14px;
     }
 
     * {
@@ -31,155 +32,733 @@
     }
 
     body {
-      background-color: var(--bg-main);
+      background-color: var(--bg-dark);
       color: var(--text-main);
-      font-family: 'Outfit', sans-serif;
-      line-height: 1.6;
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.5;
       overflow-x: hidden;
-      background-image: 
-        radial-gradient(circle at 15% 10%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 85% 60%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 50% 90%, rgba(245, 158, 11, 0.05) 0%, transparent 50%);
-      background-attachment: fixed;
+      min-height: 100vh;
+      user-select: none;
     }
 
-    /* HEADER */
-    header {
-      padding: 60px 20px 40px;
-      text-align: center;
-      max-width: 1000px;
-      margin: 0 auto;
+    /* BACKGROUND BACKDROP (PS5 DYNAMIC HERO) */
+    #ps5-backdrop-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
     }
 
-    .badge-year {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 16px;
-      background: rgba(56, 189, 248, 0.1);
-      border: 1px solid rgba(56, 189, 248, 0.3);
-      border-radius: 999px;
-      color: var(--cyan);
-      font-size: 0.9rem;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      margin-bottom: 20px;
+    .backdrop-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s ease-out;
+      opacity: 0;
+      transform: scale(1.04);
+      filter: blur(4px) brightness(0.65);
     }
 
-    h1 {
-      font-size: clamp(2.2rem, 5vw, 3.8rem);
-      font-weight: 900;
-      line-height: 1.15;
-      background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 16px;
+    .backdrop-image.active {
+      opacity: 1;
+      transform: scale(1);
     }
 
-    .hero-subtitle {
-      font-size: clamp(1.05rem, 2vw, 1.3rem);
-      color: var(--text-muted);
-      max-width: 780px;
-      margin: 0 auto 30px;
+    .backdrop-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 75% 35%, rgba(7, 9, 14, 0.2) 0%, rgba(7, 9, 14, 0.85) 70%, #07090e 100%),
+        linear-gradient(to top, #07090e 12%, rgba(7, 9, 14, 0.75) 55%, rgba(7, 9, 14, 0.9) 100%),
+        linear-gradient(to right, rgba(7, 9, 14, 0.95) 0%, rgba(7, 9, 14, 0.6) 50%, rgba(7, 9, 14, 0.85) 100%);
     }
 
-    /* STATS */
-    .stats-bar {
+    /* TOP SYSTEM BAR */
+    .ps5-topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 70px;
+      padding: 0 40px;
       display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+      background: rgba(7, 9, 14, 0.6);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    @media (max-width: 768px) {
+      .ps5-topbar {
+        padding: 0 16px;
+        height: 60px;
+      }
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ps-logo-badge {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #0070d1 0%, #00f2fe 100%);
+      display: flex;
+      align-items: center;
       justify-content: center;
-      gap: 20px;
-      flex-wrap: wrap;
-      margin-bottom: 40px;
+      font-weight: 900;
+      font-size: 1.1rem;
+      color: #fff;
+      box-shadow: 0 0 15px rgba(0, 112, 209, 0.6);
     }
 
-    .stat-item {
-      background: var(--bg-card);
-      border: 1px solid var(--border-card);
-      padding: 12px 24px;
-      border-radius: 12px;
-      text-align: center;
-      min-width: 130px;
+    .user-info-text {
+      display: flex;
+      flex-direction: column;
     }
 
-    .stat-val {
-      font-size: 1.8rem;
+    .user-name {
+      font-size: 0.95rem;
       font-weight: 800;
-      color: var(--cyan);
+      letter-spacing: 0.5px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    .user-tagline {
+      font-size: 0.75rem;
+      color: var(--text-muted);
       font-family: 'JetBrains Mono', monospace;
     }
 
-    .stat-lbl {
+    /* TOP VIEW TABS */
+    .top-nav-tabs {
+      display: flex;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    @media (max-width: 600px) {
+      .top-nav-tabs {
+        display: none;
+      }
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 6px 18px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tab-btn.active {
+      background: #ffffff;
+      color: #07090e;
+      box-shadow: 0 2px 10px rgba(255, 255, 255, 0.2);
+    }
+
+    /* TOP RIGHT TOOLS */
+    .top-tools {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .tool-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tool-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+
+    .system-clock {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    /* MAIN CONSOLE VIEWPORT */
+    #console-view {
+      position: relative;
+      z-index: 10;
+      padding-top: 90px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* PS5 HORIZONTAL RIBBON CAROUSEL */
+    .ribbon-wrapper {
+      padding: 10px 40px;
+      position: relative;
+    }
+
+    @media (max-width: 768px) {
+      .ribbon-wrapper {
+        padding: 10px 16px;
+      }
+    }
+
+    .ribbon-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .ribbon-category-label {
+      font-size: 0.85rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--cyan);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-hints {
       font-size: 0.8rem;
       color: var(--text-dim);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
     }
 
-    /* FILTERS */
-    .filters {
+    .key-badge {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 0.75rem;
+    }
+
+    .ribbon-track {
       display: flex;
-      justify-content: center;
+      gap: 18px;
+      overflow-x: auto;
+      scroll-behavior: smooth;
+      padding: 12px 6px 20px 6px;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE */
+    }
+
+    .ribbon-track::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
+    }
+
+    /* PS5 GAME TILE */
+    .game-tile {
+      flex: 0 0 160px;
+      height: 160px;
+      border-radius: 18px;
+      background: #111622;
+      border: 2px solid transparent;
+      overflow: hidden;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    @media (max-width: 768px) {
+      .game-tile {
+        flex: 0 0 130px;
+        height: 130px;
+        border-radius: 14px;
+      }
+    }
+
+    .game-tile:hover {
+      transform: translateY(-6px) scale(1.04);
+      border-color: rgba(255, 255, 255, 0.5);
+      box-shadow: 0 14px 35px rgba(0, 0, 0, 0.6);
+    }
+
+    .game-tile.active {
+      transform: translateY(-8px) scale(1.08);
+      border-color: #ffffff;
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.45), 0 16px 40px rgba(0, 0, 0, 0.7);
+    }
+
+    .game-tile img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.4s ease;
+    }
+
+    .game-tile:hover img, .game-tile.active img {
+      transform: scale(1.06);
+    }
+
+    .tile-badge-step {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(6px);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .game-tile.active .tile-badge-step {
+      background: var(--ps5-blue);
+      border-color: #fff;
+    }
+
+    .tile-highlight-indicator {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: transparent;
+      transition: background 0.3s;
+    }
+
+    .game-tile.active .tile-highlight-indicator {
+      background: linear-gradient(90deg, var(--cyan), #ffffff, var(--cyan));
+      box-shadow: 0 0 12px var(--cyan);
+    }
+
+    /* PS5 ACTIVE GAME HUB HERO */
+    .game-hub {
+      padding: 10px 40px 40px;
+      max-width: 1400px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 30px;
+    }
+
+    @media (min-width: 1024px) {
+      .game-hub {
+        grid-template-columns: 1.25fr 0.95fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .game-hub {
+        padding: 10px 16px 30px;
+      }
+    }
+
+    .hub-left {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+    }
+
+    .hub-step-banner {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      letter-spacing: 1px;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      width: fit-content;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .hub-step-banner.standard {
+      background: rgba(0, 242, 254, 0.12);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 242, 254, 0.35);
+    }
+
+    .hub-step-banner.failure {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .hub-step-banner.success {
+      background: rgba(16, 185, 129, 0.18);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.45);
+    }
+
+    .hub-step-banner.warning {
+      background: rgba(245, 158, 11, 0.18);
+      color: #fde047;
+      border: 1px solid rgba(245, 158, 11, 0.45);
+    }
+
+    .hub-step-banner.special {
+      background: rgba(168, 85, 247, 0.18);
+      color: #d8b4fe;
+      border: 1px solid rgba(168, 85, 247, 0.45);
+    }
+
+    .hub-step-banner.highlight {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.45);
+    }
+
+    .hub-title {
+      font-size: clamp(2rem, 3.8vw, 3.4rem);
+      font-weight: 900;
+      line-height: 1.1;
+      color: #ffffff;
+      margin-bottom: 16px;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    }
+
+    .hub-meta-tags {
+      display: flex;
       gap: 10px;
       flex-wrap: wrap;
-      margin-bottom: 50px;
+      margin-bottom: 24px;
     }
 
-    .filter-btn {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border-card);
-      color: var(--text-muted);
-      padding: 8px 18px;
-      border-radius: 999px;
+    .meta-tag {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
       font-weight: 600;
-      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* PS5 PRIMARY ACTION BUTTONS */
+    .hub-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .btn-ps5-play {
+      background: #ffffff;
+      color: #07090e;
+      font-weight: 900;
+      font-size: 1.05rem;
+      padding: 14px 32px;
+      border-radius: 999px;
+      border: none;
       cursor: pointer;
-      transition: all 0.25s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 6px 25px rgba(255, 255, 255, 0.4), 0 0 40px rgba(0, 112, 209, 0.3);
     }
 
-    .filter-btn:hover, .filter-btn.active {
-      background: var(--cyan);
-      color: #0b0e14;
-      border-color: var(--cyan);
-      box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
+    .btn-ps5-play:hover {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 10px 35px rgba(255, 255, 255, 0.6), 0 0 50px rgba(0, 242, 254, 0.5);
+      background: #00f2fe;
+      color: #07090e;
     }
 
-    /* TIMELINE */
-    .timeline {
-      max-width: 960px;
+    .btn-ps5-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.92rem;
+      padding: 13px 22px;
+      border-radius: 999px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-ps5-secondary:hover {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-2px);
+    }
+
+    /* SUB BUILDS BAR (For Carequinha and Special Tests) */
+    .sub-builds-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 12px 16px;
+      border-radius: 12px;
+    }
+
+    .sub-build-btn {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #f1f5f9;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .sub-build-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: #fff;
+      transform: translateY(-2px);
+    }
+
+    /* PS5 DETAILS CARDS (RIGHT SIDE) */
+    .hub-right {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .ps5-card {
+      background: rgba(14, 18, 28, 0.75);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      transition: border-color 0.25s;
+    }
+
+    .ps5-card:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .ps5-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 8px;
+    }
+
+    .ps5-card-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: #fff;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .ps5-card-body {
+      font-size: 0.95rem;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+
+    /* PHASE BLOCKS (P1, P2, P3) */
+    .phase-block {
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+
+    .phase-block:last-child {
+      margin-bottom: 0;
+    }
+
+    .phase-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .phase-badge.p1 {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+
+    .phase-badge.p2 {
+      background: rgba(245, 158, 11, 0.2);
+      color: #fde047;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+
+    .phase-badge.p3 {
+      background: rgba(16, 185, 129, 0.2);
+      color: #86efac;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    /* CONTROLLER FOOTER HINT */
+    .ps5-footer-bar {
+      padding: 16px 40px;
+      background: rgba(7, 9, 14, 0.8);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+      font-size: 0.85rem;
+      color: var(--text-dim);
+    }
+
+    @media (max-width: 768px) {
+      .ps5-footer-bar {
+        padding: 14px 16px;
+      }
+    }
+
+    .controller-hints {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .controller-hint-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .controller-btn-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    /* CLASSIC TIMELINE VIEW CONTAINER */
+    #timeline-view {
+      display: none;
+      padding: 100px 20px 80px;
+      max-width: 980px;
       margin: 0 auto;
-      padding: 0 20px 80px;
       position: relative;
+      z-index: 10;
+    }
+
+    #timeline-view.active-view {
+      display: block;
+    }
+
+    #console-view.hidden-view {
+      display: none;
+    }
+
+    /* TIMELINE STYLES */
+    .timeline {
+      position: relative;
+      padding-left: 20px;
     }
 
     .timeline::before {
       content: '';
       position: absolute;
       top: 0;
-      bottom: 80px;
+      bottom: 40px;
       left: 35px;
       width: 2px;
       background: linear-gradient(180deg, var(--cyan) 0%, var(--purple) 50%, var(--gold) 100%);
       opacity: 0.3;
     }
 
-    @media (min-width: 768px) {
-      .timeline::before {
-        left: 50px;
-      }
-    }
-
     .timeline-item {
       position: relative;
       margin-bottom: 50px;
       padding-left: 70px;
-      transition: transform 0.3s ease;
-    }
-
-    @media (min-width: 768px) {
-      .timeline-item {
-        padding-left: 95px;
-      }
     }
 
     .node-marker {
@@ -189,71 +768,18 @@
       width: 24px;
       height: 24px;
       border-radius: 50%;
-      background: var(--bg-main);
+      background: var(--bg-dark);
       border: 3px solid var(--cyan);
       box-shadow: 0 0 15px rgba(0, 242, 254, 0.6);
       z-index: 2;
     }
 
-    @media (min-width: 768px) {
-      .node-marker {
-        left: 39px;
-      }
-    }
-
-    .timeline-item[data-cat="godot"] .node-marker {
-      border-color: var(--purple);
-      box-shadow: 0 0 15px rgba(139, 92, 246, 0.6);
-    }
-
-    .timeline-item[data-cat="2d"] .node-marker {
-      border-color: var(--gold);
-      box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
-    }
-
-    /* CARD DESIGN */
     .test-card {
       background: var(--bg-card);
       border: 1px solid var(--border-card);
       border-radius: var(--radius);
       padding: 28px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-      position: relative;
-    }
-
-    .test-card:hover {
-      border-color: rgba(56, 189, 248, 0.4);
-      background: var(--bg-card-hover);
-      transform: translateY(-4px);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(56, 189, 248, 0.1);
-    }
-
-    .step-banner {
-      display: inline-block;
-      font-size: 0.85rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--cyan);
-      margin-bottom: 8px;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .step-banner.success {
-      color: var(--green);
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      padding: 2px 10px;
-      border-radius: 6px;
-    }
-
-    .timeline-item[data-cat="godot"] .step-banner {
-      color: #a78bfa;
-    }
-
-    .timeline-item[data-cat="2d"] .step-banner {
-      color: #fbbf24;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     }
 
     .card-header-flex {
@@ -268,7 +794,7 @@
     .game-title {
       font-size: 1.5rem;
       font-weight: 800;
-      color: #ffffff;
+      color: #fff;
     }
 
     .date-badge {
@@ -279,7 +805,6 @@
       padding: 4px 12px;
       border-radius: 6px;
       color: var(--text-muted);
-      white-space: nowrap;
     }
 
     .card-body {
@@ -295,90 +820,6 @@
       }
     }
 
-    .story-text {
-      font-size: 1rem;
-      color: #cbd5e1;
-      margin-bottom: 16px;
-      line-height: 1.6;
-    }
-
-    .highlight-success {
-      color: #34d399;
-      font-weight: 600;
-    }
-
-    .highlight-reason {
-      color: #fbbf24;
-      font-weight: 600;
-    }
-
-    .tech-used {
-      background: rgba(0, 0, 0, 0.25);
-      border-left: 3px solid var(--cyan);
-      padding: 10px 14px;
-      border-radius: 4px 8px 8px 4px;
-      font-size: 0.9rem;
-      color: var(--text-muted);
-      margin-bottom: 20px;
-    }
-
-    .timeline-item[data-cat="godot"] .tech-used {
-      border-left-color: var(--purple);
-    }
-
-    .timeline-item[data-cat="2d"] .tech-used {
-      border-left-color: var(--gold);
-    }
-
-    .tech-used strong {
-      color: #ffffff;
-    }
-
-    /* PHASE BLOCKS (P1, P2, P3) */
-    .phase-block {
-      background: rgba(0, 0, 0, 0.24);
-      border: 1px solid rgba(255, 255, 255, 0.07);
-      border-radius: 10px;
-      padding: 14px 16px;
-      margin-bottom: 12px;
-      transition: border-color 0.2s ease;
-    }
-
-    .phase-block:hover {
-      border-color: rgba(255, 255, 255, 0.15);
-    }
-
-    .phase-badge {
-      display: inline-block;
-      font-size: 0.75rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 3px 8px;
-      border-radius: 4px;
-      margin-bottom: 8px;
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .phase-badge.p1 {
-      background: rgba(239, 68, 68, 0.15);
-      color: #fca5a5;
-      border: 1px solid rgba(239, 68, 68, 0.35);
-    }
-
-    .phase-badge.p2 {
-      background: rgba(245, 158, 11, 0.15);
-      color: #fde047;
-      border: 1px solid rgba(245, 158, 11, 0.35);
-    }
-
-    .phase-badge.p3 {
-      background: rgba(16, 185, 129, 0.15);
-      color: #86efac;
-      border: 1px solid rgba(16, 185, 129, 0.35);
-    }
-
-    /* THUMB CONTAINER */
     .thumb-wrap {
       position: relative;
       border-radius: 10px;
@@ -393,18 +834,13 @@
       height: 100%;
       object-fit: cover;
       display: block;
-      transition: transform 0.3s ease;
-    }
-
-    .card-thumb:hover {
-      transform: scale(1.05);
     }
 
     .thumb-tag {
       position: absolute;
       bottom: 8px;
       left: 8px;
-      background: rgba(0, 0, 0, 0.75);
+      background: rgba(0, 0, 0, 0.8);
       backdrop-filter: blur(4px);
       padding: 3px 8px;
       border-radius: 4px;
@@ -414,81 +850,6 @@
       border: 1px solid rgba(56, 189, 248, 0.3);
     }
 
-    /* ACTIONS ROW */
-    .card-actions {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    .btn-play {
-      background: linear-gradient(135deg, var(--cyan) 0%, #0099ff 100%);
-      color: #0b0e14;
-      font-weight: 800;
-      font-size: 0.95rem;
-      padding: 12px 24px;
-      border-radius: 10px;
-      border: none;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      transition: all 0.25s ease;
-      text-decoration: none;
-      box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
-    }
-
-    .btn-play:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 25px rgba(0, 242, 254, 0.5);
-      background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
-      color: #0b0e14;
-    }
-
-    .btn-concept {
-      background: rgba(245, 158, 11, 0.15);
-      border: 1px solid rgba(245, 158, 11, 0.4);
-      color: #fbbf24;
-      font-weight: 700;
-      font-size: 0.85rem;
-      padding: 11px 16px;
-      border-radius: 10px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s ease;
-    }
-
-    .btn-concept:hover {
-      background: rgba(245, 158, 11, 0.25);
-      border-color: #fbbf24;
-      color: #ffffff;
-      transform: translateY(-1px);
-    }
-
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border-card);
-      color: var(--text-muted);
-      font-weight: 600;
-      font-size: 0.85rem;
-      padding: 11px 16px;
-      border-radius: 10px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      text-decoration: none;
-      transition: all 0.2s ease;
-    }
-
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #ffffff;
-    }
-
     /* CONCEPT LIGHTBOX MODAL */
     #concept-modal {
       position: fixed;
@@ -496,8 +857,8 @@
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: rgba(3, 5, 8, 0.92);
-      backdrop-filter: blur(10px);
+      background: rgba(3, 5, 8, 0.94);
+      backdrop-filter: blur(12px);
       z-index: 99999;
       display: none;
       justify-content: center;
@@ -510,22 +871,28 @@
     }
 
     .concept-box {
-      background: var(--bg-card);
-      border: 1px solid var(--border-card);
-      border-radius: 16px;
-      max-width: 800px;
+      background: #0f1422;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 18px;
+      max-width: 820px;
       width: 100%;
-      max-height: 90vh;
+      max-height: 92vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
+      animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalPop {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
     }
 
     .concept-header {
       padding: 16px 24px;
-      background: #0f141f;
-      border-bottom: 1px solid var(--border-card);
+      background: #090c14;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -533,7 +900,7 @@
 
     .concept-title {
       font-size: 1.15rem;
-      font-weight: 700;
+      font-weight: 800;
       color: #ffffff;
     }
 
@@ -548,7 +915,7 @@
     }
 
     .concept-body {
-      padding: 20px;
+      padding: 24px;
       overflow-y: auto;
       text-align: center;
     }
@@ -557,10 +924,10 @@
       max-width: 100%;
       max-height: 55vh;
       object-fit: contain;
-      border-radius: 8px;
-      border: 1px solid var(--border-card);
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
       background: #000;
-      margin-bottom: 15px;
+      margin-bottom: 16px;
     }
 
     .concept-desc {
@@ -568,400 +935,183 @@
       color: var(--text-muted);
       line-height: 1.5;
       text-align: left;
-      background: rgba(0, 0, 0, 0.25);
-      padding: 14px;
-      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 16px;
+      border-radius: 10px;
       border-left: 3px solid var(--gold);
-    }
-
-    footer {
-      text-align: center;
-      padding: 40px 20px;
-      border-top: 1px solid var(--border-card);
-      color: var(--text-dim);
-      font-size: 0.9rem;
     }
   </style>
 </head>
 <body>
 
-  <!-- HEADER -->
-  <header>
-    <div class="badge-year">🚀 GamesTestes2026 • Portfólio Gamer</div>
-    <h1>Minha Trajetória GameDev</h1>
-    <p class="hero-subtitle">
-      A história real de cada protótipo e aprendizado ao longo de 2026. 
-      De arenas 3D em Three.js a Godot Engine e personagens 2D procedurais desenhados por código.
-    </p>
+  <!-- DYNAMIC PS5 BACKDROP LAYER -->
+  <div id="ps5-backdrop-container">
+    <div id="backdrop-img-1" class="backdrop-image active"></div>
+    <div id="backdrop-img-2" class="backdrop-image"></div>
+    <div class="backdrop-overlay"></div>
+  </div>
 
-    <!-- STATS -->
-    <div class="stats-bar">
-      <div class="stat-item">
-        <div class="stat-val">7</div>
-        <div class="stat-lbl">Grandes Marcos</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-val">10+</div>
-        <div class="stat-lbl">Protótipos</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-val">3</div>
-        <div class="stat-lbl">Tecnologias</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-val">4</div>
-        <div class="stat-lbl">IAs Testadas</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-val">100%</div>
-        <div class="stat-lbl">No Navegador</div>
+  <!-- TOP SYSTEM BAR (PS5 OS STYLE) -->
+  <header class="ps5-topbar">
+    <div class="user-profile">
+      <div class="ps-logo-badge">PS</div>
+      <div class="user-info-text">
+        <span class="user-name">
+          Victor Williames
+          <span class="status-dot" title="Online no GameDev Hub"></span>
+        </span>
+        <span class="user-tagline">Trajetória GameDev 2026</span>
       </div>
     </div>
 
-    <!-- FILTERS -->
-    <div class="filters">
-      <button class="filter-btn active" data-filter="all">Todos os Testes</button>
-      <button class="filter-btn" data-filter="threejs">3D Three.js & Godot</button>
-      <button class="filter-btn" data-filter="2d">2D Canvas Procedural</button>
+    <!-- VIEW TABS -->
+    <nav class="top-nav-tabs">
+      <button class="tab-btn active" id="tab-console" onclick="switchView('console')">
+        🎮 Console Hub
+      </button>
+      <button class="tab-btn" id="tab-timeline" onclick="switchView('timeline')">
+        📜 Linha do Tempo
+      </button>
+    </nav>
+
+    <!-- TOP RIGHT TOOLS -->
+    <div class="top-tools">
+      <button class="tool-btn" id="audio-toggle-btn" onclick="toggleAudio()" title="Ativar/Desativar Efeitos Sonoros">
+        🔊 Som: ON
+      </button>
+      <div class="system-clock" id="system-clock">00:00</div>
     </div>
   </header>
 
-  <!-- TIMELINE NARRATIVE -->
-  <main class="timeline">
+  <!-- ========================================== -->
+  <!-- 1. MODO CONSOLE HUB (PS5 DASHBOARD)       -->
+  <!-- ========================================== -->
+  <main id="console-view">
+    <div>
+      <!-- HORIZONTAL PS5 GAMES RIBBON -->
+      <section class="ribbon-wrapper">
+        <div class="ribbon-header-row">
+          <div class="ribbon-category-label">
+            <span>EXPLORAR JOGOS & PROTÓTIPOS</span>
+            <span style="color: var(--text-dim); font-size: 0.75rem;">(7 MARCOS CONSOLIDADOS)</span>
+          </div>
+          <div class="nav-hints">
+            <span>Navegar:</span>
+            <span class="key-badge">◄</span>
+            <span class="key-badge">►</span>
+            <span style="margin-left: 6px;">Jogar:</span>
+            <span class="key-badge">ENTER</span>
+          </div>
+        </div>
 
-    <!-- 1º TESTE -->
-    <div class="timeline-item" data-cat="threejs">
-      <div class="node-marker"></div>
-      <div class="test-card">
-        <div class="step-banner">ESSE FOI O 1º TESTE MEU</div>
-        <div class="card-header-flex">
-          <h2 class="game-title">Arena do Gladiador v1</h2>
-          <span class="date-badge">17/07/2026</span>
+        <div class="ribbon-track" id="ribbon-track">
+          <!-- Game tiles generated dynamically by JS -->
         </div>
-        <div class="card-body has-media">
-          <div class="card-info">
-            <p class="story-text">
-              Meu primeiro passo tentando criar um jogo 3D direto na web! Construí uma arena de combate de gladiadores romanos em um coliseu circular, com barra de vida, stamina, movimentação com joystick virtual para celular, dummies de treino e arquitetura pronta para multiplayer com Colyseus.
-            </p>
-            <div class="tech-used">
-              <strong>O que usei:</strong> Three.js, TypeScript, Vite, WebGL nativo, HUD em CSS responsivo e Colyseus.
+      </section>
+
+      <!-- ACTIVE GAME HERO SECTION -->
+      <section class="game-hub" id="game-hub">
+        
+        <!-- LEFT: TITLES & ACTIONS -->
+        <div class="hub-left">
+          <div class="hub-step-banner standard" id="hub-step-banner">
+            ESSE FOI O 1º TESTE MEU
+          </div>
+          
+          <h1 class="hub-title" id="hub-title">
+            Arena do Gladiador v1
+          </h1>
+
+          <div class="hub-meta-tags" id="hub-meta-tags">
+            <span class="meta-tag">3D Three.js</span>
+            <span class="meta-tag">17/07/2026</span>
+            <span class="meta-tag">60 FPS</span>
+          </div>
+
+          <!-- PRIMARY ACTION BUTTONS -->
+          <div class="hub-actions">
+            <a href="#" target="_blank" class="btn-ps5-play" id="hub-btn-play" onclick="playLaunchSound()">
+              ▶ INICIAR JOGO ↗
+            </a>
+            <button class="btn-ps5-secondary" id="hub-btn-concept" onclick="openActiveConcept()">
+              🎯 Ver Conceito Alvo
+            </button>
+            <a href="#" target="_blank" class="btn-ps5-secondary" id="hub-btn-code">
+              📁 Ver Código
+            </a>
+          </div>
+
+          <!-- SUB BUILDS BAR (For Carequinha and Special Tests) -->
+          <div class="sub-builds-row" id="hub-sub-builds" style="display: none;">
+            <!-- Sub builds buttons injected by JS -->
+          </div>
+        </div>
+
+        <!-- RIGHT: PS5 DETAILS & STORY CARDS -->
+        <div class="hub-right">
+          <!-- STORY CARD -->
+          <div class="ps5-card">
+            <div class="ps5-card-header">
+              <span class="ps5-card-title">📖 História Real & Bastidores</span>
+              <span style="font-size: 0.75rem; color: var(--cyan); font-family: 'JetBrains Mono', monospace;" id="hub-date-badge">17/07/2026</span>
             </div>
-            <div class="card-actions">
-              <a href="game-3D-test-gladiador-v1-threejs-17-07-2026/client/dist/index.html" target="_blank" class="btn-play">
-                🎮 JOGAR AGORA ↗
-              </a>
-              <button class="btn-concept" onclick="openConcept('game-3D-test-gladiador-v1-threejs-17-07-2026/reference-prints-game/print2-game.png', 'Conceito da Arena', 'A referência visual do coliseu, iluminação e disposição da arena romana que buscávamos criar.')">
-                🎯 Ver Conceito Alvo
-              </button>
-              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-gladiador-v1-threejs-17-07-2026" target="_blank" class="btn-secondary">
-                📁 Ver Código
-              </a>
+            <div class="ps5-card-body" id="hub-story-body">
+              <!-- Story content or P1/P2/P3 injected by JS -->
             </div>
           </div>
-          <div class="thumb-wrap">
-            <img src="game-3D-test-gladiador-v1-threejs-17-07-2026/reference-prints-game/print1-gamee.png" alt="Print Real do Jogo Gladiador v1" class="card-thumb">
-            <span class="thumb-tag">📸 Print Real do Jogo</span>
+
+          <!-- TECH CARD -->
+          <div class="ps5-card">
+            <div class="ps5-card-header">
+              <span class="ps5-card-title">⚙️ Ficha Técnica & Mecânicas</span>
+            </div>
+            <div class="ps5-card-body" id="hub-tech-body" style="font-size: 0.88rem; color: #94a3b8;">
+              <!-- Tech info injected by JS -->
+            </div>
           </div>
         </div>
-      </div>
+
+      </section>
     </div>
 
-    <!-- 2º TESTE -->
-    <div class="timeline-item" data-cat="threejs">
-      <div class="node-marker"></div>
-      <div class="test-card">
-        <div class="step-banner">ESSE FOI O 2º TESTE MEU</div>
-        <div class="card-header-flex">
-          <h2 class="game-title">Gladiador v2 (Stickman Procedural 3D)</h2>
-          <span class="date-badge">17/07/2026</span>
+    <!-- CONTROLLER & HINTS FOOTER -->
+    <footer class="ps5-footer-bar">
+      <div class="controller-hints">
+        <div class="controller-hint-item">
+          <span class="controller-btn-icon">◄►</span>
+          <span>Trocar Jogo</span>
         </div>
-        <div class="card-body has-media">
-          <div class="card-info">
-            <p class="story-text">
-              Para deixar o jogo ultra leve e rodar liso sem carregar modelos pesados, criei o personagem inteiro (um Stickman articulado) e as texturas diretamente via código. Adicionei shaders de iluminação pós-processada (Bloom), física de combate e modos de câmera (visão isométrica Diablo vs câmera de ação Witcher).
-            </p>
-            <div class="tech-used">
-              <strong>O que usei:</strong> Three.js puro procedural, ES Modules nativos, OrbitControls, UnrealBloomPass e Procedural Mesh.
-            </div>
-            <div class="card-actions">
-              <a href="game-3D-test-gladiador-v2-stickman-17-07-2026/index.html" target="_blank" class="btn-play">
-                🎮 JOGAR AGORA ↗
-              </a>
-              <button class="btn-concept" onclick="openConcept('game-3D-test-gladiador-v2-stickman-17-07-2026/reference-prints-game/print2-game.png', 'Conceito Stickman', 'A referência visual do stickman procedural com iluminação e silhueta dinâmica.')">
-                🎯 Ver Conceito Alvo
-              </button>
-              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-gladiador-v2-stickman-17-07-2026" target="_blank" class="btn-secondary">
-                📁 Ver Código
-              </a>
-            </div>
-          </div>
-          <div class="thumb-wrap">
-            <img src="game-3D-test-gladiador-v2-stickman-17-07-2026/reference-prints-game/print1-gamee.png" alt="Print Real Gladiador v2" class="card-thumb">
-            <span class="thumb-tag">📸 Print Real do Jogo</span>
-          </div>
+        <div class="controller-hint-item">
+          <span class="controller-btn-icon" style="background: #0070d1;">✕</span>
+          <span>Iniciar Jogo</span>
+        </div>
+        <div class="controller-hint-item">
+          <span class="controller-btn-icon" style="background: #f59e0b;">□</span>
+          <span>Ver Conceito</span>
+        </div>
+        <div class="controller-hint-item">
+          <span class="controller-btn-icon" style="background: #10b981;">△</span>
+          <span>Alternar Modo</span>
         </div>
       </div>
-    </div>
-
-    <!-- 3º TESTE -->
-    <div class="timeline-item" data-cat="threejs">
-      <div class="node-marker" style="border-color: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);"></div>
-      <div class="test-card">
-        <div class="step-banner" style="color: #f87171; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); padding: 2px 10px; border-radius: 6px;">
-          ESSE FOI O 3º TESTE MEU • O FRACASSO INICIAL ⚠️
-        </div>
-        <div class="card-header-flex">
-          <h2 class="game-title">MOBA v0 (Grid & Tentativa com Assets Prontos)</h2>
-          <span class="date-badge">15/10/2026</span>
-        </div>
-        <div class="card-body has-media">
-          <div class="card-info">
-            <p class="story-text">
-              Neste terceiro teste, tentei importar assets 3D prontos externos (modelos, mapas e texturas) diretamente para o Three.js. <strong>Mas na primeira tentativa deu tudo errado e ficou tudo bugado:</strong> as texturas ficaram invertidas, os shaders quebraram, a malha de colisão não alinhava e deu erro de renderização. Foi um fracasso inicial frustrante!
-            </p>
-            <p class="story-text">
-              Mas eu não desisti: absorvi os erros, entendi como a pipeline do Three.js tratava os formatos e, no teste seguinte, recriei o projeto do zero e consegui consertar tudo (que foi o teste da Caitlyn, o grande sucesso!).
-            </p>
-            <div class="tech-used">
-              <strong>O que usei:</strong> Three.js, Raycasting de mira, cursores customizados (.cur), shaders de Grid e depuração de malhas 3D externas.
-            </div>
-            <div class="card-actions">
-              <a href="game-3D-test-threejs-moba-v2-grid-15-10-2026/jogo/dist/index.html" target="_blank" class="btn-play">
-                🎮 JOGAR AGORA ↗
-              </a>
-              <button class="btn-concept" onclick="openConcept('game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/UI/ref-ui-interface-lol-2026.png', 'Interface Alvo', 'A interface e estilo de MOBA profissional que buscávamos replicar nessa fase.')">
-                🎯 Ver Conceito Alvo
-              </button>
-              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-threejs-moba-v2-grid-15-10-2026" target="_blank" class="btn-secondary">
-                📁 Ver Código
-              </a>
-            </div>
-          </div>
-          <div class="thumb-wrap">
-            <img src="game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/UI/ref-ui-interface-lol-2026.png" alt="Print Real da Tentativa de Grid" class="card-thumb">
-            <span class="thumb-tag">📸 Print Real do Teste</span>
-          </div>
-        </div>
+      <div id="gamepad-status" style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--cyan);">
+        🎮 Teclado Ativo • Suporte a Controle Plug-and-Play
       </div>
-    </div>
-
-    <!-- 4º TESTE -->
-    <div class="timeline-item" data-cat="threejs">
-      <div class="node-marker" style="border-color: #10b981; box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);"></div>
-      <div class="test-card" style="border-color: rgba(16, 185, 129, 0.4);">
-        <div class="step-banner success">ESSE FOI O 4º TESTE MEU • O GRANDE SUCESSO 🏆</div>
-        <div class="card-header-flex">
-          <h2 class="game-title">1v1 MOBA Arena: Caitlyn vs Master Yi IA</h2>
-          <span class="date-badge">20/07/2026</span>
-        </div>
-        <div class="card-body has-media">
-          <div class="card-info">
-            <p class="story-text">
-              Depois que o teste anterior deu errado, refiz o projeto do zero focando na <strong>Caitlyn</strong>, e esse teste <span class="highlight-success">FOI O GRANDE SUCESSO!</span> Conseguimos fazer a réplica completa com tudo funcionando: rotas, torres automáticas que disparam, ondas de minions marchando, tiros balísticos e animações da Caitlyn e uma IA completa controlando o Master Yi contra ela! <span class="highlight-success">Esse foi o melhor resultado que alcancei até aquele momento.</span>
-            </p>
-            <p class="story-text">
-              <span class="highlight-reason">Por que não continuei daqui?</span> Por dois motivos bem claros: <strong>1)</strong> Eu queria criar algo 100% original meu, sem usar personagens e propriedade intelectual dos outros (como os da Riot/LoL); <strong>2)</strong> Ter que ficar modelando em 3D ou desenhando em 2D e animando manualmente dá um trabalho absurdo que eu não queria ter. Então fui procurar outras formas inovadoras de produzir jogos (o que me levou à animação procedural por código). Mas o resultado até aqui ficou incrível e provou que a mecânica funcionava perfeitamente!
-            </p>
-            <div style="background: rgba(139, 92, 246, 0.12); border-left: 3px solid var(--purple); padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 0.92rem; color: #cbd5e1;">
-              💡 <strong>Experimento com Godot Engine 4.7:</strong> Depois de terminar esse teste no Three.js, recriei esse mesmo projeto no Godot 4.7 para ver se ficaria igual — e até que consegui! O código completo na engine (com shaders de anti-aliasing e exportação WebAssembly) continua 100% salvo no repositório GitHub.
-            </div>
-            <div class="tech-used">
-              <strong>O que usei:</strong> Three.js, TypeScript, Finite State Machines (FSM de minions e bot do Master Yi), sistema de torres defensivas, projéteis da Caitlyn e réplica no Godot Engine 4.7.
-            </div>
-            <div class="card-actions">
-              <a href="game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/index.html" target="_blank" class="btn-play">
-                🎮 JOGAR CAITLYN (Three.js) ↗
-              </a>
-              <button class="btn-concept" onclick="openConcept('game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/UI/ref-ui-interface-lol-2026.png', 'Referência da Caitlyn & HUD', 'A referência visual do League of Legends 2026 que serviu de meta para o combate e HUD.')">
-                🎯 Ver Conceito Alvo
-              </button>
-              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-threejs-moba-v1-caitlyn-20-07-2026" target="_blank" class="btn-secondary">
-                📁 Ver Código Three.js
-              </a>
-              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-godot-moba-18-10-2026" target="_blank" class="btn-secondary" style="border-color: rgba(139, 92, 246, 0.4); color: #c4b5fd;">
-                📁 Ver Código Godot 4.7
-              </a>
-            </div>
-          </div>
-          <div class="thumb-wrap">
-            <img src="game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/logs/gameplay_test.png" alt="Print Real da Caitlyn jogável" class="card-thumb">
-            <span class="thumb-tag">📸 Print Real do Jogo</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 5º TESTE -->
-    <div class="timeline-item" data-cat="2d">
-      <div class="node-marker"></div>
-      <div class="test-card">
-        <div class="step-banner" style="color: #f59e0b; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); padding: 2px 10px; border-radius: 6px;">
-          ESSE FOI O 5º TESTE MEU • 1ª TENTATIVA PROCEDURAL (QUASE DESISTI AQUI! ⚠️)
-        </div>
-        <div class="card-header-flex">
-          <h2 class="game-title">O Bake-Off 2D & O Fiasco do "Bando de PNGs"</h2>
-          <span class="date-badge">19/10/2026</span>
-        </div>
-        <div class="card-body has-media">
-          <div class="card-info">
-            
-            <!-- PARTE 1 -->
-            <div class="phase-block">
-              <span class="phase-badge p1">Parte 1 (Início) • A Montagem Fracassada dos Recortes</span>
-              <p class="story-text" style="margin-bottom: 0;">
-                Foi aqui que comecei a tentar fazer jogos em 2D procedural. No meu primeiro teste criei as partes do personagem, recortei tudo, mas na hora de montar no código não deu certo: virou só um bando de PNGs estáticos colados na tela que nem se mexiam e não prestavam pra nada! Foi frustrante, mas foi a primeira tentativa real de abandonar a animação manual frame a frame.
-              </p>
-            </div>
-
-            <!-- PARTE 2 -->
-            <div class="phase-block">
-              <span class="phase-badge p2">Parte 2 (Meio) • O Bake-Off e a Disputa entre 4 IAs</span>
-              <p class="story-text" style="margin-bottom: 0;">
-                Para tentar destravar o desenvolvimento, fui quebrando a cabeça e melhorando a lógica. Montei um 'Bake-Off' técnico colocando 4 inteligências artificiais (ChatGPT, Codex, DeepSeek e Antigravity) para competir lado a lado, tentando desenhar o herói puro em código HTML5 Canvas com ciclos de animação e resposta aos controles.
-              </p>
-            </div>
-
-            <!-- PARTE 3 -->
-            <div class="phase-block">
-              <span class="phase-badge p3">Parte 3 (Fim) • Protótipo Jogável, mas "Ainda Parece PNG"</span>
-              <p class="story-text" style="margin-bottom: 6px;">
-                Consegui chegar nesse protótipo jogável na arena da ilha com movimentação e combos. Só que quando fui testar, percebi o problema: o personagem <em>ainda parecia um bando de PNGs recortados deslizando na tela</em>, e não um personagem verdadeiramente procedural e orgânico!
-              </p>
-              <p class="story-text" style="color: #fca5a5; margin-bottom: 0;">
-                <strong>Eu estava quase desistindo de gamedev aqui!</strong> A decepção foi enorme por não atingir a fluidez desejada, mas respirei fundo e decidi continuar tentando novas abordagens nas tentativas seguintes.
-              </p>
-            </div>
-
-            <div class="tech-used">
-              <strong>O que usei:</strong> HTML5 Canvas 2D nativo, tentativa inicial de montagem de recortes PNG, primeiros passos de rig procedural e disputa entre 4 IAs.
-            </div>
-            <div class="card-actions">
-              <a href="game-2D-test-bakeoff-multi-ia-19-10-2026/prototypes/antigravity/desenho-v1-antigravity/index.html" target="_blank" class="btn-play">
-                🎮 JOGAR AGORA ↗
-              </a>
-              <button class="btn-concept" onclick="openConcept('game-2D-test-bakeoff-multi-ia-19-10-2026/assets/references/ref-2d-hero/hero-complet-idle/hero-idle-s.png', 'Recortes do Bixo PNG', 'Os sprites e partes originais recortadas que na primeira tentativa ficaram travados como um bando de PNGs estáticos.')">
-                🎯 Ver Recortes PNG Alvo
-              </button>
-              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-bakeoff-multi-ia-19-10-2026" target="_blank" class="btn-secondary">
-                📁 Ver Código
-              </a>
-            </div>
-          </div>
-          <div class="thumb-wrap">
-            <img src="game-2D-test-bakeoff-multi-ia-19-10-2026/prototypes/antigravity/desenho-v1-antigravity/screenshots/12-arena-island-idle.png" alt="Print Real na Arena do Bixo PNG" class="card-thumb">
-            <span class="thumb-tag">📸 Print Real do "Bixo Parece PNG"</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 6º TESTE -->
-    <div class="timeline-item" data-cat="2d">
-      <div class="node-marker"></div>
-      <div class="test-card">
-        <div class="step-banner" style="color: #00f2fe; background: rgba(0, 242, 254, 0.12); border: 1px solid rgba(0, 242, 254, 0.3); padding: 2px 10px; border-radius: 6px;">
-          ESSE FOI O 6º TESTE MEU • A SAGA DO CAREQUINHA (3 ETAPAS UNIFICADAS) ⚡
-        </div>
-        <div class="card-header-flex">
-          <h2 class="game-title">A Saga do Carequinha: Da Falha do DeepSeek ao Motor Antigravity 2.5D</h2>
-          <span class="date-badge">20 a 22/10/2026</span>
-        </div>
-        <div class="card-body has-media">
-          <div class="card-info">
-            
-            <!-- PARTE 1 -->
-            <div class="phase-block">
-              <span class="phase-badge p1">Parte 1 (Início) • A Entrega DeepSeek que "Nem Prestou" 😅</span>
-              <p class="story-text" style="margin-bottom: 0;">
-                Coloquei o DeepSeek para tentar desenhar o herói e montar a prancha de poses por código, <strong>mas esse nem prestou!</strong> O resultado visual ficou tosco e desproporcional, a rotação das poses ficou esquisita, o tronco e a cabeça não batiam e o rig mal conseguia se equilibrar. Fiz questão de deixar jogável aqui para mostrar a realidade: nem todo teste dá certo de primeira!
-              </p>
-            </div>
-
-            <!-- PARTE 2 -->
-            <div class="phase-block">
-              <span class="phase-badge p2">Parte 2 (Meio) • O Protótipo V1 Standalone na Arena com Tochas</span>
-              <p class="story-text" style="margin-bottom: 0;">
-                Para não depender de modelos engessados, isolei o rig do Carequinha em uma arena escura com tochas e iluminação dinâmica. Aqui começamos a acertar a cinemática inversa (IK analítica) das pernas, a rotação suave do personagem mirando no mouse e o primeiro ciclo funcional de combo de espada em 3 golpes.
-              </p>
-            </div>
-
-            <!-- PARTE 3 -->
-            <div class="phase-block">
-              <span class="phase-badge p3">Parte 3 (Fim) • O Motor Completo Consolidado pelo Antigravity</span>
-              <p class="story-text" style="margin-bottom: 0;">
-                O salto definitivo do Carequinha! Com engenharia completa do Antigravity, o motor 2.5D foi consolidado: arena com grid em perspectiva isométrica, sombras dinâmicas, partículas de faísca a cada impacto, turnaround de 360° ultra suave e combos encadeados estilo Hades rodando a mais de 200 FPS direto no navegador!
-              </p>
-            </div>
-
-            <div class="tech-used">
-              <strong>O que usei:</strong> Motor 2.5D Canvas, cinemática inversa analítica (IK), coordenadas cilíndricas, sistema de iluminação radial, partículas de combate e turnaround 360°.
-            </div>
-            <div class="card-actions">
-              <a href="game-2D-test-antigravity-carequinha-20-10-2026/index.html" target="_blank" class="btn-play">
-                🎮 JOGAR MOTOR COMPLETO (Antigravity) ↗
-              </a>
-              <a href="game-2D-test-carequinha-v1-20-10-2026/index.html" target="_blank" class="btn-secondary" style="border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;">
-                🕹️ Testar V1 Standalone ↗
-              </a>
-              <a href="game-2D-test-deepseek-carequinha-20-10-2026/index.html" target="_blank" class="btn-secondary" style="border-color: rgba(239, 68, 68, 0.4); color: #f87171;">
-                ⚠️ Ver Entrega DeepSeek ↗
-              </a>
-              <button class="btn-concept" onclick="openConcept('assets-referencias-heros-23-10-2026/hero-carequinha/model-like-hades-2-5d.png', 'Arte Hades do Carequinha', 'A arte conceitual original estilo Hades que inspirou a criação do Carequinha e que buscamos atingir nessas 3 etapas.')">
-                🎯 Ver Conceito Hades
-              </button>
-              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-antigravity-carequinha-20-10-2026" target="_blank" class="btn-secondary">
-                📁 Ver Código
-              </a>
-            </div>
-          </div>
-          <div class="thumb-wrap">
-            <img src="game-2D-test-antigravity-carequinha-20-10-2026/prototipos/do-deepseek/prototipo-v1-deepseek/artifacts/v1-jogo-golpe.png" alt="Print Real do Golpe do Carequinha" class="card-thumb">
-            <span class="thumb-tag">📸 Print Real do Carequinha</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 7º TESTE -->
-    <div class="timeline-item" data-cat="2d">
-      <div class="node-marker" style="border-color: #f59e0b; box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);"></div>
-      <div class="test-card" style="border-color: rgba(245, 158, 11, 0.35);">
-        <div class="step-banner" style="color: #fbbf24; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); padding: 2px 10px; border-radius: 6px;">
-          ESSE FOI O 7º TESTE MEU • O NOVO HERÓI & RIGGING IK DEFINITIVO 👑
-        </div>
-        <div class="card-header-flex">
-          <h2 class="game-title">Cavaleiro Ruivo 2.5D (Evolução & Rigging IK Avançado)</h2>
-          <span class="date-badge">20 a 23/10/2026</span>
-        </div>
-        <div class="card-body has-media">
-          <div class="card-info">
-            <p class="story-text">
-              O mais recente e avançado teste! Evolução do motor para o novo herói: o Cavaleiro de Cabelos Vermelhos. Armadura completa e mechas estilizadas desenhadas diretamente por código Canvas, turnaround em 8 direções e sistema de rigging com cinemática inversa analítica de 2 segmentos em tempo real nos braços e pernas, além de bancada de testes de comparação lado a lado e hitboxes dinâmicas de combate.
-            </p>
-            <div class="tech-used">
-              <strong>O que usei:</strong> HTML5 Canvas 2D nativo, IK de 2 segmentos, banco de vetores do novo herói ruivo, bancada de comparação lado a lado e hitboxes de impacto.
-            </div>
-            <div class="card-actions">
-              <a href="game-2D-test-antigravity-ruivo-20-10-2026/index.html" target="_blank" class="btn-play">
-                🎮 JOGAR CAVALEIRO RUIVO ↗
-              </a>
-              <button class="btn-concept" onclick="openConcept('assets-referencias-heros-23-10-2026/hero-cabeca-red/Folha de poses do cavaleiro ruivo chia.png', 'Folha de Poses Cavaleiro Ruivo', 'A folha modelo com 8 ângulos de visão e poses de ataque do novo herói.')">
-                🎯 Ver Conceito Alvo
-              </button>
-              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-antigravity-ruivo-20-10-2026" target="_blank" class="btn-secondary">
-                📁 Ver Código
-              </a>
-            </div>
-          </div>
-          <div class="thumb-wrap">
-            <img src="game-2D-test-antigravity-ruivo-20-10-2026/test_game.png" alt="Print Real do Jogo Cavaleiro Ruivo" class="card-thumb">
-            <span class="thumb-tag">📸 Print Real do Jogo</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
+    </footer>
   </main>
+
+  <!-- ========================================== -->
+  <!-- 2. MODO LINHA DO TEMPO CLÁSSICA           -->
+  <!-- ========================================== -->
+  <section id="timeline-view">
+    <div style="text-align: center; margin-bottom: 40px;">
+      <h2 style="font-size: 2.2rem; font-weight: 900; color: #fff;">Linha do Tempo Completa</h2>
+      <p style="color: var(--text-muted); margin-top: 6px;">Visualização clássica em lista de todos os 7 grandes marcos da trajetória 2026.</p>
+    </div>
+    <div class="timeline" id="classic-timeline-container">
+      <!-- Generated dynamically from gamesData -->
+    </div>
+  </section>
 
   <!-- CONCEPT LIGHTBOX MODAL -->
   <div id="concept-modal" onclick="closeConceptOnOverlay(event)">
@@ -977,64 +1127,562 @@
     </div>
   </div>
 
-  <!-- FOOTER -->
-  <footer>
-    <p>GamesTestes2026 • Portfólio & Trajetória GameDev por Victor Williames</p>
-    <p style="margin-top: 6px; font-size: 0.8rem; color: #475569;">
-      Todos os protótipos rodam 100% no navegador via GitHub Pages sem necessidade de backend.
-    </p>
-  </footer>
-
-  <!-- SCRIPT -->
+  <!-- ========================================== -->
+  <!-- JAVASCRIPT & PS5 ENGINE                    -->
+  <!-- ========================================== -->
   <script>
-    // Concept Lightbox Modal
-    const conceptModal = document.getElementById('concept-modal');
-    const conceptImg = document.getElementById('concept-img');
-    const conceptTitle = document.getElementById('concept-title');
-    const conceptDesc = document.getElementById('concept-desc');
+    // 1. DATA SOURCE FOR ALL 7 GAME MILESTONES
+    const gamesData = [
+      {
+        id: "gladiador-v1",
+        num: 1,
+        banner: "ESSE FOI O 1º TESTE MEU",
+        bannerClass: "standard",
+        title: "Arena do Gladiador v1",
+        date: "17/07/2026",
+        cat: "threejs",
+        categoryLabel: "3D Three.js",
+        thumb: "game-3D-test-gladiador-v1-threejs-17-07-2026/reference-prints-game/print1-gamee.png",
+        conceptImg: "game-3D-test-gladiador-v1-threejs-17-07-2026/reference-prints-game/print2-game.png",
+        conceptTitle: "Conceito da Arena",
+        conceptDesc: "A referência visual do coliseu, iluminação e disposição da arena romana que buscávamos criar.",
+        playUrl: "game-3D-test-gladiador-v1-threejs-17-07-2026/client/dist/index.html",
+        codeUrl: "https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-gladiador-v1-threejs-17-07-2026",
+        tech: "Three.js, TypeScript, Vite, WebGL nativo, HUD CSS responsivo e Colyseus.",
+        story: "Meu primeiro passo tentando criar um jogo 3D direto na web! Construí uma arena de combate de gladiadores romanos em um coliseu circular, com barra de vida, stamina, movimentação com joystick virtual para celular, dummies de treino e arquitetura pronta para multiplayer com Colyseus."
+      },
+      {
+        id: "gladiador-v2",
+        num: 2,
+        banner: "ESSE FOI O 2º TESTE MEU",
+        bannerClass: "standard",
+        title: "Gladiador v2 (Stickman Procedural 3D)",
+        date: "17/07/2026",
+        cat: "threejs",
+        categoryLabel: "3D Three.js",
+        thumb: "game-3D-test-gladiador-v2-stickman-17-07-2026/reference-prints-game/print1-gamee.png",
+        conceptImg: "game-3D-test-gladiador-v2-stickman-17-07-2026/reference-prints-game/print2-game.png",
+        conceptTitle: "Conceito Stickman",
+        conceptDesc: "A referência visual do stickman procedural com iluminação e silhueta dinâmica.",
+        playUrl: "game-3D-test-gladiador-v2-stickman-17-07-2026/index.html",
+        codeUrl: "https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-gladiador-v2-stickman-17-07-2026",
+        tech: "Three.js puro procedural, ES Modules nativos, OrbitControls, UnrealBloomPass e Procedural Mesh.",
+        story: "Para deixar o jogo ultra leve e rodar liso sem carregar modelos pesados, criei o personagem inteiro (um Stickman articulado) e as texturas diretamente via código. Adicionei shaders de iluminação pós-processada (Bloom), física de combate e modos de câmera (visão isométrica Diablo vs câmera de ação Witcher)."
+      },
+      {
+        id: "moba-v0",
+        num: 3,
+        banner: "ESSE FOI O 3º TESTE MEU • O FRACASSO INICIAL ⚠️",
+        bannerClass: "failure",
+        title: "MOBA v0 (Grid & Tentativa com Assets Prontos)",
+        date: "15/10/2026",
+        cat: "threejs",
+        categoryLabel: "3D Three.js",
+        thumb: "game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/UI/ref-ui-interface-lol-2026.png",
+        conceptImg: "game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/UI/ref-ui-interface-lol-2026.png",
+        conceptTitle: "Interface Alvo",
+        conceptDesc: "A interface e estilo de MOBA profissional que buscávamos replicar nessa fase.",
+        playUrl: "game-3D-test-threejs-moba-v2-grid-15-10-2026/jogo/dist/index.html",
+        codeUrl: "https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-threejs-moba-v2-grid-15-10-2026",
+        tech: "Three.js, Raycasting de mira, cursores customizados (.cur), shaders de Grid e depuração de malhas 3D externas.",
+        story: "Neste terceiro teste, tentei importar assets 3D prontos externos (modelos, mapas e texturas) diretamente para o Three.js. <strong>Mas na primeira tentativa deu tudo errado e ficou tudo bugado:</strong> as texturas ficaram invertidas, os shaders quebraram, a malha de colisão não alinhava e deu erro de renderização. Foi um fracasso inicial frustrante!<br><br>Mas eu não desisti: absorvi os erros, entendi como a pipeline do Three.js tratava os formatos e, no teste seguinte, recriei o projeto do zero e consegui consertar tudo (que foi o teste da Caitlyn, o grande sucesso!)."
+      },
+      {
+        id: "moba-caitlyn",
+        num: 4,
+        banner: "ESSE FOI O 4º TESTE MEU • O GRANDE SUCESSO 🏆",
+        bannerClass: "success",
+        title: "1v1 MOBA Arena: Caitlyn vs Master Yi IA",
+        date: "20/07/2026",
+        cat: "threejs",
+        categoryLabel: "3D Three.js & Godot",
+        thumb: "game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/logs/gameplay_test.png",
+        conceptImg: "game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/UI/ref-ui-interface-lol-2026.png",
+        conceptTitle: "Referência da Caitlyn & HUD",
+        conceptDesc: "A referência visual do League of Legends 2026 que serviu de meta para o combate e HUD.",
+        playUrl: "game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/index.html",
+        codeUrl: "https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-threejs-moba-v1-caitlyn-20-07-2026",
+        tech: "Three.js, TypeScript, Finite State Machines (minions e bot Master Yi), torres defensivas e réplica no Godot Engine 4.7.",
+        story: "Depois que o teste anterior deu errado, refiz o projeto do zero focando na <strong>Caitlyn</strong>, e esse teste <span style='color: #34d399; font-weight: bold;'>FOI O GRANDE SUCESSO!</span> Conseguimos fazer a réplica completa com tudo funcionando: rotas, torres automáticas que disparam, ondas de minions marchando, tiros balísticos e animações da Caitlyn e uma IA completa controlando o Master Yi contra ela! <span style='color: #34d399; font-weight: bold;'>Esse foi o melhor resultado que alcancei até aquele momento.</span><br><br><span style='color: #fbbf24; font-weight: bold;'>Por que não continuei daqui?</span> Por dois motivos bem claros: <strong>1)</strong> Eu queria criar algo 100% original meu, sem usar personagens e propriedade intelectual dos outros (como os da Riot/LoL); <strong>2)</strong> Ter que ficar modelando em 3D ou desenhando em 2D e animando manualmente dá um trabalho absurdo que eu não queria ter. Então fui procurar outras formas inovadoras de produzir jogos (o que me levou à animação procedural por código).",
+        extraNote: "💡 <strong>Experimento com Godot Engine 4.7:</strong> Depois de terminar esse teste no Three.js, recriei esse mesmo projeto no Godot 4.7 para ver se ficaria igual — e até que consegui! O código completo na engine continua 100% salvo no repositório.",
+        subBuilds: [
+          { label: "📁 Ver Código Godot 4.7 no GitHub", url: "https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-godot-moba-18-10-2026" }
+        ]
+      },
+      {
+        id: "bakeoff-png",
+        num: 5,
+        banner: "ESSE FOI O 5º TESTE MEU • 1ª TENTATIVA PROCEDURAL (QUASE DESISTI AQUI! ⚠️)",
+        bannerClass: "warning",
+        title: "O Bake-Off 2D & O Fiasco do 'Bando de PNGs'",
+        date: "19/10/2026",
+        cat: "2d",
+        categoryLabel: "2D Canvas Procedural",
+        thumb: "game-2D-test-bakeoff-multi-ia-19-10-2026/prototypes/antigravity/desenho-v1-antigravity/screenshots/12-arena-island-idle.png",
+        conceptImg: "game-2D-test-bakeoff-multi-ia-19-10-2026/assets/references/ref-2d-hero/hero-complet-idle/hero-idle-s.png",
+        conceptTitle: "Recortes do Bixo PNG",
+        conceptDesc: "Os sprites e partes originais recortadas que na primeira tentativa ficaram travados como um bando de PNGs estáticos.",
+        playUrl: "game-2D-test-bakeoff-multi-ia-19-10-2026/prototypes/antigravity/desenho-v1-antigravity/index.html",
+        codeUrl: "https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-bakeoff-multi-ia-19-10-2026",
+        tech: "HTML5 Canvas 2D nativo, tentativa de recortes PNG, primeiros passos de rig procedural e disputa entre 4 IAs.",
+        phases: [
+          {
+            badge: "Parte 1 (Início) • A Montagem Fracassada dos Recortes",
+            badgeClass: "p1",
+            text: "Foi aqui que comecei a tentar fazer jogos em 2D procedural. No meu primeiro teste criei as partes do personagem, recortei tudo, mas na hora de montar no código não deu certo: virou só um bando de PNGs estáticos colados na tela que nem se mexiam e não prestavam pra nada! Foi frustrante, mas foi a primeira tentativa real de abandonar a animação manual frame a frame."
+          },
+          {
+            badge: "Parte 2 (Meio) • O Bake-Off e a Disputa entre 4 IAs",
+            badgeClass: "p2",
+            text: "Para tentar destravar o desenvolvimento, fui quebrando a cabeça e melhorando a lógica. Montei um 'Bake-Off' técnico colocando 4 inteligências artificiais (ChatGPT, Codex, DeepSeek e Antigravity) para competir lado a lado, tentando desenhar o herói puro em código HTML5 Canvas com ciclos de animação e resposta aos controles."
+          },
+          {
+            badge: "Parte 3 (Fim) • Protótipo Jogável, mas 'Ainda Parece PNG'",
+            badgeClass: "p3",
+            text: "Consegui chegar nesse protótipo jogável na arena da ilha com movimentação e combos. Só que quando fui testar, percebi o problema: o personagem <em>ainda parecia um bando de PNGs recortados deslizando na tela</em>, e não um personagem verdadeiramente procedural e orgânico!<br><br><strong style='color: #fca5a5;'>Eu estava quase desistindo de gamedev aqui!</strong> A decepção foi enorme por não atingir a fluidez desejada, mas respirei fundo e decidi continuar tentando novas abordagens nas tentativas seguintes."
+          }
+        ]
+      },
+      {
+        id: "saga-carequinha",
+        num: 6,
+        banner: "ESSE FOI O 6º TESTE MEU • A SAGA DO CAREQUINHA (3 ETAPAS UNIFICADAS) ⚡",
+        bannerClass: "special",
+        title: "A Saga do Carequinha: Da Falha do DeepSeek ao Motor Antigravity 2.5D",
+        date: "20 a 22/10/2026",
+        cat: "2d",
+        categoryLabel: "2D Canvas Procedural",
+        thumb: "game-2D-test-antigravity-carequinha-20-10-2026/prototipos/do-deepseek/prototipo-v1-deepseek/artifacts/v1-jogo-golpe.png",
+        conceptImg: "assets-referencias-heros-23-10-2026/hero-carequinha/model-like-hades-2-5d.png",
+        conceptTitle: "Arte Hades do Carequinha",
+        conceptDesc: "A arte conceitual original estilo Hades que inspirou a criação do Carequinha e que buscamos atingir nessas 3 etapas.",
+        playUrl: "game-2D-test-antigravity-carequinha-20-10-2026/index.html",
+        codeUrl: "https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-antigravity-carequinha-20-10-2026",
+        tech: "Motor 2.5D Canvas, cinemática inversa analítica (IK), coordenadas cilíndricas, iluminação radial, partículas de combate e turnaround 360°.",
+        subBuilds: [
+          { label: "🎮 Jogar Motor Completo (Antigravity)", url: "game-2D-test-antigravity-carequinha-20-10-2026/index.html" },
+          { label: "🕹️ Testar V1 Standalone", url: "game-2D-test-carequinha-v1-20-10-2026/index.html" },
+          { label: "⚠️ Ver Entrega DeepSeek", url: "game-2D-test-deepseek-carequinha-20-10-2026/index.html" }
+        ],
+        phases: [
+          {
+            badge: "Parte 1 (Início) • A Entrega DeepSeek que 'Nem Prestou' 😅",
+            badgeClass: "p1",
+            text: "Coloquei o DeepSeek para tentar desenhar o herói e montar a prancha de poses por código, <strong>mas esse nem prestou!</strong> O resultado visual ficou tosco e desproporcional, a rotação das poses ficou esquisita, o tronco e a cabeça não batiam e o rig mal conseguia se equilibrar. Fiz questão de deixar jogável aqui para mostrar a realidade: nem todo teste dá certo de primeira!"
+          },
+          {
+            badge: "Parte 2 (Meio) • O Protótipo V1 Standalone na Arena com Tochas",
+            badgeClass: "p2",
+            text: "Para não depender de modelos engessados, isolei o rig do Carequinha em uma arena escura com tochas e iluminação dinâmica. Aqui começamos a acertar a cinemática inversa (IK analítica) das pernas, a rotação suave do personagem mirando no mouse e o primeiro ciclo funcional de combo de espada em 3 golpes."
+          },
+          {
+            badge: "Parte 3 (Fim) • O Motor Completo Consolidado pelo Antigravity",
+            badgeClass: "p3",
+            text: "O salto definitivo do Carequinha! Com engenharia completa do Antigravity, o motor 2.5D foi consolidado: arena com grid em perspectiva isométrica, sombras dinâmicas, partículas de faísca a cada impacto, turnaround de 360° ultra suave e combos encadeados estilo Hades rodando a mais de 200 FPS direto no navegador!"
+          }
+        ]
+      },
+      {
+        id: "cavaleiro-ruivo",
+        num: 7,
+        banner: "ESSE FOI O 7º TESTE MEU • O NOVO HERÓI & RIGGING IK DEFINITIVO 👑",
+        bannerClass: "highlight",
+        title: "Cavaleiro Ruivo 2.5D (Evolução & Rigging IK Avançado)",
+        date: "20 a 23/10/2026",
+        cat: "2d",
+        categoryLabel: "2D Canvas Procedural",
+        thumb: "game-2D-test-antigravity-ruivo-20-10-2026/test_game.png",
+        conceptImg: "assets-referencias-heros-23-10-2026/hero-cabeca-red/Folha de poses do cavaleiro ruivo chia.png",
+        conceptTitle: "Folha de Poses Cavaleiro Ruivo",
+        conceptDesc: "A folha modelo com 8 ângulos de visão e poses de ataque do novo herói.",
+        playUrl: "game-2D-test-antigravity-ruivo-20-10-2026/index.html",
+        codeUrl: "https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-antigravity-ruivo-20-10-2026",
+        tech: "HTML5 Canvas 2D nativo, IK de 2 segmentos, banco de vetores do novo herói ruivo, bancada de comparação lado a lado e hitboxes de impacto.",
+        story: "O mais recente e avançado teste! Evolução do motor para o novo herói: o Cavaleiro de Cabelos Vermelhos. Armadura completa e mechas estilizadas desenhadas diretamente por código Canvas, turnaround em 8 direções e sistema de rigging com cinemática inversa analítica de 2 segmentos em tempo real nos braços e pernas, além de bancada de testes de comparação lado a lado e hitboxes dinâmicas de combate."
+      }
+    ];
+
+    // 2. STATE MANAGEMENT
+    let currentIndex = 0;
+    let activeBackdropLayer = 1;
+    let currentView = 'console'; // 'console' or 'timeline'
+    let soundEnabled = true;
+
+    // 3. SYNTHESIZED WEB AUDIO (PS5 SOUND FX)
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playTick() {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(560, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.04);
+      } catch(e) {}
+    }
+
+    function playLaunchSound() {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.22);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.22);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.22);
+      } catch(e) {}
+    }
+
+    function toggleAudio() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('audio-toggle-btn');
+      btn.innerText = soundEnabled ? '🔊 Som: ON' : '🔇 Som: OFF';
+      if (soundEnabled) playTick();
+    }
+
+    // 4. CLOCK UPDATE
+    function updateClock() {
+      const now = new Date();
+      const hrs = String(now.getHours()).padStart(2, '0');
+      const mins = String(now.getMinutes()).padStart(2, '0');
+      document.getElementById('system-clock').innerText = hrs + ':' + mins;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // 5. VIEW SWITCHER
+    function switchView(viewName) {
+      currentView = viewName;
+      const consoleView = document.getElementById('console-view');
+      const timelineView = document.getElementById('timeline-view');
+      const tabConsole = document.getElementById('tab-console');
+      const tabTimeline = document.getElementById('tab-timeline');
+
+      if (viewName === 'console') {
+        consoleView.classList.remove('hidden-view');
+        timelineView.classList.remove('active-view');
+        tabConsole.classList.add('active');
+        tabTimeline.classList.remove('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        consoleView.classList.add('hidden-view');
+        timelineView.classList.add('active-view');
+        tabConsole.classList.remove('active');
+        tabTimeline.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      playTick();
+    }
+
+    // 6. BUILD RIBBON TRACK
+    function buildRibbon() {
+      const track = document.getElementById('ribbon-track');
+      track.innerHTML = '';
+
+      gamesData.forEach((game, idx) => {
+        const tile = document.createElement('div');
+        tile.className = 'game-tile' + (idx === 0 ? ' active' : '');
+        tile.id = 'tile-' + idx;
+        tile.onclick = () => selectGame(idx);
+
+        tile.innerHTML = `
+          <span class="tile-badge-step">#${game.num}</span>
+          <img src="${game.thumb}" alt="${game.title}" loading="lazy">
+          <div class="tile-highlight-indicator"></div>
+        `;
+
+        track.appendChild(tile);
+      });
+    }
+
+    // 7. BUILD CLASSIC TIMELINE LIST
+    function buildClassicTimeline() {
+      const container = document.getElementById('classic-timeline-container');
+      container.innerHTML = '';
+
+      gamesData.forEach((game) => {
+        let storyHtml = '';
+        if (game.phases) {
+          storyHtml = game.phases.map(p => `
+            <div class="phase-block">
+              <span class="phase-badge ${p.badgeClass}">${p.badge}</span>
+              <p style="margin: 0; font-size: 0.95rem; color: #cbd5e1;">${p.text}</p>
+            </div>
+          `).join('');
+        } else {
+          storyHtml = `<p style="font-size: 0.95rem; color: #cbd5e1; margin-bottom: 12px;">${game.story}</p>`;
+          if (game.extraNote) {
+            storyHtml += `<div style="background: rgba(139, 92, 246, 0.12); border-left: 3px solid var(--purple); padding: 10px 14px; border-radius: 6px; margin-bottom: 12px; font-size: 0.9rem; color: #cbd5e1;">${game.extraNote}</div>`;
+          }
+        }
+
+        const item = document.createElement('div');
+        item.className = 'timeline-item';
+        item.innerHTML = `
+          <div class="node-marker"></div>
+          <div class="test-card">
+            <div class="hub-step-banner ${game.bannerClass}" style="margin-bottom: 8px;">${game.banner}</div>
+            <div class="card-header-flex">
+              <h3 class="game-title">${game.title}</h3>
+              <span class="date-badge">${game.date}</span>
+            </div>
+            <div class="card-body has-media">
+              <div>
+                ${storyHtml}
+                <div style="background: rgba(0,0,0,0.3); border-left: 3px solid var(--cyan); padding: 10px 14px; border-radius: 4px; font-size: 0.88rem; color: var(--text-muted); margin: 15px 0;">
+                  <strong>O que usei:</strong> ${game.tech}
+                </div>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                  <a href="${game.playUrl}" target="_blank" class="btn-ps5-play" style="font-size: 0.85rem; padding: 10px 20px;">
+                    ▶ JOGAR AGORA ↗
+                  </a>
+                  <button class="btn-ps5-secondary" style="font-size: 0.85rem; padding: 9px 16px;" onclick="openConcept('${game.conceptImg}', '${game.conceptTitle}', '${game.conceptDesc}')">
+                    🎯 Ver Conceito
+                  </button>
+                  <a href="${game.codeUrl}" target="_blank" class="btn-ps5-secondary" style="font-size: 0.85rem; padding: 9px 16px;">
+                    📁 Ver Código
+                  </a>
+                </div>
+              </div>
+              <div class="thumb-wrap">
+                <img src="${game.thumb}" alt="${game.title}" class="card-thumb">
+                <span class="thumb-tag">📸 Print do Jogo</span>
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // 8. SELECT GAME IN PS5 CONSOLE HUB
+    function selectGame(index) {
+      if (index < 0 || index >= gamesData.length) return;
+      currentIndex = index;
+      const game = gamesData[index];
+
+      // Update Ribbon active tile
+      document.querySelectorAll('.game-tile').forEach((tile, i) => {
+        tile.classList.toggle('active', i === index);
+      });
+
+      // Scroll ribbon into view
+      const activeTile = document.getElementById('tile-' + index);
+      if (activeTile) {
+        activeTile.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+
+      // Backdrop Crossfade
+      const nextBackdrop = activeBackdropLayer === 1 ? document.getElementById('backdrop-img-2') : document.getElementById('backdrop-img-1');
+      const currBackdrop = activeBackdropLayer === 1 ? document.getElementById('backdrop-img-1') : document.getElementById('backdrop-img-2');
+
+      nextBackdrop.style.backgroundImage = `url('${game.thumb}')`;
+      nextBackdrop.classList.add('active');
+      currBackdrop.classList.remove('active');
+      activeBackdropLayer = activeBackdropLayer === 1 ? 2 : 1;
+
+      // Update Hero Content
+      const bannerEl = document.getElementById('hub-step-banner');
+      bannerEl.className = 'hub-step-banner ' + game.bannerClass;
+      bannerEl.innerText = game.banner;
+
+      document.getElementById('hub-title').innerText = game.title;
+      document.getElementById('hub-date-badge').innerText = game.date;
+
+      // Meta tags
+      const metaContainer = document.getElementById('hub-meta-tags');
+      metaContainer.innerHTML = `
+        <span class="meta-tag">${game.categoryLabel}</span>
+        <span class="meta-tag">📅 ${game.date}</span>
+        <span class="meta-tag">⚡ 60+ FPS</span>
+        <span class="meta-tag">100% Web</span>
+      `;
+
+      // Play & Code Links
+      const playBtn = document.getElementById('hub-btn-play');
+      playBtn.href = game.playUrl;
+
+      const codeBtn = document.getElementById('hub-btn-code');
+      codeBtn.href = game.codeUrl;
+
+      // Sub-Builds Bar
+      const subBuildsRow = document.getElementById('hub-sub-builds');
+      if (game.subBuilds && game.subBuilds.length > 0) {
+        subBuildsRow.style.display = 'flex';
+        subBuildsRow.innerHTML = game.subBuilds.map(sb => `
+          <a href="${sb.url}" target="_blank" class="sub-build-btn" onclick="playLaunchSound()">
+            ${sb.label} ↗
+          </a>
+        `).join('');
+      } else {
+        subBuildsRow.style.display = 'none';
+        subBuildsRow.innerHTML = '';
+      }
+
+      // Story & P1/P2/P3 Blocks
+      const storyContainer = document.getElementById('hub-story-body');
+      if (game.phases) {
+        storyContainer.innerHTML = game.phases.map(p => `
+          <div class="phase-block">
+            <span class="phase-badge ${p.badgeClass}">${p.badge}</span>
+            <p style="margin: 0; font-size: 0.92rem; color: #cbd5e1; line-height: 1.55;">${p.text}</p>
+          </div>
+        `).join('');
+      } else {
+        let content = `<p style="font-size: 0.95rem; line-height: 1.6; color: #cbd5e1;">${game.story}</p>`;
+        if (game.extraNote) {
+          content += `<div style="margin-top: 14px; background: rgba(168, 85, 247, 0.15); border-left: 3px solid var(--purple); padding: 10px 14px; border-radius: 6px; font-size: 0.9rem; color: #e9d5ff;">${game.extraNote}</div>`;
+        }
+        storyContainer.innerHTML = content;
+      }
+
+      // Tech details
+      document.getElementById('hub-tech-body').innerHTML = `
+        <p style="margin-bottom: 6px;"><strong style="color: #fff;">Tecnologias:</strong> ${game.tech}</p>
+        <p style="font-size: 0.8rem; color: var(--text-dim);">Roda direto no navegador sem necessidade de plugins ou downloads adicionais.</p>
+      `;
+
+      playTick();
+    }
+
+    // 9. OPEN ACTIVE CONCEPT MODAL
+    function openActiveConcept() {
+      const game = gamesData[currentIndex];
+      openConcept(game.conceptImg, game.conceptTitle, game.conceptDesc);
+    }
 
     function openConcept(imgUrl, title, desc) {
-      conceptTitle.innerText = "🎯 Conceito Alvo: " + title;
-      conceptImg.src = imgUrl;
-      conceptDesc.innerHTML = "<strong>O que queríamos atingir:</strong> " + desc;
-      conceptModal.classList.add('active');
+      document.getElementById('concept-title').innerText = "🎯 Conceito Alvo: " + title;
+      document.getElementById('concept-img').src = imgUrl;
+      document.getElementById('concept-desc').innerHTML = "<strong>O que queríamos atingir:</strong> " + desc;
+      document.getElementById('concept-modal').classList.add('active');
       document.body.style.overflow = 'hidden';
+      playTick();
     }
 
     function closeConcept() {
-      conceptModal.classList.remove('active');
-      conceptImg.src = '';
+      document.getElementById('concept-modal').classList.remove('active');
+      document.getElementById('concept-img').src = '';
       document.body.style.overflow = 'auto';
     }
 
     function closeConceptOnOverlay(e) {
-      if (e.target === conceptModal) closeConcept();
+      if (e.target === document.getElementById('concept-modal')) closeConcept();
     }
 
-    // Close on Escape key
+    // 10. KEYBOARD NAVIGATION (PS5 ARROW KEYS & SHORTCUTS)
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeConcept();
+      // Escape closes modal
+      if (e.key === 'Escape') {
+        closeConcept();
+        return;
+      }
+
+      // Only navigate if concept modal is closed
+      if (document.getElementById('concept-modal').classList.contains('active')) return;
+
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        if (currentView === 'console') {
+          const next = (currentIndex + 1) % gamesData.length;
+          selectGame(next);
+        }
+      } else if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        if (currentView === 'console') {
+          const prev = (currentIndex - 1 + gamesData.length) % gamesData.length;
+          selectGame(prev);
+        }
+      } else if (e.key === 'Enter') {
+        if (currentView === 'console') {
+          playLaunchSound();
+          window.open(gamesData[currentIndex].playUrl, '_blank');
+        }
+      } else if (e.key === 'i' || e.key === 'I') {
+        openActiveConcept();
+      } else if (e.key === 't' || e.key === 'T') {
+        switchView(currentView === 'console' ? 'timeline' : 'console');
+      }
     });
 
-    // Category Filtering
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    const items = document.querySelectorAll('.timeline-item');
+    // 11. GAMEPAD CONTROLLER API (DUALSENSE / XBOX CONTROLLER SUPPORT)
+    let lastButtonPress = 0;
 
-    filterButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        filterButtons.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+    function pollGamepad() {
+      const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+      let gp = null;
+      for (let i = 0; i < gamepads.length; i++) {
+        if (gamepads[i]) { gp = gamepads[i]; break; }
+      }
 
-        const filter = btn.getAttribute('data-filter');
+      const statusEl = document.getElementById('gamepad-status');
 
-        items.forEach(item => {
-          if (filter === 'all' || item.getAttribute('data-cat') === filter) {
-            item.style.display = 'block';
-          } else {
-            item.style.display = 'none';
+      if (gp) {
+        statusEl.innerText = `🎮 ${gp.id.substring(0, 24)}... Conectado!`;
+        statusEl.style.color = '#10b981';
+
+        const now = Date.now();
+        if (now - lastButtonPress > 220) {
+          // D-Pad Left or Axis Left
+          if (gp.buttons[14]?.pressed || gp.axes[0] < -0.5) {
+            const prev = (currentIndex - 1 + gamesData.length) % gamesData.length;
+            selectGame(prev);
+            lastButtonPress = now;
           }
-        });
-      });
+          // D-Pad Right or Axis Right
+          else if (gp.buttons[15]?.pressed || gp.axes[0] > 0.5) {
+            const next = (currentIndex + 1) % gamesData.length;
+            selectGame(next);
+            lastButtonPress = now;
+          }
+          // Button 0 (Cross / 'A') = Iniciar Jogo
+          else if (gp.buttons[0]?.pressed) {
+            playLaunchSound();
+            window.open(gamesData[currentIndex].playUrl, '_blank');
+            lastButtonPress = now;
+          }
+          // Button 2 (Square / 'X') = Ver Conceito
+          else if (gp.buttons[2]?.pressed) {
+            openActiveConcept();
+            lastButtonPress = now;
+          }
+          // Button 3 (Triangle / 'Y') = Switch View
+          else if (gp.buttons[3]?.pressed) {
+            switchView(currentView === 'console' ? 'timeline' : 'console');
+            lastButtonPress = now;
+          }
+        }
+      }
+
+      requestAnimationFrame(pollGamepad);
+    }
+    requestAnimationFrame(pollGamepad);
+
+    // 12. INITIALIZATION ON LOAD
+    window.addEventListener('DOMContentLoaded', () => {
+      buildRibbon();
+      buildClassicTimeline();
+      selectGame(0);
     });
   </script>
 </body>

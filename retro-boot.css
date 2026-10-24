@@ -1,0 +1,83 @@
+/* CONSOLE EXPERIENCE V5 — Boot CRT, optional screen overlay and controls
+   Designed to enhance the original GameDev hub without changing game runtimes. */
+:root{--boot-electric:#64efff;--boot-milk:#f3faff;--boot-dim:#a6b5c9;}
+html,body{max-width:100%;overflow-x:hidden}
+body.retro-boot-visible{overflow:hidden!important}
+#retro-intro{position:fixed;inset:0;z-index:20000;display:grid;place-items:center;overflow:hidden;background:radial-gradient(ellipse 70% 55% at 50% 37%,#17243b 0%,#080c17 58%,#02040a 100%);color:#f9fbff;font-family:Outfit,system-ui,sans-serif;opacity:1;visibility:visible;transition:opacity .85s ease,visibility .85s ease;isolation:isolate;}
+#retro-intro[hidden]{display:none!important}
+#retro-intro::before{content:"";position:absolute;inset:0;opacity:.27;pointer-events:none;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(133,180,220,.06) 3px 4px),radial-gradient(circle at 50% 58%,transparent 5%,rgba(0,0,0,.65) 93%);}
+#retro-intro::after{content:"";position:absolute;inset:-50%;z-index:-1;background:conic-gradient(from 70deg at 50% 50%,transparent 0deg,rgba(40,165,235,.05) 20deg,transparent 70deg,rgba(255,109,48,.035) 180deg,transparent 280deg);animation:retro-atmosphere 38s linear infinite;pointer-events:none;}
+@keyframes retro-atmosphere{to{transform:rotate(360deg)}}
+#retro-intro[data-state="leaving"]{opacity:0;visibility:hidden;pointer-events:none}
+#retro-intro .retro-ambient-top{position:absolute;left:clamp(20px,4vw,66px);top:25px;display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.20em;font-weight:800;color:#aab9cc;text-transform:uppercase}
+#retro-intro .retro-ambient-top .light{width:8px;height:8px;border-radius:50%;background:#31e8c0;box-shadow:0 0 14px #31e8c0}
+#retro-intro .retro-intro-close{position:absolute;right:clamp(20px,4vw,66px);top:18px;border:1px solid rgba(196,218,250,.22);border-radius:12px;background:rgba(255,255,255,.05);padding:10px 14px;color:#b1c0d5;cursor:pointer;font:700 12px Outfit,sans-serif;transition:background .2s ease,color .2s ease;}
+#retro-intro .retro-intro-close:hover{background:rgba(255,255,255,.13);color:white}
+.retro-stage{position:relative;display:flex;flex-direction:column;align-items:center;width:min(900px,100%);padding:56px 18px 55px;transform:translateY(0);transition:transform .7s ease,filter .7s ease;}
+#retro-intro[data-state="leaving"] .retro-stage{transform:translateY(-15px) scale(1.06);filter:blur(7px)}
+.retro-tv{position:relative;width:min(640px,79vw);aspect-ratio:1.61;border-radius:36px;background:linear-gradient(145deg,#354154 0%,#121923 24%,#343d48 58%,#090d15 100%);padding:25px 60px 35px 31px;box-shadow:inset 3px 3px 2px rgba(255,255,255,.24),inset -9px -10px 25px rgba(0,0,0,.76),0 18px 0 #060911,0 36px 50px rgba(0,0,0,.76),0 0 110px rgba(48,140,214,.13);transform:perspective(1000px) rotateX(2deg) rotateY(-5deg);transform-origin:center;}
+.retro-tv::after{content:"";position:absolute;bottom:-27px;left:17%;right:17%;height:19px;border-radius:50%;background:#000;filter:blur(12px);opacity:.8}
+.retro-tv-screen-shell{height:100%;border-radius:33px / 27px;padding:11px;background:linear-gradient(150deg,#05080d,#303842 50%,#050811);border:3px solid #05080c;box-shadow:inset 0 0 17px #000,0 1px 0 rgba(255,255,255,.18);overflow:hidden;}
+.retro-tv-screen{height:100%;position:relative;border-radius:27px / 22px;overflow:hidden;background:radial-gradient(ellipse at 50% 47%,#0b151e 0%,#010408 75%);box-shadow:inset 0 0 38px #000;isolation:isolate;}
+.retro-tv-screen::before{content:"";position:absolute;inset:0;z-index:10;pointer-events:none;opacity:.45;background:repeating-linear-gradient(0deg,rgba(0,0,0,.05) 0 2px,rgba(0,0,0,.26) 2px 4px);}
+.retro-tv-screen::after{content:"";position:absolute;inset:0;z-index:11;pointer-events:none;box-shadow:inset 0 0 46px 27px rgba(0,0,0,.72),inset 0 0 7px 2px rgba(78,231,255,.25);border-radius:inherit;}
+.retro-tv-powerline{position:absolute;left:50%;top:50%;width:0;height:2px;transform:translate(-50%,-50%);background:#e8fcff;opacity:0;box-shadow:0 0 25px 8px rgba(205,248,255,.68);z-index:5;}
+.retro-tv-boot-content{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;opacity:0;z-index:6;text-align:center;transform:scale(.86);transition:opacity .4s ease,transform .5s ease}
+.retro-logo{width:64px;height:64px;border:2px solid #8ceaf7;border-radius:21px;display:grid;place-items:center;font-weight:900;font-size:36px;color:#d9faff;box-shadow:0 0 24px rgba(88,229,253,.37),inset 0 0 26px rgba(79,219,255,.12);text-shadow:0 0 16px #79ecff;}
+.retro-boot-brand{font-weight:900;font-size:clamp(17px,2vw,25px);letter-spacing:.15em;line-height:1.15;}
+.retro-boot-sub{font:600 clamp(8px,.8vw,11px)/1.4 ui-monospace,monospace;letter-spacing:.22em;color:#8fe6ec;}
+.retro-crt-static{position:absolute;inset:0;z-index:9;opacity:0;pointer-events:none;background:repeating-linear-gradient(90deg,rgba(255,255,255,.16) 0 1px,rgba(5,17,30,.22) 1px 3px),repeating-linear-gradient(0deg,rgba(255,255,255,.21) 0 1px,transparent 1px 5px);background-size:13px 100%,100% 11px;animation:retro-static .11s steps(2) infinite;}
+@keyframes retro-static{50%{background-position:11px -2px,0 7px}}
+#retro-intro[data-state="booting"] .retro-crt-static{animation:retro-static .11s steps(2) infinite,retro-noise-out 1.8s linear forwards;}
+@keyframes retro-noise-out{0%,22%{opacity:.85}55%{opacity:.22}100%{opacity:0}}
+#retro-intro[data-state="booting"] .retro-tv-powerline{animation:retro-tv-start 1.0s cubic-bezier(.1,.74,.4,1) both;}
+@keyframes retro-tv-start{0%{width:0;height:2px;opacity:0}12%{width:3%;opacity:1}40%{width:86%;height:3px;opacity:1}68%{width:92%;height:10%;opacity:.92}100%{width:102%;height:105%;opacity:.0}}
+#retro-intro[data-state="booting"] .retro-tv-screen{animation:retro-tube-bright 2.1s ease both;}
+@keyframes retro-tube-bright{0%{filter:brightness(.01)}21%{filter:brightness(.45)}35%{filter:brightness(2.3)}46%{filter:brightness(.8)}62%{filter:brightness(1.4)}100%{filter:brightness(1)}}
+#retro-intro[data-state="ready"] .retro-tv-boot-content,#retro-intro[data-state="leaving"] .retro-tv-boot-content{opacity:1;transform:scale(1)}
+.retro-tv-controls{position:absolute;right:12px;top:18%;bottom:19%;width:34px;display:flex;flex-direction:column;align-items:center;justify-content:space-around;gap:7px;}
+.retro-tv-knob{width:27px;height:27px;border-radius:50%;background:conic-gradient(#516070,#1b222f,#111821,#667184,#2a3340);border:3px solid #141b27;box-shadow:2px 3px 4px #000b,inset 1px 1px 3px #d6e4ff44;}
+.retro-tv-grill{width:24px;height:64px;border-radius:6px;background:repeating-linear-gradient(0deg,#06080e 0 3px,#56606a 3px 4px,#0d131b 4px 8px);opacity:.65}
+.retro-tv-stand{width:55%;height:22px;margin:4px auto 0;border-radius:2px 2px 13px 13px;background:linear-gradient(90deg,#0c131d,#404959 50%,#10151d);box-shadow:0 14px 25px rgba(0,0,0,.5);}
+.retro-console-area{position:relative;margin-top:22px;height:128px;width:min(360px,78vw);display:flex;align-items:center;justify-content:center;}
+.retro-console-cable{position:absolute;top:-19px;left:57%;height:45px;width:120px;border-left:3px solid #151e2b;border-bottom:3px solid #151e2b;border-radius:0 0 0 30px;transform:rotate(12deg);z-index:0;}
+.retro-machine{position:relative;transform:perspective(750px) rotateX(26deg) rotateY(-18deg);width:295px;height:95px;background:linear-gradient(168deg,#293345,#121b2a 39%,#050b14 100%);border:1px solid #758ba4;border-radius:20px 21px 17px 17px;box-shadow:inset 0 7px 12px rgba(233,246,255,.10),inset 0 -5px 11px rgba(0,0,0,.72),0 22px 0 #03070e,0 36px 32px #000b;z-index:1;transition:transform .32s cubic-bezier(.2,.8,.2,1);}
+.retro-machine:hover{transform:perspective(750px) rotateX(22deg) rotateY(-12deg) translateY(-2px);}
+.retro-machine::before{content:"";position:absolute;inset:16px 12px auto;height:8px;border-radius:7px;background:linear-gradient(90deg,#506177,#253347 40%,#49647a 90%);box-shadow:0 1px 2px #000;}
+.retro-machine::after{content:"";position:absolute;left:19px;right:19px;bottom:9px;height:8px;border-radius:6px;background:repeating-linear-gradient(90deg,#070e19 0 9px,#27384b 9px 11px);opacity:.74;}
+.retro-machine-brand{position:absolute;left:21px;top:33px;color:#eff7ff;font:900 15px Outfit,sans-serif;letter-spacing:.12em;}
+.retro-machine-small{font:700 8px ui-monospace,monospace;letter-spacing:.12em;color:#778fa6;display:block;margin-top:4px}
+.retro-machine-slot{position:absolute;right:70px;top:38px;width:89px;height:5px;border-radius:9px;background:#030811;box-shadow:0 1px 1px #a2b6d544;}
+.retro-machine-led{position:absolute;right:32px;top:36px;width:8px;height:8px;background:#502e38;border-radius:50%;box-shadow:0 0 2px #381b25;}
+#retro-intro[data-state="booting"] .retro-machine-led,#retro-intro[data-state="ready"] .retro-machine-led{background:#2dffc7;box-shadow:0 0 10px #30ffcf,0 0 19px #18aa9b}
+.retro-machine-power{position:absolute;right:15px;bottom:12px;width:48px;height:38px;border-radius:11px;background:linear-gradient(#313f54,#111926);border:2px solid #718ca4;box-shadow:0 3px 8px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.13);color:#a0eeff;display:grid;place-items:center;cursor:pointer;z-index:2;transition:color .2s ease,box-shadow .2s ease,transform .14s ease}
+.retro-machine-power:hover{color:white;box-shadow:0 0 17px rgba(59,235,255,.45),0 3px 6px rgba(0,0,0,.55)}
+.retro-machine-power:active{transform:translateY(2px)}
+.retro-machine-power svg{width:21px;height:21px;stroke:currentColor;stroke-width:2.5;fill:none;stroke-linecap:round}
+.retro-machine-power:focus-visible,.retro-main-power:focus-visible,.retro-intro-close:focus-visible,.retro-tool:focus-visible{outline:3px solid #b1fbff;outline-offset:5px}
+.retro-machine-power:disabled,.retro-main-power:disabled{opacity:.58;cursor:wait}
+.retro-boot-footer{margin-top:29px;display:flex;flex-direction:column;align-items:center;gap:9px;text-align:center;z-index:2}
+.retro-boot-kicker{font:800 10px ui-monospace,Consolas,monospace;letter-spacing:.26em;color:#59dcea}
+.retro-boot-title{font:850 clamp(23px,3vw,35px)/1.18 Outfit,sans-serif;letter-spacing:-.04em;margin:0;}
+.retro-boot-note{font:500 13px/1.5 Outfit,sans-serif;color:#9baabd;max-width:440px;margin:0;}
+.retro-main-power{min-height:46px;padding:11px 23px;display:inline-flex;align-items:center;gap:9px;justify-content:center;border-radius:999px;border:1px solid rgba(119,232,255,.65);background:linear-gradient(140deg,#0a8ea9,#06435e);box-shadow:0 0 24px rgba(6,169,220,.21);color:#fff;font:800 13px Outfit,sans-serif;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease;}
+.retro-main-power:hover{transform:translateY(-2px);box-shadow:0 0 28px rgba(22,190,236,.45);}
+#retro-intro[data-state="booting"] .retro-main-power{opacity:.65;pointer-events:none}
+#retro-intro[data-state="booting"] .retro-boot-note::after{content:" • Inicializando";color:#51e4f7}
+#retro-intro[data-state="ready"] .retro-boot-note{color:#85ffe6}
+.retro-smallprint{position:absolute;bottom:17px;left:0;right:0;text-align:center;font:700 10px ui-monospace,monospace;letter-spacing:.07em;color:#5e7087;}
+/* Console toolbar: fits inside existing user/status area. */
+.retro-tools{display:flex;align-items:center;gap:7px;margin-right:7px;flex-shrink:0}
+.retro-tool{height:32px;min-width:32px;display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:0 9px;border:1px solid rgba(203,227,255,.20);border-radius:10px;background:rgba(16,25,41,.69);backdrop-filter:blur(13px);color:#d9e6f9;cursor:pointer;font:750 11px Outfit,sans-serif;white-space:nowrap;transition:background .18s,border-color .18s,transform .18s}
+.retro-tool:hover{transform:translateY(-1px);background:rgba(43,70,94,.75);border-color:rgba(125,226,255,.59);}
+.retro-tool[aria-pressed="true"]{border-color:rgba(84,215,241,.52);color:#8deaf9;}
+.retro-tool-icon{font-size:15px;line-height:1;}
+/* Deliberately subtle CRT on the normal console, not a heavy texture over game art. */
+#retro-crt-filter{position:fixed;inset:0;z-index:199;pointer-events:none;opacity:0;visibility:hidden;border-radius:24px;border:3px solid transparent;transition:opacity .35s ease,visibility .35s ease;box-shadow:none;}
+body.retro-crt-on #retro-crt-filter{opacity:1;visibility:visible;border-color:rgba(10,14,21,.55);box-shadow:inset 0 0 42px 8px rgba(0,0,0,.30),inset 0 0 8px 1px rgba(131,196,230,.09);}
+#retro-crt-filter::before{content:"";position:absolute;inset:0;border-radius:inherit;background:repeating-linear-gradient(0deg,rgba(0,0,0,.10) 0px,rgba(0,0,0,.10) 1px,transparent 2px,transparent 5px);opacity:.20;}
+#retro-crt-filter::after{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(ellipse at 50% 42%,transparent 54%,rgba(0,0,0,.26) 100%);opacity:.38;}
+@media(max-width:1180px){.retro-tool .retro-tool-label{display:none}.retro-tool{min-width:31px;padding:0 8px}.retro-tools{gap:4px;margin-right:0}.ps5-top-right{gap:8px!important}.retro-tv{width:min(610px,83vw)}}
+@media(max-width:760px){#retro-intro .retro-ambient-top{font-size:9px;top:17px;left:16px}#retro-intro .retro-intro-close{right:13px;top:12px;padding:8px 9px;font-size:10px}.retro-stage{padding:75px 14px 55px}.retro-tv{width:min(94vw,500px);padding:15px 42px 20px 18px;border-radius:23px}.retro-tv-screen-shell{border-radius:20px;padding:7px}.retro-tv-screen{border-radius:19px}.retro-tv-controls{right:7px;width:27px}.retro-tv-knob{width:19px;height:19px;border-width:2px}.retro-tv-grill{width:17px;height:39px}.retro-tv-stand{height:14px}.retro-console-area{height:115px;margin-top:15px;transform:scale(.85)}.retro-boot-footer{margin-top:15px}.retro-boot-title{font-size:25px}.retro-boot-note{font-size:12px}.retro-boot-brand{font-size:16px}.retro-logo{width:45px;height:45px;font-size:25px;border-radius:13px}.retro-boot-sub{font-size:8px}.retro-smallprint{bottom:8px;font-size:8px}.retro-tools{gap:3px}.retro-tool{height:29px;min-width:28px;padding:0 5px;border-radius:7px}.retro-tool-icon{font-size:13px}.ps5-top-right{gap:4px!important}.user-profile-tag{display:none!important}.tool-btn#audio-toggle-btn{padding:5px 6px!important;font-size:.66rem!important}.system-clock{font-size:.72rem!important}.ps5-topbar{padding-left:12px!important;padding-right:9px!important;}.ps5-nav-group{gap:9px!important}.ps5-nav-item{font-size:.80rem!important;}}
+@media(max-height:660px){.retro-stage{transform:scale(.82)}.retro-boot-footer{margin-top:14px}.retro-tv{width:min(580px,75vw)}}
+@media(prefers-reduced-motion:reduce){#retro-intro::after{animation:none}.retro-stage,#retro-intro,.retro-machine,.retro-tool,#retro-crt-filter{transition:none}.retro-crt-static{animation:none!important}#retro-intro[data-state="booting"] .retro-tv-powerline{animation:none;opacity:1;width:90%}#retro-intro[data-state="booting"] .retro-tv-screen{animation:none}}

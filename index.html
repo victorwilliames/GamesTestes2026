@@ -1844,7 +1844,7 @@ body.console-detail-open .hero-detail-slot{animation:none!important;}
       const nextBackdrop = activeBackdropLayer === 1 ? document.getElementById('backdrop-img-2') : document.getElementById('backdrop-img-1');
       const currBackdrop = activeBackdropLayer === 1 ? document.getElementById('backdrop-img-1') : document.getElementById('backdrop-img-2');
 
-      const artUrl = game.num === 7 ? "assets/console/hero-cavaleiro.webp" : game.prints[0];
+      const artUrl = game.num === 7 ? "assets/console/hero-cavaleiro.svg" : game.prints[0];
       nextBackdrop.style.backgroundImage = `url('${artUrl}')`;
       nextBackdrop.classList.toggle("cinematic-art",game.num===7);
       nextBackdrop.classList.toggle("game-art",game.num!==7);

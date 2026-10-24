@@ -159,7 +159,8 @@ function init(){
     if(intro&&!intro.hidden){
       if(e.key==="Escape"){e.preventDefault();e.stopPropagation();skipIntro()}
       else if((e.key==="Enter"||e.key===" ")&&document.activeElement===get("retro-power-btn")){e.preventDefault();e.stopPropagation();powerOn()}
-      else if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)){e.stopPropagation();}
+      else if(["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)){e.preventDefault();}
+      e.stopPropagation();
       return;
     }
     if(e.key.toLowerCase()==="f"&&!e.ctrlKey&&!e.altKey&&!e.metaKey&&!e.repeat&&

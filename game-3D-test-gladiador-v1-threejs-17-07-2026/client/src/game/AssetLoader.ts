@@ -22,38 +22,38 @@ export class AssetLoader {
     onItemLoad?: (url: string, loaded: number, total: number) => void
   ): Promise<void> {
     const modelsToLoad = {
-      arena: '/assets/3d/glb/environment/full_arena_coliseum_blockout.glb',
-      dummy: '/assets/3d/glb/environment/training_dummy_target.glb',
-      player: '/assets/3d/glb/characters/player_stick_blue_sword.glb',
-      enemy_sword: '/assets/3d/glb/characters/enemy_stick_red_sword.glb',
-      enemy_spear: '/assets/3d/glb/characters/enemy_stick_red_spear.glb',
-      enemy_shield: '/assets/3d/glb/characters/enemy_stick_red_shield.glb',
+      arena: './assets/3d/glb/environment/full_arena_coliseum_blockout.glb',
+      dummy: './assets/3d/glb/environment/training_dummy_target.glb',
+      player: './assets/3d/glb/characters/player_stick_blue_sword.glb',
+      enemy_sword: './assets/3d/glb/characters/enemy_stick_red_sword.glb',
+      enemy_spear: './assets/3d/glb/characters/enemy_stick_red_spear.glb',
+      enemy_shield: './assets/3d/glb/characters/enemy_stick_red_shield.glb',
       // Novos props de decoração da arena
-      brazier: '/assets/3d/glb/environment/brazier_fire_lowpoly.glb',
-      barrel: '/assets/3d/glb/environment/wooden_barrel.glb',
-      crate: '/assets/3d/glb/environment/wooden_crate_lowpoly.glb',
-      banner: '/assets/3d/glb/environment/red_banner_gold.glb',
-      spear_rack: '/assets/3d/glb/environment/spear_rack.glb',
-      weapon_rack: '/assets/3d/glb/environment/weapon_rack.glb',
-      broken_pillar: '/assets/3d/glb/environment/pillar_broken.glb'
+      brazier: './assets/3d/glb/environment/brazier_fire_lowpoly.glb',
+      barrel: './assets/3d/glb/environment/wooden_barrel.glb',
+      crate: './assets/3d/glb/environment/wooden_crate_lowpoly.glb',
+      banner: './assets/3d/glb/environment/red_banner_gold.glb',
+      spear_rack: './assets/3d/glb/environment/spear_rack.glb',
+      weapon_rack: './assets/3d/glb/environment/weapon_rack.glb',
+      broken_pillar: './assets/3d/glb/environment/pillar_broken.glb'
     };
 
     const texturesToLoad = {
-      slash_light: '/assets/2d/vfx/slash_arc_gold.png',
-      slash_heavy: '/assets/2d/vfx/slash_arc_gold_heavy.png',
-      hit_spark: '/assets/2d/vfx/hit_spark_gold.png',
-      blood_puddle: '/assets/2d/vfx/blood_puddle.png',
-      shadow_blob: '/assets/2d/vfx/soft_shadow_blob.png'
+      slash_light: './assets/2d/vfx/slash_arc_gold.png',
+      slash_heavy: './assets/2d/vfx/slash_arc_gold_heavy.png',
+      hit_spark: './assets/2d/vfx/hit_spark_gold.png',
+      blood_puddle: './assets/2d/vfx/blood_puddle.png',
+      shadow_blob: './assets/2d/vfx/soft_shadow_blob.png'
     };
 
     const audiosToLoad = {
-      slash_light: '/assets/audio/sfx/slash_light.wav',
-      slash_heavy: '/assets/audio/sfx/slash_heavy.wav',
-      hit_impact: '/assets/audio/sfx/hit_impact.wav',
-      dash: '/assets/audio/sfx/dash.wav',
-      heal: '/assets/audio/sfx/heal.wav',
-      potion: '/assets/audio/sfx/potion_use.wav',
-      music_arena: '/assets/audio/music/arena_ambience_loop.wav'
+      slash_light: './assets/audio/sfx/slash_light.wav',
+      slash_heavy: './assets/audio/sfx/slash_heavy.wav',
+      hit_impact: './assets/audio/sfx/hit_impact.wav',
+      dash: './assets/audio/sfx/dash.wav',
+      heal: './assets/audio/sfx/heal.wav',
+      potion: './assets/audio/sfx/potion_use.wav',
+      music_arena: './assets/audio/music/arena_ambience_loop.wav'
     };
 
     const totalItems = Object.keys(modelsToLoad).length + Object.keys(texturesToLoad).length + Object.keys(audiosToLoad).length;

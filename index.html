@@ -20,7 +20,6 @@
       --cyan: #00f2fe;
       --purple: #8b5cf6;
       --gold: #f59e0b;
-      --red: #ef4444;
       --green: #10b981;
       --radius: 16px;
     }
@@ -44,7 +43,7 @@
       background-attachment: fixed;
     }
 
-    /* HEADER HERO */
+    /* HEADER */
     header {
       padding: 60px 20px 40px;
       text-align: center;
@@ -81,15 +80,15 @@
     .hero-subtitle {
       font-size: clamp(1.05rem, 2vw, 1.3rem);
       color: var(--text-muted);
-      max-width: 750px;
+      max-width: 780px;
       margin: 0 auto 30px;
     }
 
-    /* STATS BAR */
+    /* STATS */
     .stats-bar {
       display: flex;
       justify-content: center;
-      gap: 30px;
+      gap: 20px;
       flex-wrap: wrap;
       margin-bottom: 40px;
     }
@@ -117,7 +116,7 @@
       letter-spacing: 0.5px;
     }
 
-    /* FILTER BUTTONS */
+    /* FILTERS */
     .filters {
       display: flex;
       justify-content: center;
@@ -145,7 +144,7 @@
       box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
     }
 
-    /* TIMELINE CONTAINER */
+    /* TIMELINE */
     .timeline {
       max-width: 960px;
       margin: 0 auto;
@@ -170,7 +169,6 @@
       }
     }
 
-    /* TIMELINE ITEM */
     .timeline-item {
       position: relative;
       margin-bottom: 50px;
@@ -222,7 +220,6 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
       position: relative;
-      overflow: hidden;
     }
 
     .test-card:hover {
@@ -232,7 +229,6 @@
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(56, 189, 248, 0.1);
     }
 
-    /* STEP TITLE CALLOUT (ESSE FOI O Xº TESTE MEU) */
     .step-banner {
       display: inline-block;
       font-size: 0.85rem;
@@ -242,6 +238,14 @@
       color: var(--cyan);
       margin-bottom: 8px;
       font-family: 'JetBrains Mono', monospace;
+    }
+
+    .step-banner.success {
+      color: var(--green);
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 2px 10px;
+      border-radius: 6px;
     }
 
     .timeline-item[data-cat="godot"] .step-banner {
@@ -278,7 +282,6 @@
       white-space: nowrap;
     }
 
-    /* CARD CONTENT */
     .card-body {
       display: grid;
       grid-template-columns: 1fr;
@@ -288,7 +291,7 @@
 
     @media (min-width: 680px) {
       .card-body.has-media {
-        grid-template-columns: 1fr 220px;
+        grid-template-columns: 1fr 240px;
       }
     }
 
@@ -297,6 +300,16 @@
       color: #cbd5e1;
       margin-bottom: 16px;
       line-height: 1.6;
+    }
+
+    .highlight-success {
+      color: #34d399;
+      font-weight: 600;
+    }
+
+    .highlight-reason {
+      color: #fbbf24;
+      font-weight: 600;
     }
 
     .tech-used {
@@ -321,22 +334,43 @@
       color: #ffffff;
     }
 
-    .card-thumb {
-      width: 100%;
-      height: 140px;
-      object-fit: cover;
+    /* THUMB CONTAINER */
+    .thumb-wrap {
+      position: relative;
       border-radius: 10px;
+      overflow: hidden;
       border: 1px solid var(--border-card);
       background: #000;
-      cursor: pointer;
-      transition: transform 0.25s ease;
+      height: 160px;
+    }
+
+    .card-thumb {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.3s ease;
     }
 
     .card-thumb:hover {
-      transform: scale(1.03);
+      transform: scale(1.05);
     }
 
-    /* BUTTONS ROW */
+    .thumb-tag {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    /* ACTIONS ROW */
     .card-actions {
       display: flex;
       gap: 12px;
@@ -365,6 +399,29 @@
       transform: translateY(-2px);
       box-shadow: 0 6px 25px rgba(0, 242, 254, 0.5);
       background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
+      color: #0b0e14;
+    }
+
+    .btn-concept {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+      font-weight: 700;
+      font-size: 0.85rem;
+      padding: 11px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-concept:hover {
+      background: rgba(245, 158, 11, 0.25);
+      border-color: #fbbf24;
+      color: #ffffff;
+      transform: translateY(-1px);
     }
 
     .btn-secondary {
@@ -373,7 +430,7 @@
       color: var(--text-muted);
       font-weight: 600;
       font-size: 0.85rem;
-      padding: 11px 18px;
+      padding: 11px 16px;
       border-radius: 10px;
       cursor: pointer;
       display: inline-flex;
@@ -386,29 +443,43 @@
     .btn-secondary:hover {
       background: rgba(255, 255, 255, 0.1);
       color: #ffffff;
-      border-color: rgba(255, 255, 255, 0.3);
     }
 
-    /* ARCADE MODAL PLAYER */
-    #arcade-modal {
+    /* CONCEPT LIGHTBOX MODAL */
+    #concept-modal {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: rgba(5, 7, 10, 0.95);
-      backdrop-filter: blur(12px);
-      z-index: 9999;
+      background: rgba(3, 5, 8, 0.92);
+      backdrop-filter: blur(10px);
+      z-index: 99999;
       display: none;
-      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
     }
 
-    #arcade-modal.active {
+    #concept-modal.active {
       display: flex;
     }
 
-    .modal-header {
-      padding: 14px 24px;
+    .concept-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: 16px;
+      max-width: 800px;
+      width: 100%;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+    }
+
+    .concept-header {
+      padding: 16px 24px;
       background: #0f141f;
       border-bottom: 1px solid var(--border-card);
       display: flex;
@@ -416,65 +487,47 @@
       align-items: center;
     }
 
-    .modal-title-wrap {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .modal-game-title {
-      font-size: 1.2rem;
+    .concept-title {
+      font-size: 1.15rem;
       font-weight: 700;
       color: #ffffff;
     }
 
-    .modal-controls {
-      display: flex;
-      gap: 10px;
-    }
-
-    .modal-btn {
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      color: #fff;
-      padding: 6px 14px;
-      border-radius: 6px;
-      font-size: 0.85rem;
-      cursor: pointer;
-      font-weight: 600;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .modal-btn:hover {
-      background: rgba(255, 255, 255, 0.15);
-    }
-
-    .modal-btn-close {
+    .concept-close {
       background: rgba(239, 68, 68, 0.2);
-      border-color: rgba(239, 68, 68, 0.4);
+      border: 1px solid rgba(239, 68, 68, 0.4);
       color: #f87171;
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-weight: bold;
     }
 
-    .modal-btn-close:hover {
-      background: rgba(239, 68, 68, 0.4);
-      color: #fff;
+    .concept-body {
+      padding: 20px;
+      overflow-y: auto;
+      text-align: center;
     }
 
-    .modal-iframe-container {
-      flex: 1;
-      width: 100%;
-      height: 100%;
+    .concept-img {
+      max-width: 100%;
+      max-height: 55vh;
+      object-fit: contain;
+      border-radius: 8px;
+      border: 1px solid var(--border-card);
       background: #000;
+      margin-bottom: 15px;
     }
 
-    .modal-iframe-container iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: block;
+    .concept-desc {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      text-align: left;
+      background: rgba(0, 0, 0, 0.25);
+      padding: 14px;
+      border-radius: 8px;
+      border-left: 3px solid var(--gold);
     }
 
     footer {
@@ -493,8 +546,8 @@
     <div class="badge-year">🚀 GamesTestes2026 • Portfólio Gamer</div>
     <h1>Minha Trajetória GameDev</h1>
     <p class="hero-subtitle">
-      Cada jogo abaixo representa uma fase de testes, aprendizado e prototipação ao longo de 2026. 
-      De arenas 3D em Three.js a Godot Engine e personagens 2D procedurais desenhados por IA.
+      A história real de cada protótipo e aprendizado ao longo de 2026. 
+      De arenas 3D em Three.js a Godot Engine e personagens 2D procedurais desenhados por código.
     </p>
 
     <!-- STATS -->
@@ -541,24 +594,27 @@
         <div class="card-body has-media">
           <div class="card-info">
             <p class="story-text">
-              Meu primeiro passo tentando criar um jogo 3D direto na web! Construí uma arena de combate de gladiadores romanos em um coliseu circular, com barra de vida, stamina, movimentação com joystick virtual para celular, dummies de treino e até arquitetura pronta para multiplayer com Colyseus.
+              Meu primeiro passo tentando criar um jogo 3D direto na web! Construí uma arena de combate de gladiadores romanos em um coliseu circular, com barra de vida, stamina, movimentação com joystick virtual para celular, dummies de treino e arquitetura pronta para multiplayer com Colyseus.
             </p>
             <div class="tech-used">
               <strong>O que usei:</strong> Three.js, TypeScript, Vite, WebGL nativo, HUD em CSS responsivo e Colyseus.
             </div>
             <div class="card-actions">
-              <button class="btn-play" onclick="openGame('game-3D-test-gladiador-v1-threejs-17-07-2026/client/dist/index.html', 'Arena do Gladiador v1')">
-                🎮 JOGAR AGORA
-              </button>
-              <a href="game-3D-test-gladiador-v1-threejs-17-07-2026/client/dist/index.html" target="_blank" class="btn-secondary">
-                ↗ Nova Aba
+              <a href="game-3D-test-gladiador-v1-threejs-17-07-2026/client/dist/index.html" target="_blank" class="btn-play">
+                🎮 JOGAR AGORA ↗
               </a>
+              <button class="btn-concept" onclick="openConcept('game-3D-test-gladiador-v1-threejs-17-07-2026/reference-prints-game/print2-game.png', 'Conceito da Arena', 'A referência visual do coliseu, iluminação e disposição da arena romana que buscávamos criar.')">
+                🎯 Ver Conceito Alvo
+              </button>
               <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-gladiador-v1-threejs-17-07-2026" target="_blank" class="btn-secondary">
                 📁 Ver Código
               </a>
             </div>
           </div>
-          <img src="game-3D-test-gladiador-v1-threejs-17-07-2026/reference-prints-game/print1-gamee.png" alt="Gladiador v1" class="card-thumb" onclick="openGame('game-3D-test-gladiador-v1-threejs-17-07-2026/client/dist/index.html', 'Arena do Gladiador v1')">
+          <div class="thumb-wrap">
+            <img src="game-3D-test-gladiador-v1-threejs-17-07-2026/reference-prints-game/print1-gamee.png" alt="Print Real do Jogo Gladiador v1" class="card-thumb">
+            <span class="thumb-tag">📸 Print Real do Jogo</span>
+          </div>
         </div>
       </div>
     </div>
@@ -581,18 +637,21 @@
               <strong>O que usei:</strong> Three.js puro procedural, ES Modules nativos, OrbitControls, UnrealBloomPass e Procedural Mesh.
             </div>
             <div class="card-actions">
-              <button class="btn-play" onclick="openGame('game-3D-test-gladiador-v2-stickman-17-07-2026/index.html', 'Gladiador v2 Stickman')">
-                🎮 JOGAR AGORA
-              </button>
-              <a href="game-3D-test-gladiador-v2-stickman-17-07-2026/index.html" target="_blank" class="btn-secondary">
-                ↗ Nova Aba
+              <a href="game-3D-test-gladiador-v2-stickman-17-07-2026/index.html" target="_blank" class="btn-play">
+                🎮 JOGAR AGORA ↗
               </a>
+              <button class="btn-concept" onclick="openConcept('game-3D-test-gladiador-v2-stickman-17-07-2026/reference-prints-game/print2-game.png', 'Conceito Stickman', 'A referência visual do stickman procedural com iluminação e silhueta dinâmica.')">
+                🎯 Ver Conceito Alvo
+              </button>
               <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-gladiador-v2-stickman-17-07-2026" target="_blank" class="btn-secondary">
                 📁 Ver Código
               </a>
             </div>
           </div>
-          <img src="game-3D-test-gladiador-v2-stickman-17-07-2026/reference-prints-game/print1-gamee.png" alt="Gladiador v2 Stickman" class="card-thumb" onclick="openGame('game-3D-test-gladiador-v2-stickman-17-07-2026/index.html', 'Gladiador v2 Stickman')">
+          <div class="thumb-wrap">
+            <img src="game-3D-test-gladiador-v2-stickman-17-07-2026/reference-prints-game/print1-gamee.png" alt="Print Real Gladiador v2" class="card-thumb">
+            <span class="thumb-tag">📸 Print Real do Jogo</span>
+          </div>
         </div>
       </div>
     </div>
@@ -603,28 +662,32 @@
       <div class="test-card">
         <div class="step-banner">ESSE FOI O 3º TESTE MEU</div>
         <div class="card-header-flex">
-          <h2 class="game-title">1v1 MOBA Arena v1 (Caitlyn vs Master Yi IA)</h2>
-          <span class="date-badge">20/07/2026</span>
+          <h2 class="game-title">MOBA v0 (Grid & Tentativa de Assets Prontos)</h2>
+          <span class="date-badge">15/10/2026</span>
         </div>
-        <div class="card-body">
+        <div class="card-body has-media">
           <div class="card-info">
             <p class="story-text">
-              Meu teste mais complexo em Three.js! Uma réplica de MOBA completa: rotas no mapa, torres inteligentes que disparam contra invasores, ondas de minions marchando, monstros neutros na selva e uma inteligência artificial completa controlando o Master Yi contra a Caitlyn.
+              Neste teste tentei importar assets 3D prontos externos (modelos, mapas e texturas) diretamente para o Three.js. <strong>Mas na primeira tentativa deu tudo errado e ficou tudo bugado:</strong> texturas invertidas, shaders quebrando, colisão desalinhada e erros de carregamento. Foi uma etapa difícil e frustrante, mas essencial para aprender a tratar malhas e materiais antes do próximo passo.
             </p>
             <div class="tech-used">
-              <strong>O que usei:</strong> Three.js, TypeScript, Finite State Machines (FSM para IA), sistema de rotas e mira com projéteis balísticos.
+              <strong>O que usei:</strong> Three.js, Raycasting de mira, cursores customizados (.cur), shaders de Grid e depuração de assets externos.
             </div>
             <div class="card-actions">
-              <button class="btn-play" onclick="openGame('game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/index.html', '1v1 MOBA Arena v1')">
-                🎮 JOGAR AGORA
-              </button>
-              <a href="game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/index.html" target="_blank" class="btn-secondary">
-                ↗ Nova Aba
+              <a href="game-3D-test-threejs-moba-v2-grid-15-10-2026/jogo/dist/index.html" target="_blank" class="btn-play">
+                🎮 JOGAR AGORA ↗
               </a>
-              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-threejs-moba-v1-caitlyn-20-07-2026" target="_blank" class="btn-secondary">
+              <button class="btn-concept" onclick="openConcept('game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/UI/ref-ui-interface-lol-2026.png', 'Interface Alvo', 'A interface e estilo de MOBA profissional que estávamos buscando replicar nessa fase.')">
+                🎯 Ver Conceito Alvo
+              </button>
+              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-threejs-moba-v2-grid-15-10-2026" target="_blank" class="btn-secondary">
                 📁 Ver Código
               </a>
             </div>
+          </div>
+          <div class="thumb-wrap">
+            <img src="game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/UI/ref-ui-interface-lol-2026.png" alt="Print Real da Tentativa de Grid" class="card-thumb">
+            <span class="thumb-tag">📸 Print Real do Teste</span>
           </div>
         </div>
       </div>
@@ -634,30 +697,37 @@
     <div class="timeline-item" data-cat="threejs">
       <div class="node-marker"></div>
       <div class="test-card">
-        <div class="step-banner">ESSE FOI O 4º TESTE MEU</div>
+        <div class="step-banner success">ESSE FOI O 4º TESTE MEU • O GRANDE SUCESSO 🏆</div>
         <div class="card-header-flex">
-          <h2 class="game-title">MOBA Arena v2 (Grid & Mira)</h2>
-          <span class="date-badge">15/10/2026</span>
+          <h2 class="game-title">1v1 MOBA Arena - Caitlyn vs Master Yi IA</h2>
+          <span class="date-badge">20/07/2026</span>
         </div>
-        <div class="card-body">
+        <div class="card-body has-media">
           <div class="card-info">
             <p class="story-text">
-              Protótipo focado no refinamento da jogabilidade de mira (targeting), disparos e cálculo de colisão com dummies em uma malha de Grid isométrico. Serviu também como laboratório para arquitetar a transição definitiva para a Godot Engine.
+              Após os erros da tentativa anterior, recomecei o projeto do zero com foco na <strong>Caitlyn</strong>, e esse teste <span class="highlight-success">FOI UM VERDADEIRO SUCESSO!</span> Conseguimos fazer a réplica completa: rotas, torres automáticas que atacam, ondas de minions marchando, tiros e disparos da Caitlyn e uma IA completa controlando o Master Yi contra ela! <span class="highlight-success">Esse foi o melhor resultado alcançado até aquele momento.</span>
+            </p>
+            <p class="story-text">
+              <span class="highlight-reason">Por que não continuei daqui?</span> Por dois motivos conscientes: <strong>1)</strong> Eu queria ter algo 100% original, sem usar personagens de outras empresas (como os da Riot/LoL); <strong>2)</strong> Ter que ficar modelando em 3D, desenhando ou animando manualmente é um trabalho colossal que eu não queria ter. Então fui procurar outras formas inovadoras de criar jogos (que me levaram ao método procedural por código e IA). Mas esse teste provou que o motor 3D funcionava perfeitamente!
             </p>
             <div class="tech-used">
-              <strong>O que usei:</strong> Three.js, Raycasting de precisão com cursores customizados (.cur), shaders de Grid e arquitetura de Tech Lead.
+              <strong>O que usei:</strong> Three.js, TypeScript, Finite State Machines (FSM de minions e bot do Yi), sistema de torres e projéteis balísticos da Caitlyn.
             </div>
             <div class="card-actions">
-              <button class="btn-play" onclick="openGame('game-3D-test-threejs-moba-v2-grid-15-10-2026/jogo/dist/index.html', 'MOBA Arena v2 (Grid)')">
-                🎮 JOGAR AGORA
-              </button>
-              <a href="game-3D-test-threejs-moba-v2-grid-15-10-2026/jogo/dist/index.html" target="_blank" class="btn-secondary">
-                ↗ Nova Aba
+              <a href="game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/index.html" target="_blank" class="btn-play">
+                🎮 JOGAR AGORA ↗
               </a>
-              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-threejs-moba-v2-grid-15-10-2026" target="_blank" class="btn-secondary">
+              <button class="btn-concept" onclick="openConcept('game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/UI/ref-ui-interface-lol-2026.png', 'Referência da Caitlyn & HUD', 'A referência visual do League of Legends 2026 que serviu de meta para o combate e HUD.')">
+                🎯 Ver Conceito Alvo
+              </button>
+              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-threejs-moba-v1-caitlyn-20-07-2026" target="_blank" class="btn-secondary">
                 📁 Ver Código
               </a>
             </div>
+          </div>
+          <div class="thumb-wrap">
+            <img src="game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/logs/gameplay_test.png" alt="Print Real da Caitlyn jogável" class="card-thumb">
+            <span class="thumb-tag">📸 Print Real do Jogo</span>
           </div>
         </div>
       </div>
@@ -675,24 +745,27 @@
         <div class="card-body has-media">
           <div class="card-info">
             <p class="story-text">
-              Grande salto técnico! Migrei o projeto para a Godot Engine 4.7 profissional. Importei o modelo 3D completo da Caitlyn com esqueleto e animações, criei benchmarks de pós-processamento de anti-aliasing (FXAA customizado vs MSAA) e exportei tudo para a web usando WebAssembly de alta performance.
+              Grande salto para uma engine profissional! Migrei o projeto para a Godot Engine 4.7. Importei o modelo 3D completo da Caitlyn com esqueleto e animações, criei benchmarks de pós-processamento de anti-aliasing (FXAA customizado vs MSAA) e exportei tudo para a web usando WebAssembly de alta performance.
             </p>
             <div class="tech-used">
               <strong>O que usei:</strong> Godot 4.7, GDScript, WebAssembly (WASM), GL Compatibility, Shaders de Pós-Processamento e Caitlyn 3D GLB.
             </div>
             <div class="card-actions">
-              <button class="btn-play" onclick="openGame('game-3D-test-godot-moba-18-10-2026/build/web/index.html', 'Godot 4.7 MOBA 3D')">
-                🎮 JOGAR AGORA
-              </button>
-              <a href="game-3D-test-godot-moba-18-10-2026/build/web/index.html" target="_blank" class="btn-secondary">
-                ↗ Nova Aba
+              <a href="game-3D-test-godot-moba-18-10-2026/build/web/index.html" target="_blank" class="btn-play">
+                🎮 JOGAR AGORA ↗
               </a>
+              <button class="btn-concept" onclick="openConcept('game-3D-test-godot-moba-18-10-2026/docs/migration/visual/fxaa_threshold_full.png', 'Benchmark Shaders Godot', 'O teste comparativo de qualidade de imagem entre FXAA e MSAA que queríamos alcançar no renderizador Web.')">
+                🎯 Ver Conceito Alvo
+              </button>
               <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-godot-moba-18-10-2026" target="_blank" class="btn-secondary">
                 📁 Ver Código
               </a>
             </div>
           </div>
-          <img src="game-3D-test-godot-moba-18-10-2026/build/web/index.png" alt="Godot MOBA 3D" class="card-thumb" onclick="openGame('game-3D-test-godot-moba-18-10-2026/build/web/index.html', 'Godot 4.7 MOBA 3D')">
+          <div class="thumb-wrap">
+            <img src="game-3D-test-godot-moba-18-10-2026/build/web/index.png" alt="Print Real Godot MOBA" class="card-thumb">
+            <span class="thumb-tag">📸 Print Real do Jogo</span>
+          </div>
         </div>
       </div>
     </div>
@@ -706,7 +779,7 @@
           <h2 class="game-title">O Grande Bake-Off 2D Multi-IA (RafaxLab)</h2>
           <span class="date-badge">19/10/2026</span>
         </div>
-        <div class="card-body">
+        <div class="card-body has-media">
           <div class="card-info">
             <p class="story-text">
               Inspirado pelo canal do YouTube RafaxLab (Rafael + Claude), iniciei o desafio de criar um RPG de ação 2.5D no estilo Hades onde o herói NÃO usa imagens ou spritesheets: todo o boneco é desenhado 100% por código vetorial procedural no HTML5 Canvas 2D nativo! Coloquei ChatGPT, Codex, DeepSeek e Antigravity competindo em um bake-off.
@@ -715,16 +788,20 @@
               <strong>O que usei:</strong> HTML5 Canvas 2D puro, prompts de engenharia reversa do RafaxLab, relatórios comparativos e testes de rig procedural.
             </div>
             <div class="card-actions">
-              <button class="btn-play" onclick="openGame('game-2D-test-bakeoff-multi-ia-19-10-2026/prototypes/antigravity/desenho-v1-antigravity/index.html', 'Bake-off Multi-IA')">
-                🎮 JOGAR AGORA
-              </button>
-              <a href="game-2D-test-bakeoff-multi-ia-19-10-2026/prototypes/antigravity/desenho-v1-antigravity/index.html" target="_blank" class="btn-secondary">
-                ↗ Nova Aba
+              <a href="game-2D-test-bakeoff-multi-ia-19-10-2026/prototypes/antigravity/desenho-v1-antigravity/index.html" target="_blank" class="btn-play">
+                🎮 JOGAR AGORA ↗
               </a>
+              <button class="btn-concept" onclick="openConcept('assets-referencias-heros-23-10-2026/hero-carequinha/model-like-hades-2-5d.png', 'Arte Alvo Estilo Hades', 'A arte conceitual original inspirada em Hades que as IAs precisavam desenhar 100% via código.')">
+                🎯 Ver Conceito Alvo
+              </button>
               <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-bakeoff-multi-ia-19-10-2026" target="_blank" class="btn-secondary">
                 📁 Ver Código
               </a>
             </div>
+          </div>
+          <div class="thumb-wrap">
+            <img src="game-2D-test-bakeoff-multi-ia-19-10-2026/prototypes/antigravity/desenho-v1-antigravity/screenshots/03-compare-body.png" alt="Print Real do Desenho das IAs" class="card-thumb">
+            <span class="thumb-tag">📸 Print Real do Jogo</span>
           </div>
         </div>
       </div>
@@ -748,18 +825,21 @@
               <strong>O que usei:</strong> Canvas 2D nativo puro, cinemática inversa analítica (IK), ciclo de animação procedural e renderizador isométrico.
             </div>
             <div class="card-actions">
-              <button class="btn-play" onclick="openGame('game-2D-test-carequinha-v1-20-10-2026/index.html', 'Hero Carequinha V1')">
-                🎮 JOGAR AGORA
-              </button>
-              <a href="game-2D-test-carequinha-v1-20-10-2026/index.html" target="_blank" class="btn-secondary">
-                ↗ Nova Aba
+              <a href="game-2D-test-carequinha-v1-20-10-2026/index.html" target="_blank" class="btn-play">
+                🎮 JOGAR AGORA ↗
               </a>
+              <button class="btn-concept" onclick="openConcept('assets-referencias-heros-23-10-2026/hero-carequinha/head.png', 'Rosto Conceitual Carequinha', 'O desenho e paleta oficial do rosto do Carequinha usado como meta de proporção.')">
+                🎯 Ver Conceito Alvo
+              </button>
               <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-carequinha-v1-20-10-2026" target="_blank" class="btn-secondary">
                 📁 Ver Código
               </a>
             </div>
           </div>
-          <img src="assets-referencias-heros-23-10-2026/hero-carequinha/head.png" alt="Hero Carequinha" class="card-thumb" onclick="openGame('game-2D-test-carequinha-v1-20-10-2026/index.html', 'Hero Carequinha V1')">
+          <div class="thumb-wrap">
+            <img src="game-2D-test-antigravity-carequinha-20-10-2026/prototipos/do-deepseek/prototipo-v1-deepseek/artifacts/v1-jogo-idle.png" alt="Print Real do Jogo Carequinha" class="card-thumb">
+            <span class="thumb-tag">📸 Print Real do Jogo</span>
+          </div>
         </div>
       </div>
     </div>
@@ -768,30 +848,39 @@
     <div class="timeline-item" data-cat="2d">
       <div class="node-marker"></div>
       <div class="test-card">
-        <div class="step-banner">ESSE FOI O 8º TESTE MEU</div>
+        <div class="step-banner" style="color: #f87171; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); padding: 2px 10px; border-radius: 6px;">
+          ESSE FOI O 8º TESTE MEU • ESSE NEM PRESTOU 😅
+        </div>
         <div class="card-header-flex">
-          <h2 class="game-title">Entrega do DeepSeek (Herói Procedural V1)</h2>
+          <h2 class="game-title">Tentativa com DeepSeek (Herói Procedural V1)</h2>
           <span class="date-badge">20/10/2026</span>
         </div>
-        <div class="card-body">
+        <div class="card-body has-media">
           <div class="card-info">
             <p class="story-text">
-              Entrega oficial realizada pelo agente DeepSeek durante a rodada comparativa. Inclui a bancada de inspeção com zoom e turnaround 360° do herói em 8 direções isométricas, mostrando o mesmo painter vetorial operando em tempo real.
+              Coloquei o DeepSeek para tentar desenhar o herói e montar a prancha por código, <strong>mas esse nem prestou!</strong> O resultado visual ficou bem tosco e desproporcional, a rotação das poses ficou estranha e passou bem longe da arte que queríamos atingir. 
+            </p>
+            <p class="story-text">
+              Fiz questão de deixar aqui na linha do tempo para mostrar a realidade da jornada: nem todo teste é perfeito, e esse serviu exatamente para entender as limitações do modelo e o que precisava ser corrigido nos próximos passos!
             </p>
             <div class="tech-used">
               <strong>O que usei:</strong> Canvas 2D Puro, coordenadas cilíndricas para rotação do corpo e matrizes de transformação geométrica.
             </div>
             <div class="card-actions">
-              <button class="btn-play" onclick="openGame('game-2D-test-deepseek-carequinha-20-10-2026/index.html', 'DeepSeek Herói Procedural')">
-                🎮 JOGAR AGORA
-              </button>
-              <a href="game-2D-test-deepseek-carequinha-20-10-2026/index.html" target="_blank" class="btn-secondary">
-                ↗ Nova Aba
+              <a href="game-2D-test-deepseek-carequinha-20-10-2026/index.html" target="_blank" class="btn-play">
+                🎮 JOGAR AGORA ↗
               </a>
+              <button class="btn-concept" onclick="openConcept('game-2D-test-antigravity-carequinha-20-10-2026/prototipos/do-deepseek/prototipo-v1-deepseek/artifacts/ref-target.png', 'Arte Alvo (O que o DeepSeek tentou imitar)', 'A folha modelo que enviamos para o DeepSeek tentar desenhar por código. Compare com o print real do teste para ver a diferença!')">
+                🎯 Ver Conceito Alvo
+              </button>
               <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-deepseek-carequinha-20-10-2026" target="_blank" class="btn-secondary">
                 📁 Ver Código
               </a>
             </div>
+          </div>
+          <div class="thumb-wrap">
+            <img src="game-2D-test-antigravity-carequinha-20-10-2026/prototipos/do-deepseek/prototipo-v1-deepseek/artifacts/v1-prancha.png" alt="Print Real da Prancha do DeepSeek" class="card-thumb">
+            <span class="thumb-tag">📸 Print Real do Teste</span>
           </div>
         </div>
       </div>
@@ -815,18 +904,21 @@
               <strong>O que usei:</strong> Motor 2.5D próprio, coordenadas cilíndricas, IK analítica em membros, sistema de partículas e espada com arco curvo.
             </div>
             <div class="card-actions">
-              <button class="btn-play" onclick="openGame('game-2D-test-antigravity-carequinha-20-10-2026/index.html', 'Motor Completo Carequinha')">
-                🎮 JOGAR AGORA
-              </button>
-              <a href="game-2D-test-antigravity-carequinha-20-10-2026/index.html" target="_blank" class="btn-secondary">
-                ↗ Nova Aba
+              <a href="game-2D-test-antigravity-carequinha-20-10-2026/index.html" target="_blank" class="btn-play">
+                🎮 JOGAR AGORA ↗
               </a>
+              <button class="btn-concept" onclick="openConcept('assets-referencias-heros-23-10-2026/hero-carequinha/model-like-hades-2-5d.png', 'Arte Hades Completa', 'A direção artística original estilo Hades que inspirou a iluminação da arena e os combos.')">
+                🎯 Ver Conceito Alvo
+              </button>
               <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-antigravity-carequinha-20-10-2026" target="_blank" class="btn-secondary">
                 📁 Ver Código
               </a>
             </div>
           </div>
-          <img src="assets-referencias-heros-23-10-2026/hero-carequinha/model-like-hades-2-5d.png" alt="Carequinha Motor" class="card-thumb" onclick="openGame('game-2D-test-antigravity-carequinha-20-10-2026/index.html', 'Motor Completo Carequinha')">
+          <div class="thumb-wrap">
+            <img src="game-2D-test-antigravity-carequinha-20-10-2026/prototipos/do-deepseek/prototipo-v1-deepseek/artifacts/v1-jogo-golpe.png" alt="Print Real do Golpe do Carequinha" class="card-thumb">
+            <span class="thumb-tag">📸 Print Real do Jogo</span>
+          </div>
         </div>
       </div>
     </div>
@@ -849,39 +941,38 @@
               <strong>O que usei:</strong> HTML5 Canvas 2D nativo, IK de 2 segmentos, banco de vetores do novo herói, bancada de comparação lado a lado e hitboxes.
             </div>
             <div class="card-actions">
-              <button class="btn-play" onclick="openGame('game-2D-test-antigravity-ruivo-20-10-2026/index.html', 'Cavaleiro Ruivo 2.5D')">
-                🎮 JOGAR AGORA
-              </button>
-              <a href="game-2D-test-antigravity-ruivo-20-10-2026/index.html" target="_blank" class="btn-secondary">
-                ↗ Nova Aba
+              <a href="game-2D-test-antigravity-ruivo-20-10-2026/index.html" target="_blank" class="btn-play">
+                🎮 JOGAR AGORA ↗
               </a>
+              <button class="btn-concept" onclick="openConcept('assets-referencias-heros-23-10-2026/hero-cabeca-red/Folha de poses do cavaleiro ruivo chia.png', 'Folha de Poses Cavaleiro Ruivo', 'A folha modelo com 8 ângulos de visão e poses de ataque do novo herói.')">
+                🎯 Ver Conceito Alvo
+              </button>
               <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-antigravity-ruivo-20-10-2026" target="_blank" class="btn-secondary">
                 📁 Ver Código
               </a>
             </div>
           </div>
-          <img src="assets-referencias-heros-23-10-2026/hero-cabeca-red/Retrato Chibi de Cabelos Vermelhos.png" alt="Cavaleiro Ruivo" class="card-thumb" onclick="openGame('game-2D-test-antigravity-ruivo-20-10-2026/index.html', 'Cavaleiro Ruivo 2.5D')">
+          <div class="thumb-wrap">
+            <img src="game-2D-test-antigravity-ruivo-20-10-2026/test_game.png" alt="Print Real do Jogo Cavaleiro Ruivo" class="card-thumb">
+            <span class="thumb-tag">📸 Print Real do Jogo</span>
+          </div>
         </div>
       </div>
     </div>
 
   </main>
 
-  <!-- ARCADE MODAL PLAYER (EMBEDDED) -->
-  <div id="arcade-modal">
-    <div class="modal-header">
-      <div class="modal-title-wrap">
-        <span style="font-size: 1.4rem;">🕹️</span>
-        <div class="modal-game-title" id="modal-title">Executando Jogo</div>
+  <!-- CONCEPT LIGHTBOX MODAL -->
+  <div id="concept-modal" onclick="closeConceptOnOverlay(event)">
+    <div class="concept-box">
+      <div class="concept-header">
+        <div class="concept-title" id="concept-title">🎯 Conceito Alvo</div>
+        <button class="concept-close" onclick="closeConcept()">✕ Fechar</button>
       </div>
-      <div class="modal-controls">
-        <button class="modal-btn" onclick="reloadGame()">🔄 Reiniciar</button>
-        <a id="modal-ext-link" href="#" target="_blank" class="modal-btn">↗ Abrir em Nova Aba</a>
-        <button class="modal-btn modal-btn-close" onclick="closeGame()">✕ Fechar & Voltar</button>
+      <div class="concept-body">
+        <img id="concept-img" src="" alt="Arte Conceitual Alvo" class="concept-img">
+        <div class="concept-desc" id="concept-desc"></div>
       </div>
-    </div>
-    <div class="modal-iframe-container">
-      <iframe id="game-iframe" src="" allow="autoplay; fullscreen; gamepad"></iframe>
     </div>
   </div>
 
@@ -895,35 +986,33 @@
 
   <!-- SCRIPT -->
   <script>
-    // Game Modal Player
-    const modal = document.getElementById('arcade-modal');
-    const iframe = document.getElementById('game-iframe');
-    const titleEl = document.getElementById('modal-title');
-    const extLink = document.getElementById('modal-ext-link');
+    // Concept Lightbox Modal
+    const conceptModal = document.getElementById('concept-modal');
+    const conceptImg = document.getElementById('concept-img');
+    const conceptTitle = document.getElementById('concept-title');
+    const conceptDesc = document.getElementById('concept-desc');
 
-    function openGame(url, title) {
-      modal.classList.add('active');
-      titleEl.innerText = title;
-      iframe.src = url;
-      extLink.href = url;
+    function openConcept(imgUrl, title, desc) {
+      conceptTitle.innerText = "🎯 Conceito Alvo: " + title;
+      conceptImg.src = imgUrl;
+      conceptDesc.innerHTML = "<strong>O que queríamos atingir:</strong> " + desc;
+      conceptModal.classList.add('active');
       document.body.style.overflow = 'hidden';
     }
 
-    function closeGame() {
-      modal.classList.remove('active');
-      iframe.src = '';
+    function closeConcept() {
+      conceptModal.classList.remove('active');
+      conceptImg.src = '';
       document.body.style.overflow = 'auto';
     }
 
-    function reloadGame() {
-      const current = iframe.src;
-      iframe.src = '';
-      setTimeout(() => { iframe.src = current; }, 50);
+    function closeConceptOnOverlay(e) {
+      if (e.target === conceptModal) closeConcept();
     }
 
     // Close on Escape key
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeGame();
+      if (e.key === 'Escape') closeConcept();
     });
 
     // Category Filtering

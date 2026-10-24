@@ -43,20 +43,20 @@ export class MobileHUD {
     statusContainer.innerHTML = `
       <!-- Moldura do Nível -->
       <div class="hud-level-diamond">
-        <img src="/assets/2d/ui/hud_level_diamond.png" alt="Nível" />
+        <img src="./assets/2d/ui/hud_level_diamond.png" alt="Nível" />
         <span class="level-value">12</span>
       </div>
       <!-- Barras de Vida e Stamina -->
       <div class="bars-container">
         <div class="bar-wrapper health">
-          <img class="bar-frame" src="/assets/2d/ui/hud_health_bar_frame.png" />
+          <img class="bar-frame" src="./assets/2d/ui/hud_health_bar_frame.png" />
           <div class="bar-fill-bg">
             <div id="hud-health-fill" class="bar-fill"></div>
           </div>
           <span id="hud-health-text" class="bar-text">420 / 420</span>
         </div>
         <div class="bar-wrapper stamina">
-          <img class="bar-frame" src="/assets/2d/ui/hud_stamina_bar_frame.png" />
+          <img class="bar-frame" src="./assets/2d/ui/hud_stamina_bar_frame.png" />
           <div class="bar-fill-bg">
             <div id="hud-stamina-fill" class="bar-fill"></div>
           </div>
@@ -76,15 +76,15 @@ export class MobileHUD {
     resourcesContainer.className = 'hud-element resources-container';
     resourcesContainer.innerHTML = `
       <div class="resource-item">
-        <img src="/assets/2d/ui/icon_coin.png" alt="Ouro" />
+        <img src="./assets/2d/ui/icon_coin.png" alt="Ouro" />
         <span id="resource-gold">1,245</span>
       </div>
       <div class="resource-item">
-        <img src="/assets/2d/ui/icon_gem.png" alt="Gemas" />
+        <img src="./assets/2d/ui/icon_gem.png" alt="Gemas" />
         <span id="resource-gem">3</span>
       </div>
       <button class="hud-menu-btn">
-        <img src="/assets/2d/ui/button_menu.png" alt="Menu" />
+        <img src="./assets/2d/ui/button_menu.png" alt="Menu" />
       </button>
     `;
     this.root.appendChild(resourcesContainer);
@@ -92,11 +92,11 @@ export class MobileHUD {
     // 3. Criar Joystick Virtual (Canto Inferior Esquerdo)
     this.joystickBase = document.createElement('div');
     this.joystickBase.className = 'hud-element joystick-base';
-    this.joystickBase.style.backgroundImage = "url('/assets/2d/ui/joystick_base.png')";
+    this.joystickBase.style.backgroundImage = "url('./assets/2d/ui/joystick_base.png')";
     
     this.joystickKnob = document.createElement('div');
     this.joystickKnob.className = 'joystick-knob';
-    this.joystickKnob.style.backgroundImage = "url('/assets/2d/ui/joystick_knob.png')";
+    this.joystickKnob.style.backgroundImage = "url('./assets/2d/ui/joystick_knob.png')";
     
     this.joystickBase.appendChild(this.joystickKnob);
     this.root.appendChild(this.joystickBase);
@@ -107,23 +107,23 @@ export class MobileHUD {
     actionButtonsContainer.innerHTML = `
       <!-- Botão de Cura / Poção Rápida -->
       <button id="btn-heal" class="action-btn heal">
-        <img src="/assets/2d/ui/button_heal_green.png" alt="Curar" />
+        <img src="./assets/2d/ui/button_heal_green.png" alt="Curar" />
       </button>
       
       <!-- Botão de Ataque Pesado (Poção Vermelha como placeholder) -->
       <button id="btn-attack-heavy" class="action-btn attack-heavy">
-        <img src="/assets/2d/ui/button_potion_red.png" alt="Ataque Pesado" />
+        <img src="./assets/2d/ui/button_potion_red.png" alt="Ataque Pesado" />
         <span class="potion-count">2</span>
       </button>
       
       <!-- Botão de Esquiva / Dash -->
       <button id="btn-dash" class="action-btn dash">
-        <img src="/assets/2d/ui/button_dash_blue.png" alt="Dash" />
+        <img src="./assets/2d/ui/button_dash_blue.png" alt="Dash" />
       </button>
       
       <!-- Botão de Ataque Leve (Central e Maior) -->
       <button id="btn-attack-light" class="action-btn attack-light">
-        <img src="/assets/2d/ui/button_attack_sword.png" alt="Atacar" />
+        <img src="./assets/2d/ui/button_attack_sword.png" alt="Atacar" />
       </button>
     `;
     this.root.appendChild(actionButtonsContainer);

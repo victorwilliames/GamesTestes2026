@@ -334,6 +334,50 @@
       color: #ffffff;
     }
 
+    /* PHASE BLOCKS (P1, P2, P3) */
+    .phase-block {
+      background: rgba(0, 0, 0, 0.24);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      transition: border-color 0.2s ease;
+    }
+
+    .phase-block:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .phase-badge {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .phase-badge.p1 {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+
+    .phase-badge.p2 {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fde047;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+
+    .phase-badge.p3 {
+      background: rgba(16, 185, 129, 0.15);
+      color: #86efac;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+
     /* THUMB CONTAINER */
     .thumb-wrap {
       position: relative;
@@ -553,7 +597,11 @@
     <!-- STATS -->
     <div class="stats-bar">
       <div class="stat-item">
-        <div class="stat-val">10</div>
+        <div class="stat-val">7</div>
+        <div class="stat-lbl">Grandes Marcos</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-val">10+</div>
         <div class="stat-lbl">Protótipos</div>
       </div>
       <div class="stat-item">
@@ -573,8 +621,7 @@
     <!-- FILTERS -->
     <div class="filters">
       <button class="filter-btn active" data-filter="all">Todos os Testes</button>
-      <button class="filter-btn" data-filter="threejs">3D Three.js</button>
-      <button class="filter-btn" data-filter="godot">Godot 4.7 3D</button>
+      <button class="filter-btn" data-filter="threejs">3D Three.js & Godot</button>
       <button class="filter-btn" data-filter="2d">2D Canvas Procedural</button>
     </div>
   </header>
@@ -658,26 +705,31 @@
 
     <!-- 3º TESTE -->
     <div class="timeline-item" data-cat="threejs">
-      <div class="node-marker"></div>
+      <div class="node-marker" style="border-color: #ef4444; box-shadow: 0 0 15px rgba(239, 68, 68, 0.6);"></div>
       <div class="test-card">
-        <div class="step-banner">ESSE FOI O 3º TESTE MEU</div>
+        <div class="step-banner" style="color: #f87171; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); padding: 2px 10px; border-radius: 6px;">
+          ESSE FOI O 3º TESTE MEU • O FRACASSO INICIAL ⚠️
+        </div>
         <div class="card-header-flex">
-          <h2 class="game-title">MOBA v0 (Grid & Tentativa de Assets Prontos)</h2>
+          <h2 class="game-title">MOBA v0 (Grid & Tentativa com Assets Prontos)</h2>
           <span class="date-badge">15/10/2026</span>
         </div>
         <div class="card-body has-media">
           <div class="card-info">
             <p class="story-text">
-              Neste teste tentei importar assets 3D prontos externos (modelos, mapas e texturas) diretamente para o Three.js. <strong>Mas na primeira tentativa deu tudo errado e ficou tudo bugado:</strong> texturas invertidas, shaders quebrando, colisão desalinhada e erros de carregamento. Foi uma etapa difícil e frustrante, mas essencial para aprender a tratar malhas e materiais antes do próximo passo.
+              Neste terceiro teste, tentei importar assets 3D prontos externos (modelos, mapas e texturas) diretamente para o Three.js. <strong>Mas na primeira tentativa deu tudo errado e ficou tudo bugado:</strong> as texturas ficaram invertidas, os shaders quebraram, a malha de colisão não alinhava e deu erro de renderização. Foi um fracasso inicial frustrante!
+            </p>
+            <p class="story-text">
+              Mas eu não desisti: absorvi os erros, entendi como a pipeline do Three.js tratava os formatos e, no teste seguinte, recriei o projeto do zero e consegui consertar tudo (que foi o teste da Caitlyn, o grande sucesso!).
             </p>
             <div class="tech-used">
-              <strong>O que usei:</strong> Three.js, Raycasting de mira, cursores customizados (.cur), shaders de Grid e depuração de assets externos.
+              <strong>O que usei:</strong> Three.js, Raycasting de mira, cursores customizados (.cur), shaders de Grid e depuração de malhas 3D externas.
             </div>
             <div class="card-actions">
               <a href="game-3D-test-threejs-moba-v2-grid-15-10-2026/jogo/dist/index.html" target="_blank" class="btn-play">
                 🎮 JOGAR AGORA ↗
               </a>
-              <button class="btn-concept" onclick="openConcept('game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/UI/ref-ui-interface-lol-2026.png', 'Interface Alvo', 'A interface e estilo de MOBA profissional que estávamos buscando replicar nessa fase.')">
+              <button class="btn-concept" onclick="openConcept('game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/UI/ref-ui-interface-lol-2026.png', 'Interface Alvo', 'A interface e estilo de MOBA profissional que buscávamos replicar nessa fase.')">
                 🎯 Ver Conceito Alvo
               </button>
               <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-threejs-moba-v2-grid-15-10-2026" target="_blank" class="btn-secondary">
@@ -695,33 +747,39 @@
 
     <!-- 4º TESTE -->
     <div class="timeline-item" data-cat="threejs">
-      <div class="node-marker"></div>
-      <div class="test-card">
+      <div class="node-marker" style="border-color: #10b981; box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);"></div>
+      <div class="test-card" style="border-color: rgba(16, 185, 129, 0.4);">
         <div class="step-banner success">ESSE FOI O 4º TESTE MEU • O GRANDE SUCESSO 🏆</div>
         <div class="card-header-flex">
-          <h2 class="game-title">1v1 MOBA Arena - Caitlyn vs Master Yi IA</h2>
+          <h2 class="game-title">1v1 MOBA Arena: Caitlyn vs Master Yi IA</h2>
           <span class="date-badge">20/07/2026</span>
         </div>
         <div class="card-body has-media">
           <div class="card-info">
             <p class="story-text">
-              Após os erros da tentativa anterior, recomecei o projeto do zero com foco na <strong>Caitlyn</strong>, e esse teste <span class="highlight-success">FOI UM VERDADEIRO SUCESSO!</span> Conseguimos fazer a réplica completa: rotas, torres automáticas que atacam, ondas de minions marchando, tiros e disparos da Caitlyn e uma IA completa controlando o Master Yi contra ela! <span class="highlight-success">Esse foi o melhor resultado alcançado até aquele momento.</span>
+              Depois que o teste anterior deu errado, refiz o projeto do zero focando na <strong>Caitlyn</strong>, e esse teste <span class="highlight-success">FOI O GRANDE SUCESSO!</span> Conseguimos fazer a réplica completa com tudo funcionando: rotas, torres automáticas que disparam, ondas de minions marchando, tiros balísticos e animações da Caitlyn e uma IA completa controlando o Master Yi contra ela! <span class="highlight-success">Esse foi o melhor resultado que alcancei até aquele momento.</span>
             </p>
             <p class="story-text">
-              <span class="highlight-reason">Por que não continuei daqui?</span> Por dois motivos conscientes: <strong>1)</strong> Eu queria ter algo 100% original, sem usar personagens de outras empresas (como os da Riot/LoL); <strong>2)</strong> Ter que ficar modelando em 3D, desenhando ou animando manualmente é um trabalho colossal que eu não queria ter. Então fui procurar outras formas inovadoras de criar jogos (que me levaram ao método procedural por código e IA). Mas esse teste provou que o motor 3D funcionava perfeitamente!
+              <span class="highlight-reason">Por que não continuei daqui?</span> Por dois motivos bem claros: <strong>1)</strong> Eu queria criar algo 100% original meu, sem usar personagens e propriedade intelectual dos outros (como os da Riot/LoL); <strong>2)</strong> Ter que ficar modelando em 3D ou desenhando em 2D e animando manualmente dá um trabalho absurdo que eu não queria ter. Então fui procurar outras formas inovadoras de produzir jogos (o que me levou à animação procedural por código). Mas o resultado até aqui ficou incrível e provou que a mecânica funcionava perfeitamente!
             </p>
+            <div style="background: rgba(139, 92, 246, 0.12); border-left: 3px solid var(--purple); padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 0.92rem; color: #cbd5e1;">
+              💡 <strong>Experimento com Godot Engine 4.7:</strong> Depois de terminar esse teste no Three.js, recriei esse mesmo projeto no Godot 4.7 para ver se ficaria igual — e até que consegui! O código completo na engine (com shaders de anti-aliasing e exportação WebAssembly) continua 100% salvo no repositório GitHub.
+            </div>
             <div class="tech-used">
-              <strong>O que usei:</strong> Three.js, TypeScript, Finite State Machines (FSM de minions e bot do Yi), sistema de torres e projéteis balísticos da Caitlyn.
+              <strong>O que usei:</strong> Three.js, TypeScript, Finite State Machines (FSM de minions e bot do Master Yi), sistema de torres defensivas, projéteis da Caitlyn e réplica no Godot Engine 4.7.
             </div>
             <div class="card-actions">
               <a href="game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/index.html" target="_blank" class="btn-play">
-                🎮 JOGAR AGORA ↗
+                🎮 JOGAR CAITLYN (Three.js) ↗
               </a>
               <button class="btn-concept" onclick="openConcept('game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo/dist/UI/ref-ui-interface-lol-2026.png', 'Referência da Caitlyn & HUD', 'A referência visual do League of Legends 2026 que serviu de meta para o combate e HUD.')">
                 🎯 Ver Conceito Alvo
               </button>
               <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-threejs-moba-v1-caitlyn-20-07-2026" target="_blank" class="btn-secondary">
-                📁 Ver Código
+                📁 Ver Código Three.js
+              </a>
+              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-godot-moba-18-10-2026" target="_blank" class="btn-secondary" style="border-color: rgba(139, 92, 246, 0.4); color: #c4b5fd;">
+                📁 Ver Código Godot 4.7
               </a>
             </div>
           </div>
@@ -734,37 +792,64 @@
     </div>
 
     <!-- 5º TESTE -->
-    <div class="timeline-item" data-cat="godot">
+    <div class="timeline-item" data-cat="2d">
       <div class="node-marker"></div>
       <div class="test-card">
-        <div class="step-banner">ESSE FOI O 5º TESTE MEU</div>
+        <div class="step-banner" style="color: #f59e0b; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); padding: 2px 10px; border-radius: 6px;">
+          ESSE FOI O 5º TESTE MEU • 1ª TENTATIVA PROCEDURAL (QUASE DESISTI AQUI! ⚠️)
+        </div>
         <div class="card-header-flex">
-          <h2 class="game-title">MOBA 3D na Godot Engine 4.7</h2>
-          <span class="date-badge">18/10/2026</span>
+          <h2 class="game-title">O Bake-Off 2D & O Fiasco do "Bando de PNGs"</h2>
+          <span class="date-badge">19/10/2026</span>
         </div>
         <div class="card-body has-media">
           <div class="card-info">
-            <p class="story-text">
-              Grande salto para uma engine profissional! Migrei o projeto para a Godot Engine 4.7. Importei o modelo 3D completo da Caitlyn com esqueleto e animações, criei benchmarks de pós-processamento de anti-aliasing (FXAA customizado vs MSAA) e exportei tudo para a web usando WebAssembly de alta performance.
-            </p>
+            
+            <!-- PARTE 1 -->
+            <div class="phase-block">
+              <span class="phase-badge p1">Parte 1 (Início) • A Montagem Fracassada dos Recortes</span>
+              <p class="story-text" style="margin-bottom: 0;">
+                Foi aqui que comecei a tentar fazer jogos em 2D procedural. No meu primeiro teste criei as partes do personagem, recortei tudo, mas na hora de montar no código não deu certo: virou só um bando de PNGs estáticos colados na tela que nem se mexiam e não prestavam pra nada! Foi frustrante, mas foi a primeira tentativa real de abandonar a animação manual frame a frame.
+              </p>
+            </div>
+
+            <!-- PARTE 2 -->
+            <div class="phase-block">
+              <span class="phase-badge p2">Parte 2 (Meio) • O Bake-Off e a Disputa entre 4 IAs</span>
+              <p class="story-text" style="margin-bottom: 0;">
+                Para tentar destravar o desenvolvimento, fui quebrando a cabeça e melhorando a lógica. Montei um 'Bake-Off' técnico colocando 4 inteligências artificiais (ChatGPT, Codex, DeepSeek e Antigravity) para competir lado a lado, tentando desenhar o herói puro em código HTML5 Canvas com ciclos de animação e resposta aos controles.
+              </p>
+            </div>
+
+            <!-- PARTE 3 -->
+            <div class="phase-block">
+              <span class="phase-badge p3">Parte 3 (Fim) • Protótipo Jogável, mas "Ainda Parece PNG"</span>
+              <p class="story-text" style="margin-bottom: 6px;">
+                Consegui chegar nesse protótipo jogável na arena da ilha com movimentação e combos. Só que quando fui testar, percebi o problema: o personagem <em>ainda parecia um bando de PNGs recortados deslizando na tela</em>, e não um personagem verdadeiramente procedural e orgânico!
+              </p>
+              <p class="story-text" style="color: #fca5a5; margin-bottom: 0;">
+                <strong>Eu estava quase desistindo de gamedev aqui!</strong> A decepção foi enorme por não atingir a fluidez desejada, mas respirei fundo e decidi continuar tentando novas abordagens nas tentativas seguintes.
+              </p>
+            </div>
+
             <div class="tech-used">
-              <strong>O que usei:</strong> Godot 4.7, GDScript, WebAssembly (WASM), GL Compatibility, Shaders de Pós-Processamento e Caitlyn 3D GLB.
+              <strong>O que usei:</strong> HTML5 Canvas 2D nativo, tentativa inicial de montagem de recortes PNG, primeiros passos de rig procedural e disputa entre 4 IAs.
             </div>
             <div class="card-actions">
-              <a href="game-3D-test-godot-moba-18-10-2026/build/web/index.html" target="_blank" class="btn-play">
+              <a href="game-2D-test-bakeoff-multi-ia-19-10-2026/prototypes/antigravity/desenho-v1-antigravity/index.html" target="_blank" class="btn-play">
                 🎮 JOGAR AGORA ↗
               </a>
-              <button class="btn-concept" onclick="openConcept('game-3D-test-godot-moba-18-10-2026/docs/migration/visual/fxaa_threshold_full.png', 'Benchmark Shaders Godot', 'O teste comparativo de qualidade de imagem entre FXAA e MSAA que queríamos alcançar no renderizador Web.')">
-                🎯 Ver Conceito Alvo
+              <button class="btn-concept" onclick="openConcept('game-2D-test-bakeoff-multi-ia-19-10-2026/assets/references/ref-2d-hero/hero-complet-idle/hero-idle-s.png', 'Recortes do Bixo PNG', 'Os sprites e partes originais recortadas que na primeira tentativa ficaram travados como um bando de PNGs estáticos.')">
+                🎯 Ver Recortes PNG Alvo
               </button>
-              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-3D-test-godot-moba-18-10-2026" target="_blank" class="btn-secondary">
+              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-bakeoff-multi-ia-19-10-2026" target="_blank" class="btn-secondary">
                 📁 Ver Código
               </a>
             </div>
           </div>
           <div class="thumb-wrap">
-            <img src="game-3D-test-godot-moba-18-10-2026/build/web/index.png" alt="Print Real Godot MOBA" class="card-thumb">
-            <span class="thumb-tag">📸 Print Real do Jogo</span>
+            <img src="game-2D-test-bakeoff-multi-ia-19-10-2026/prototypes/antigravity/desenho-v1-antigravity/screenshots/12-arena-island-idle.png" alt="Print Real na Arena do Bixo PNG" class="card-thumb">
+            <span class="thumb-tag">📸 Print Real do "Bixo Parece PNG"</span>
           </div>
         </div>
       </div>
@@ -774,149 +859,55 @@
     <div class="timeline-item" data-cat="2d">
       <div class="node-marker"></div>
       <div class="test-card">
-        <div class="step-banner" style="color: #f59e0b; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); padding: 2px 10px; border-radius: 6px;">
-          ESSE FOI O 6º TESTE MEU • 1ª TENTATIVA PROCEDURAL (QUASE DESISTI AQUI! ⚠️)
+        <div class="step-banner" style="color: #00f2fe; background: rgba(0, 242, 254, 0.12); border: 1px solid rgba(0, 242, 254, 0.3); padding: 2px 10px; border-radius: 6px;">
+          ESSE FOI O 6º TESTE MEU • A SAGA DO CAREQUINHA (3 ETAPAS UNIFICADAS) ⚡
         </div>
         <div class="card-header-flex">
-          <h2 class="game-title">O Bake-Off 2D & O Fiasco do "Bando de PNGs"</h2>
-          <span class="date-badge">19/10/2026</span>
+          <h2 class="game-title">A Saga do Carequinha: Da Falha do DeepSeek ao Motor Antigravity 2.5D</h2>
+          <span class="date-badge">20 a 22/10/2026</span>
         </div>
         <div class="card-body has-media">
           <div class="card-info">
-            <p class="story-text">
-              Foi aqui que comecei a tentar o método procedural (inspirado no canal RafaxLab / Rafael + Claude). Mas nos primeiros testes deu tudo errado: criei o personagem inteiro, mas na hora de montar no procedural não funcionou — <strong>ficou só um bando de PNGs recortados colados que não se moviam direito e não prestavam!</strong>
-            </p>
-            <p class="story-text">
-              Fui quebrando a cabeça e melhorando aos poucos até chegar nesse protótipo jogável do Bake-Off (colocando ChatGPT, Codex, DeepSeek e Antigravity para competir desenhando por código). Só que mesmo esse resultado que ficou jogável <em>ainda parecia um monte de PNG e não um personagem verdadeiramente procedural</em>.
-            </p>
-            <p class="story-text" style="color: #fca5a5;">
-              <strong>Eu estava quase desistindo de gamedev aqui!</strong> A frustração foi enorme, mas respirei fundo e resolvi continuar tentando nas próximas fases... e ainda bem que continuei!
-            </p>
-            <div class="tech-used">
-              <strong>O que usei:</strong> HTML5 Canvas 2D nativo, tentativa inicial de montagem de PNGs, primeiros passos de rig procedural e disputa entre 4 IAs.
+            
+            <!-- PARTE 1 -->
+            <div class="phase-block">
+              <span class="phase-badge p1">Parte 1 (Início) • A Entrega DeepSeek que "Nem Prestou" 😅</span>
+              <p class="story-text" style="margin-bottom: 0;">
+                Coloquei o DeepSeek para tentar desenhar o herói e montar a prancha de poses por código, <strong>mas esse nem prestou!</strong> O resultado visual ficou tosco e desproporcional, a rotação das poses ficou esquisita, o tronco e a cabeça não batiam e o rig mal conseguia se equilibrar. Fiz questão de deixar jogável aqui para mostrar a realidade: nem todo teste dá certo de primeira!
+              </p>
             </div>
-            <div class="card-actions">
-              <a href="game-2D-test-bakeoff-multi-ia-19-10-2026/prototypes/antigravity/desenho-v1-antigravity/index.html" target="_blank" class="btn-play">
-                🎮 JOGAR AGORA ↗
-              </a>
-              <button class="btn-concept" onclick="openConcept('assets-referencias-heros-23-10-2026/hero-carequinha/model-like-hades-2-5d.png', 'Arte Alvo Estilo Hades', 'A arte conceitual original estilo Hades que queríamos desenhar 100% via código sem usar recortes de PNG.')">
-                🎯 Ver Conceito Alvo
-              </button>
-              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-bakeoff-multi-ia-19-10-2026" target="_blank" class="btn-secondary">
-                📁 Ver Código
-              </a>
-            </div>
-          </div>
-          <div class="thumb-wrap">
-            <img src="game-2D-test-bakeoff-multi-ia-19-10-2026/prototypes-nao-aprovados/rig-01-antigravity/screenshots/01-rig-arena-idle.png" alt="Print Real da 1ª Tentativa de Rig" class="card-thumb">
-            <span class="thumb-tag">📸 Print do "Bando de PNGs"</span>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- 7º TESTE -->
-    <div class="timeline-item" data-cat="2d">
-      <div class="node-marker"></div>
-      <div class="test-card">
-        <div class="step-banner">ESSE FOI O 7º TESTE MEU</div>
-        <div class="card-header-flex">
-          <h2 class="game-title">Hero Carequinha V1 (Protótipo Standalone)</h2>
-          <span class="date-badge">20/10/2026</span>
-        </div>
-        <div class="card-body has-media">
-          <div class="card-info">
-            <p class="story-text">
-              O nascimento do 'Carequinha'! Primeiro teste jogável isolado com arena isométrica, tochas com iluminação dinâmica, movimentação WASD suave, rotação mirando no mouse e sistema de combo de combate em 3 golpes com arco de espada.
-            </p>
-            <div class="tech-used">
-              <strong>O que usei:</strong> Canvas 2D nativo puro, cinemática inversa analítica (IK), ciclo de animação procedural e renderizador isométrico.
+            <!-- PARTE 2 -->
+            <div class="phase-block">
+              <span class="phase-badge p2">Parte 2 (Meio) • O Protótipo V1 Standalone na Arena com Tochas</span>
+              <p class="story-text" style="margin-bottom: 0;">
+                Para não depender de modelos engessados, isolei o rig do Carequinha em uma arena escura com tochas e iluminação dinâmica. Aqui começamos a acertar a cinemática inversa (IK analítica) das pernas, a rotação suave do personagem mirando no mouse e o primeiro ciclo funcional de combo de espada em 3 golpes.
+              </p>
             </div>
-            <div class="card-actions">
-              <a href="game-2D-test-carequinha-v1-20-10-2026/index.html" target="_blank" class="btn-play">
-                🎮 JOGAR AGORA ↗
-              </a>
-              <button class="btn-concept" onclick="openConcept('assets-referencias-heros-23-10-2026/hero-carequinha/head.png', 'Rosto Conceitual Carequinha', 'O desenho e paleta oficial do rosto do Carequinha usado como meta de proporção.')">
-                🎯 Ver Conceito Alvo
-              </button>
-              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-carequinha-v1-20-10-2026" target="_blank" class="btn-secondary">
-                📁 Ver Código
-              </a>
-            </div>
-          </div>
-          <div class="thumb-wrap">
-            <img src="game-2D-test-antigravity-carequinha-20-10-2026/prototipos/do-deepseek/prototipo-v1-deepseek/artifacts/v1-jogo-idle.png" alt="Print Real do Jogo Carequinha" class="card-thumb">
-            <span class="thumb-tag">📸 Print Real do Jogo</span>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- 8º TESTE -->
-    <div class="timeline-item" data-cat="2d">
-      <div class="node-marker"></div>
-      <div class="test-card">
-        <div class="step-banner" style="color: #f87171; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); padding: 2px 10px; border-radius: 6px;">
-          ESSE FOI O 8º TESTE MEU • ESSE NEM PRESTOU 😅
-        </div>
-        <div class="card-header-flex">
-          <h2 class="game-title">Tentativa com DeepSeek (Herói Procedural V1)</h2>
-          <span class="date-badge">20/10/2026</span>
-        </div>
-        <div class="card-body has-media">
-          <div class="card-info">
-            <p class="story-text">
-              Coloquei o DeepSeek para tentar desenhar o herói e montar a prancha por código, <strong>mas esse nem prestou!</strong> O resultado visual ficou bem tosco e desproporcional, a rotação das poses ficou estranha e passou bem longe da arte que queríamos atingir. 
-            </p>
-            <p class="story-text">
-              Fiz questão de deixar aqui na linha do tempo para mostrar a realidade da jornada: nem todo teste é perfeito, e esse serviu exatamente para entender as limitações do modelo e o que precisava ser corrigido nos próximos passos!
-            </p>
-            <div class="tech-used">
-              <strong>O que usei:</strong> Canvas 2D Puro, coordenadas cilíndricas para rotação do corpo e matrizes de transformação geométrica.
+            <!-- PARTE 3 -->
+            <div class="phase-block">
+              <span class="phase-badge p3">Parte 3 (Fim) • O Motor Completo Consolidado pelo Antigravity</span>
+              <p class="story-text" style="margin-bottom: 0;">
+                O salto definitivo do Carequinha! Com engenharia completa do Antigravity, o motor 2.5D foi consolidado: arena com grid em perspectiva isométrica, sombras dinâmicas, partículas de faísca a cada impacto, turnaround de 360° ultra suave e combos encadeados estilo Hades rodando a mais de 200 FPS direto no navegador!
+              </p>
             </div>
-            <div class="card-actions">
-              <a href="game-2D-test-deepseek-carequinha-20-10-2026/index.html" target="_blank" class="btn-play">
-                🎮 JOGAR AGORA ↗
-              </a>
-              <button class="btn-concept" onclick="openConcept('game-2D-test-antigravity-carequinha-20-10-2026/prototipos/do-deepseek/prototipo-v1-deepseek/artifacts/ref-target.png', 'Arte Alvo (O que o DeepSeek tentou imitar)', 'A folha modelo que enviamos para o DeepSeek tentar desenhar por código. Compare com o print real do teste para ver a diferença!')">
-                🎯 Ver Conceito Alvo
-              </button>
-              <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-deepseek-carequinha-20-10-2026" target="_blank" class="btn-secondary">
-                📁 Ver Código
-              </a>
-            </div>
-          </div>
-          <div class="thumb-wrap">
-            <img src="game-2D-test-antigravity-carequinha-20-10-2026/prototipos/do-deepseek/prototipo-v1-deepseek/artifacts/v1-prancha.png" alt="Print Real da Prancha do DeepSeek" class="card-thumb">
-            <span class="thumb-tag">📸 Print Real do Teste</span>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- 9º TESTE -->
-    <div class="timeline-item" data-cat="2d">
-      <div class="node-marker"></div>
-      <div class="test-card">
-        <div class="step-banner">ESSE FOI O 9º TESTE MEU</div>
-        <div class="card-header-flex">
-          <h2 class="game-title">Motor Completo do Carequinha (Antigravity)</h2>
-          <span class="date-badge">20/10/2026</span>
-        </div>
-        <div class="card-body has-media">
-          <div class="card-info">
-            <p class="story-text">
-              A versão consolidada do motor do Carequinha com engenharia independente feita pelo Antigravity: arena com grid, sombras dinâmicas, partículas de impacto, combate fluido com combos encadeados e turnaround 360° rodando a 200+ FPS.
-            </p>
             <div class="tech-used">
-              <strong>O que usei:</strong> Motor 2.5D próprio, coordenadas cilíndricas, IK analítica em membros, sistema de partículas e espada com arco curvo.
+              <strong>O que usei:</strong> Motor 2.5D Canvas, cinemática inversa analítica (IK), coordenadas cilíndricas, sistema de iluminação radial, partículas de combate e turnaround 360°.
             </div>
             <div class="card-actions">
               <a href="game-2D-test-antigravity-carequinha-20-10-2026/index.html" target="_blank" class="btn-play">
-                🎮 JOGAR AGORA ↗
+                🎮 JOGAR MOTOR COMPLETO (Antigravity) ↗
               </a>
-              <button class="btn-concept" onclick="openConcept('assets-referencias-heros-23-10-2026/hero-carequinha/model-like-hades-2-5d.png', 'Arte Hades Completa', 'A direção artística original estilo Hades que inspirou a iluminação da arena e os combos.')">
-                🎯 Ver Conceito Alvo
+              <a href="game-2D-test-carequinha-v1-20-10-2026/index.html" target="_blank" class="btn-secondary" style="border-color: rgba(245, 158, 11, 0.4); color: #fbbf24;">
+                🕹️ Testar V1 Standalone ↗
+              </a>
+              <a href="game-2D-test-deepseek-carequinha-20-10-2026/index.html" target="_blank" class="btn-secondary" style="border-color: rgba(239, 68, 68, 0.4); color: #f87171;">
+                ⚠️ Ver Entrega DeepSeek ↗
+              </a>
+              <button class="btn-concept" onclick="openConcept('assets-referencias-heros-23-10-2026/hero-carequinha/model-like-hades-2-5d.png', 'Arte Hades do Carequinha', 'A arte conceitual original estilo Hades que inspirou a criação do Carequinha e que buscamos atingir nessas 3 etapas.')">
+                🎯 Ver Conceito Hades
               </button>
               <a href="https://github.com/victorwilliames/GamesTestes2026/tree/master/game-2D-test-antigravity-carequinha-20-10-2026" target="_blank" class="btn-secondary">
                 📁 Ver Código
@@ -925,32 +916,34 @@
           </div>
           <div class="thumb-wrap">
             <img src="game-2D-test-antigravity-carequinha-20-10-2026/prototipos/do-deepseek/prototipo-v1-deepseek/artifacts/v1-jogo-golpe.png" alt="Print Real do Golpe do Carequinha" class="card-thumb">
-            <span class="thumb-tag">📸 Print Real do Jogo</span>
+            <span class="thumb-tag">📸 Print Real do Carequinha</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 10º TESTE -->
+    <!-- 7º TESTE -->
     <div class="timeline-item" data-cat="2d">
-      <div class="node-marker"></div>
-      <div class="test-card">
-        <div class="step-banner">ESSE FOI O 10º TESTE MEU</div>
+      <div class="node-marker" style="border-color: #f59e0b; box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);"></div>
+      <div class="test-card" style="border-color: rgba(245, 158, 11, 0.35);">
+        <div class="step-banner" style="color: #fbbf24; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); padding: 2px 10px; border-radius: 6px;">
+          ESSE FOI O 7º TESTE MEU • O NOVO HERÓI & RIGGING IK DEFINITIVO 👑
+        </div>
         <div class="card-header-flex">
-          <h2 class="game-title">Cavaleiro Ruivo 2.5D (Evolução & Rigging IK)</h2>
+          <h2 class="game-title">Cavaleiro Ruivo 2.5D (Evolução & Rigging IK Avançado)</h2>
           <span class="date-badge">20 a 23/10/2026</span>
         </div>
         <div class="card-body has-media">
           <div class="card-info">
             <p class="story-text">
-              O mais recente e avançado teste! Evolução do jogo para o novo herói: o Cavaleiro de Cabelos Vermelhos. Armadura completa desenhada em código, mechas estilizadas, turnaround em 8 direções e sistema de rigging com cinemática inversa em tempo real nos braços e pernas.
+              O mais recente e avançado teste! Evolução do motor para o novo herói: o Cavaleiro de Cabelos Vermelhos. Armadura completa e mechas estilizadas desenhadas diretamente por código Canvas, turnaround em 8 direções e sistema de rigging com cinemática inversa analítica de 2 segmentos em tempo real nos braços e pernas, além de bancada de testes de comparação lado a lado e hitboxes dinâmicas de combate.
             </p>
             <div class="tech-used">
-              <strong>O que usei:</strong> HTML5 Canvas 2D nativo, IK de 2 segmentos, banco de vetores do novo herói, bancada de comparação lado a lado e hitboxes.
+              <strong>O que usei:</strong> HTML5 Canvas 2D nativo, IK de 2 segmentos, banco de vetores do novo herói ruivo, bancada de comparação lado a lado e hitboxes de impacto.
             </div>
             <div class="card-actions">
               <a href="game-2D-test-antigravity-ruivo-20-10-2026/index.html" target="_blank" class="btn-play">
-                🎮 JOGAR AGORA ↗
+                🎮 JOGAR CAVALEIRO RUIVO ↗
               </a>
               <button class="btn-concept" onclick="openConcept('assets-referencias-heros-23-10-2026/hero-cabeca-red/Folha de poses do cavaleiro ruivo chia.png', 'Folha de Poses Cavaleiro Ruivo', 'A folha modelo com 8 ângulos de visão e poses de ataque do novo herói.')">
                 🎯 Ver Conceito Alvo

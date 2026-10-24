@@ -2120,7 +2120,7 @@ body.console-detail-open .hero-detail-slot{animation:none!important;}
         card.setAttribute("tabindex","0");
         card.setAttribute("aria-label","Selecionar projeto "+(i+1)+": "+consoleShortTitles[i]);
         card.addEventListener("keydown",e=>{
-          if(e.key===" "){e.preventDefault();e.stopPropagation();card.click();}
+          if(e.key===" "||e.key==="Enter"){e.preventDefault();e.stopPropagation();card.click();}
         });
       });
       document.addEventListener("visibilitychange",()=>{if(document.hidden)stopConsoleSoundscape();else if(consoleSoundUnlocked&&soundEnabled)startConsoleSoundscape(currentIndex);});

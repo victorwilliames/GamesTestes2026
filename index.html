@@ -1209,7 +1209,134 @@ body.console-detail-open .hero-detail-slot{animation:none!important;}
 .console-aside .console-tech-panel:has(.drawer-subbuilds[style*="display: flex"]){max-height:210px!important;}
 /* =============== END CONSOLE V3 COMPLETE =============== */
 
-  </style>
+  
+/* ===== V4: visual refinado e navegação sem scroll da página ===== */
+html,body{width:100%;max-width:100%;overflow-x:hidden;}
+#console-view{width:100%;max-width:100%;overflow:hidden;}
+#ps5-backdrop-container{width:100%;max-width:100%;height:100dvh;background:#05070d;}
+.backdrop-image,.backdrop-image.game-art,.backdrop-image.cinematic-art{
+  background-size:cover!important;
+  background-position:65% 45%!important;
+  background-repeat:no-repeat!important;
+  filter:brightness(.82) contrast(1.05) saturate(.98);
+  transform:scale(1.016);
+  transition:opacity .62s cubic-bezier(.22,1,.36,1),transform 3.1s ease,filter .42s ease;
+}
+.backdrop-image.active{transform:scale(1);}
+.backdrop-overlay{
+  background:
+  linear-gradient(90deg,rgba(3,5,12,.98) 0%,rgba(3,5,12,.94) 18%,rgba(3,5,12,.76) 34%,rgba(3,5,12,.44) 52%,rgba(3,5,12,.12) 79%,rgba(3,5,12,.07) 100%),
+  linear-gradient(0deg,#05070e 0%,rgba(5,7,14,.92) 8%,rgba(5,7,14,.12) 37%,rgba(5,7,14,.24) 100%);
+}
+body.console-detail-open .backdrop-overlay{
+  background:
+  linear-gradient(90deg,rgba(3,5,12,.98) 0%,rgba(3,5,12,.95) 18%,rgba(3,5,12,.77) 35%,rgba(3,5,12,.40) 54%,rgba(3,5,12,.14) 75%,rgba(3,5,12,.12) 100%),
+  linear-gradient(0deg,#05070e 0%,rgba(5,7,14,.90) 9%,rgba(5,7,14,.17) 44%,rgba(5,7,14,.30) 100%);
+}
+body.console-detail-open .backdrop-image.game-art{filter:brightness(.77) contrast(1.07) saturate(.94);}
+.hero-stage{
+  top:clamp(148px,25.5vh,236px);
+  width:min(780px,55vw);
+  max-width:none;
+  padding-left:clamp(24px,3.15vw,60px);
+  padding-right:12px;
+}
+.hero-title{
+  font-size:clamp(2.25rem,3.75vw,4.15rem);
+  letter-spacing:-.048em;
+  line-height:1.08;
+  max-width:760px;
+  font-weight:850;
+  margin:0 0 10px;
+}
+.hero-step-banner{
+  font-size:clamp(.56rem,.66vw,.73rem);
+  letter-spacing:.05em;
+  padding:7px 11px;
+  border-radius:8px;
+  margin-bottom:14px;
+  max-width:100%;
+}
+.console-subtitle{
+  font-size:clamp(.92rem,1.15vw,1.24rem);
+  font-weight:500;
+  line-height:1.38;
+  margin:4px 0 13px;
+  color:rgba(233,242,255,.86);
+}
+.hero-tags{gap:8px;margin-top:14px;}
+.hero-tag{padding:7px 10px;border-radius:9px;font-size:clamp(.63rem,.65vw,.76rem);font-weight:600;letter-spacing:0;}
+.hero-short-description{font-size:clamp(.77rem,.86vw,.94rem);max-width:650px;margin:10px 0 9px;line-height:1.48;}
+body.console-detail-open .hero-stage{top:clamp(125px,18vh,170px);width:min(785px,55vw);}
+body.console-detail-open .hero-title{font-size:clamp(2.1rem,3.5vw,3.9rem);margin-bottom:6px;}
+body.console-detail-open .hero-tags{margin-top:13px;}
+.hero-detail-slot{margin-top:17px;}
+.hero-detail-slot .drawer-actions-row{gap:9px!important;}
+.hero-detail-slot .drawer-actions-row .btn-ps5-play,
+.hero-detail-slot .drawer-actions-row .btn-ps5-compare,
+.hero-detail-slot .drawer-actions-row .btn-ps5-secondary{
+  min-height:47px!important;
+  padding:10px 14px!important;
+  border-radius:13px!important;
+  font-size:clamp(.72rem,.79vw,.87rem)!important;
+  gap:7px!important;
+}
+.console-aside{
+  top:clamp(110px,13vh,142px);
+  right:clamp(24px,3.1vw,58px);
+  width:min(32vw,510px);
+  max-height:calc(100dvh - clamp(110px,13vh,142px) - clamp(220px,27vh,290px));
+  gap:12px;
+}
+.console-aside > div{padding:17px 19px!important;border-radius:16px!important;background:rgba(10,16,29,.81)!important;}
+.console-aside .console-story-panel h3{font-size:.97rem!important;}
+.console-aside #drawer-story-body p{font-size:.84rem!important;line-height:1.55!important;}
+.console-aside .console-tech-panel h4{font-size:.88rem!important;}
+.console-aside .console-tech-panel p{font-size:.8rem!important;}
+.ribbon-wrapper{padding:7px clamp(24px,3.1vw,58px) 6px;}
+.ribbon-track{scroll-behavior:smooth;overscroll-behavior-x:contain;}
+.game-card-dock{flex-basis:clamp(116px,10.2vw,190px);width:clamp(116px,10.2vw,190px);border-radius:15px!important;}
+.game-card-dock .card-thumb-box{height:clamp(115px,10.3vw,193px);}
+.game-card-dock.active{box-shadow:0 0 0 2px rgba(25,185,238,.30),0 0 25px rgba(31,188,250,.45),0 14px 32px rgba(0,0,0,.65);}
+.bottom-section{background:linear-gradient(0deg,rgba(4,6,13,.99) 0%,rgba(4,6,13,.77) 73%,transparent 100%);}
+@media(max-width:1170px) and (min-width:761px){
+.hero-stage{width:58vw;}
+.hero-title{font-size:clamp(2.08rem,3.75vw,3.35rem);}
+body.console-detail-open .hero-stage{width:56vw;}
+body.console-detail-open .hero-title{font-size:clamp(2rem,3.5vw,3.2rem);}
+.console-aside{width:36vw;}
+.hero-detail-slot .drawer-actions-row .btn-ps5-play,.hero-detail-slot .drawer-actions-row .btn-ps5-compare,.hero-detail-slot .drawer-actions-row .btn-ps5-secondary{min-height:43px!important;font-size:.7rem!important;padding:8px 10px!important;}
+}
+@media(max-width:760px){
+#ps5-backdrop-container{width:100%;}
+.backdrop-image,.backdrop-image.game-art{background-size:auto 78%!important;background-position:62% 25%!important;}
+.backdrop-overlay{background:linear-gradient(90deg,rgba(3,5,12,.87),rgba(3,5,12,.24)),linear-gradient(0deg,#05070e 0%,rgba(5,7,14,.88) 34%,rgba(5,7,14,.25) 80%);}
+.hero-stage{top:clamp(113px,20vh,195px);width:100%;padding:0 18px;}
+.hero-title{font-size:clamp(2.05rem,7.8vw,3.55rem);max-width:95%;line-height:1.09;}
+.hero-step-banner{font-size:.59rem;max-width:97%;}
+.console-subtitle{font-size:clamp(.82rem,3.25vw,1rem);}
+.hero-tag{font-size:.60rem;padding:6px 7px;}
+body.console-detail-open .hero-stage{top:67px;width:100%;padding:0 16px;}
+body.console-detail-open .hero-title{font-size:clamp(1.8rem,6.6vw,2.45rem);}
+.console-aside{top:clamp(235px,35vh,315px);left:16px;right:16px;width:auto;max-height:calc(100dvh - clamp(235px,35vh,315px) - 220px);}
+.hero-detail-slot{margin-top:12px;}
+.hero-detail-slot .drawer-actions-row .btn-ps5-play,
+.hero-detail-slot .drawer-actions-row .btn-ps5-compare,
+.hero-detail-slot .drawer-actions-row .btn-ps5-secondary{min-height:37px!important;padding:7px 9px!important;font-size:.65rem!important;border-radius:10px!important;}
+}
+@media(max-height:730px) and (min-width:761px){
+.hero-stage{top:19vh;}
+body.console-detail-open .hero-stage{top:13vh;}
+.hero-title{font-size:clamp(2.1rem,3.5vw,3.6rem);}
+body.console-detail-open .hero-title{font-size:clamp(2rem,3.1vw,3.2rem);}
+.hero-detail-slot{margin-top:13px;}
+.console-aside{top:90px;max-height:calc(100dvh - 325px);}
+}
+@media(prefers-reduced-motion:reduce){
+.backdrop-image{transition:none!important;transform:none!important;}
+}
+
+</style>
 </head>
 <body>
 
@@ -1741,7 +1868,7 @@ body.console-detail-open .hero-detail-slot{animation:none!important;}
     // MULTI-PRINT HOVER CYCLING
     function startCardHover(idx, cardEl) {
       const game = gamesData[idx];
-      if (!game.prints || game.prints.length <= 1) return;
+      if (idx === currentIndex || !game.prints || game.prints.length <= 1) return;
       
       const imgEl = document.getElementById('card-img-' + idx);
       hoverPrintIndex = 0;
@@ -1841,17 +1968,21 @@ body.console-detail-open .hero-detail-slot{animation:none!important;}
       // Scroll ribbon into view
       const activeCard = document.getElementById('dock-card-' + index);
       if (activeCard) {
-        activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        const track = document.getElementById('ribbon-track');
+        const activeRect = activeCard.getBoundingClientRect();
+        const trackRect = track.getBoundingClientRect();
+        const left = track.scrollLeft + activeRect.left - trackRect.left - (track.clientWidth - activeRect.width) / 2;
+        track.scrollTo({left:Math.max(0,left),behavior:'smooth'});
       }
 
       // Crisp Backdrop Crossfade
       const nextBackdrop = activeBackdropLayer === 1 ? document.getElementById('backdrop-img-2') : document.getElementById('backdrop-img-1');
       const currBackdrop = activeBackdropLayer === 1 ? document.getElementById('backdrop-img-1') : document.getElementById('backdrop-img-2');
 
-      const artUrl = game.num === 7 ? "assets/console/hero-cavaleiro.svg" : game.prints[0];
+      const artUrl = game.prints[0];
       nextBackdrop.style.backgroundImage = `url('${artUrl}')`;
-      nextBackdrop.classList.toggle("cinematic-art",game.num===7);
-      nextBackdrop.classList.toggle("game-art",game.num!==7);
+      nextBackdrop.classList.remove("cinematic-art");
+      nextBackdrop.classList.add("game-art");
       nextBackdrop.classList.add('active');
       currBackdrop.classList.remove('active');
       activeBackdropLayer = activeBackdropLayer === 1 ? 2 : 1;
@@ -1870,7 +2001,6 @@ body.console-detail-open .hero-detail-slot{animation:none!important;}
       metaContainer.innerHTML = `
         <span class="hero-tag">${game.categoryLabel}</span>
         <span class="hero-tag">📅 ${game.date}</span>
-        <span class="hero-tag">🎮 Protótipo jogável</span>
         <span class="hero-tag">⌘ ${game.techBadge}</span>
       `;
 

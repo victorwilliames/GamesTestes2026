@@ -1,0 +1,110 @@
+{
+  "generatedAt": "2026-10-19T14:58:07.520Z",
+  "browser": "Edg/155.0.4283.62",
+  "platform": "win32",
+  "node": "v24.16.0",
+  "html": "prototypes\\rig-01-antigravity\\index-hero.html",
+  "htmlSha256": "594c2d10dcb36a174ed0e5c9bec314896a2c7ab528ec3460a01b43678e60e5da",
+  "goldenRule200Fps": {
+    "floorFps": 200,
+    "measuredFps": 369,
+    "frameMs": 2.709,
+    "pass": true
+  },
+  "footLock": {
+    "yaw0": {
+      "state": "run",
+      "yaw": 0,
+      "clipTime": 1.9999999999999953,
+      "fps": 60,
+      "frameCount": 240,
+      "footSlipMaxPx": 1.1368683772161603e-13,
+      "footSlipMeanPx": 1.9184653865522706e-14,
+      "footLockSamples": 80,
+      "footLockPass": true,
+      "root": {
+        "x": 0,
+        "y": 4.799999999999986
+      },
+      "errors": []
+    },
+    "yaw90": {
+      "state": "run",
+      "yaw": 90,
+      "clipTime": 1.9999999999999953,
+      "fps": 60,
+      "frameCount": 240,
+      "footSlipMaxPx": 1.1368683772161603e-13,
+      "footSlipMeanPx": 2.7000623958883806e-14,
+      "footLockSamples": 80,
+      "footLockPass": true,
+      "root": {
+        "x": 4.799999999999986,
+        "y": 2.9391523179536565e-16
+      },
+      "errors": []
+    },
+    "pass": true
+  },
+  "captures": [
+    {
+      "file": "09-hero-idle-8dir.png",
+      "width": 1920,
+      "height": 1120,
+      "bytes": 536649,
+      "sha256": "b60c8ec3645b2e6fcddea571164b15c58ca09eecba010578fe8795d47cc8971b",
+      "state": "idle",
+      "yaw": 0,
+      "clipTime": 0,
+      "footSlipMaxPx": 0
+    },
+    {
+      "file": "10-hero-run.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 56072,
+      "sha256": "efaa75ec2b4cf243af2777f6dd6747430dc719e45dac0878de4b644a6646c37b",
+      "state": "run",
+      "yaw": 0,
+      "clipTime": 0.2,
+      "footSlipMaxPx": 7.649999999999977
+    },
+    {
+      "file": "11-hero-combo.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 55427,
+      "sha256": "ac7b3211a395cb5e43b0e564a132a9c65124dc3103e4dc4d2b2d16d5739f9129",
+      "state": "attack3",
+      "yaw": 0,
+      "clipTime": 0.22,
+      "footSlipMaxPx": 0
+    },
+    {
+      "file": "12-hero-debug.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 62833,
+      "sha256": "4c5d9ca2a43a8111a0429f630dd39b29915271c3083b9280d9cfcb9ca14e0cac",
+      "state": "run",
+      "yaw": 45,
+      "clipTime": 0.25,
+      "footSlipMaxPx": 9.781048989159817
+    },
+    {
+      "file": "13-hero-gallery-g.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 75003,
+      "sha256": "3e9ab9e51cba765b56b3a7091e5ddc6d75453cf5a92b42b192aa9f4710a13d95",
+      "state": "idle",
+      "yaw": 0,
+      "clipTime": 0,
+      "footSlipMaxPx": 0
+    }
+  ],
+  "errors": {
+    "runtime": [],
+    "console": []
+  }
+}

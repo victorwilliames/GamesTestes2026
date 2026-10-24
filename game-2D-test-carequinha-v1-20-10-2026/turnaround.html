@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carequinha — Turnaround (Antigravity v1)</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { overflow: auto; padding: 16px; }
+    header { max-width: 1200px; margin: 0 auto 12px; display: flex; justify-content: space-between; align-items: baseline; }
+    h1 { font-family: Georgia, serif; color: var(--accent); margin: 0; font-size: 24px; }
+    a.back { color: var(--gold); text-decoration: none; font-weight: bold; }
+    #turn { display: block; width: 1200px; max-width: 100%; height: 640px; margin: 0 auto; border: 2px solid var(--ink); border-radius: 6px; background: var(--panel); box-shadow: 4px 4px 0 var(--ink); }
+    p.foot { text-align: center; color: var(--muted); font-size: 13px; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Turnaround — 8 Direções Procedurais</h1>
+    <a href="index.html" class="back">← Voltar ao Jogo</a>
+  </header>
+  <canvas id="turn" aria-label="Herói nas 8 direções"></canvas>
+  <p class="foot">Renderizado pelo mesmo motor gráfico do jogo. 100% Canvas 2D sem texturas ou spritesheets.</p>
+
+  <script src="js/core.js"></script>
+  <script src="js/ink.js"></script>
+  <script src="js/rig.js"></script>
+  <script src="js/head.js"></script>
+  <script src="js/hero.js"></script>
+  <script src="js/turnaround.js"></script>
+</body>
+</html>

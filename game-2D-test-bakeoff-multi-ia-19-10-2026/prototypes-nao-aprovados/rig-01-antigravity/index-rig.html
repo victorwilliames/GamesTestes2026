@@ -1,0 +1,2404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>RIG-01 — Antigravity Action Stickman Prototype (Elite Visuals & Playable)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      background-color: #0b0e14;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    #viewport-container {
+      position: relative;
+      display: inline-block;
+      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.9);
+      border: 1px solid #1e2638;
+      background: #0f131d;
+    }
+    canvas {
+      display: block;
+      max-width: 100vw;
+      max-height: 100vh;
+      object-fit: contain;
+    }
+    #ui-hud {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(14, 18, 27, 0.88);
+      border: 1px solid #28334a;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-family: "SF Mono", Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 11px;
+      line-height: 1.55;
+      color: #d1d9e6;
+      pointer-events: none;
+      z-index: 10;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+    }
+    #ui-hud .badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 4px;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
+    .badge-state   { background: #2563eb; color: #fff; }
+    .badge-weapons { background: #7c3aed; color: #fff; }
+    .badge-combo   { background: #d97706; color: #fff; }
+    .badge-pass    { background: #059669; color: #fff; }
+
+    #combo-display {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      text-align: right;
+      font-family: Impact, "Arial Black", sans-serif;
+      pointer-events: none;
+      z-index: 10;
+      display: none;
+      transform-origin: right top;
+      transition: transform 0.08s ease-out;
+    }
+    #combo-number {
+      font-size: 46px;
+      color: #f59e0b;
+      text-shadow: 0 0 16px rgba(245, 158, 11, 0.7), 2px 2px 0 #000;
+      line-height: 0.95;
+    }
+    #combo-label {
+      font-size: 13px;
+      color: #cbd5e1;
+      letter-spacing: 2px;
+      text-shadow: 1px 1px 0 #000;
+    }
+
+    #controls-hint {
+      position: absolute;
+      bottom: 12px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      justify-content: space-between;
+      background: rgba(14, 18, 27, 0.85);
+      border: 1px solid #28334a;
+      border-radius: 6px;
+      padding: 7px 16px;
+      font-size: 11px;
+      color: #8fa0ba;
+      pointer-events: none;
+      z-index: 10;
+      font-family: Consolas, monospace;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewport-container">
+    <canvas id="viewport" width="1280" height="720"></canvas>
+    
+    <div id="ui-hud">
+      <div style="color: #f1f5f9; font-weight: bold; margin-bottom: 2px;">RIG-01 ELITE RIG & ACTION ARENA (Gate 1)</div>
+      <div>Estado: <span id="hud-state" class="badge badge-state">IDLE</span> | Lâminas: <span id="hud-weapons" class="badge badge-weapons">COSTAS (X)</span></div>
+      <div>Yaw: <span id="hud-yaw">0°</span> (<span id="hud-cardinal">S</span>) | Vel: <span id="hud-vel">0.00</span> u/s | Altura: <span id="hud-alt">0.00</span> u</div>
+      <div>FPS: <span id="hud-fps">60</span> | Foot Slip: <span id="hud-slip-max">0.00px</span> <span class="badge badge-pass">PASS</span></div>
+      <div>Combate Timer: <span id="hud-timer">0.0s</span> | Câmera: <span id="hud-cam">SEGUIR</span></div>
+    </div>
+
+    <div id="combo-display">
+      <div id="combo-number">0</div>
+      <div id="combo-label">HITS COMBO</div>
+    </div>
+
+    <div id="controls-hint">
+      <span>WASD: Mover | Duplo WASD/Shift: Dash | Espaço: Pulo & Golpe Aéreo | F: Rolamento (Dark Souls)</span>
+      <span>Clique/J: Combo 1-2-3 | Q/X: Lâminas (Costas X) | V: Câmera | F1: Debug | C: Folha | T: Teste</span>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    "use strict";
+
+    // =========================================================================
+    // 1. CONSTANTES TÉCNICAS E CONVENÇÃO DE COORDENADAS
+    // =========================================================================
+    const PITCH = 30 * Math.PI / 180;
+    const SIN = Math.sin(PITCH); // 0.5
+    const COS = Math.cos(PITCH); // 0.8660254037844386
+    const SCALE = 90; // pixels por unidade de mundo
+
+    let arenaOriginX = 640;
+    let arenaOriginY = 470;
+
+    // Paleta de Cores e Estética "Ink Outline" (Refinamento Artístico)
+    const COL = {
+      bg: "#0d1017",
+      panel: "rgba(10, 13, 20, 0.88)",
+      ink: "#1c202a",
+      neutral: "#c4cad4",
+      neutralDark: "#7d8694",
+      head: "#d8dce3",
+      right: "#4d8dff",
+      rightDark: "#26549c",
+      left: "#ff5a63",
+      leftDark: "#a0333a",
+      steelL: "#cfc3b6",
+      steelR: "#c2ccda",
+      steelDark: "#525966",
+      bronze: "#b58a52",
+      bronzeDark: "#6f512d",
+      grid: "rgba(110, 132, 166, 0.16)",
+      gridMajor: "rgba(126, 152, 194, 0.30)",
+      axisX: "#e0805f",
+      axisY: "#70c27b",
+      axisZ: "#72aee8",
+      debug: "#ffd166",
+      hit: "#ff9b3d"
+    };
+
+    // Dimensões do Rig (Bone lengths constantes em unidades de mundo)
+    const BONE_TOE_ANKLE    = 0.08;
+    const BONE_SHIN         = 0.34;
+    const BONE_THIGH        = 0.34;
+    const BONE_PELVIS_CHEST = 0.34;
+    const BONE_NECK         = 0.06;
+    const HEAD_DIAMETER     = 0.54;
+    const HEAD_RADIUS       = HEAD_DIAMETER / 2; // 0.27
+
+    const SHOULDER_OFFSET   = 0.20;
+    const BONE_UPPER_ARM    = 0.26;
+    const BONE_FOREARM      = 0.24;
+    const BONE_HAND         = 0.07;
+    const BONE_BLADE        = 0.36;
+
+    const PELVIS_REST_Z     = 0.74;
+    const HIP_OFFSET_X      = 0.11;
+
+    // =========================================================================
+    // 2. UTILITÁRIOS MATEMÁTICOS, CORES E PROJEÇÃO
+    // =========================================================================
+    function clamp(val, min, max) {
+      return Math.max(min, Math.min(max, val));
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function smoothstep(a, b, c) {
+      if (b === undefined && c === undefined) {
+        const x = clamp(a, 0, 1);
+        return x * x * (3 - 2 * x);
+      }
+      const x = Math.max(0, Math.min(1, (c - a) / (b - a)));
+      return x * x * (3 - 2 * x);
+    }
+
+    // Biomecânica de Marcha e Locomoção com Peso Físico
+    const RUN_DURATION   = 0.80;
+    const RUN_SPEED      = 2.4;
+    const STANCE_HALF    = 0.17;
+    const SUPPORT_FRAC   = (STANCE_HALF * 2) / (RUN_SPEED * RUN_DURATION); // 0.177083
+
+    function runPhase(side, clipTime) {
+      const offset = (side === "R") ? 0.5 : 0;
+      return (((clipTime / RUN_DURATION) + offset) % 1 + 1) % 1;
+    }
+
+    function footSideWorld(side, yaw) {
+      const sign = (side === "L") ? 1 : -1;
+      return { x: Math.cos(yaw) * HIP_OFFSET_X * sign, y: -Math.sin(yaw) * HIP_OFFSET_X * sign };
+    }
+
+    function swingFootLocal(side, phase) {
+      const sign = (side === "L") ? 1 : -1;
+      const p = clamp((phase - SUPPORT_FRAC) / (1 - SUPPORT_FRAC), 0, 1);
+      const s = smoothstep(p);
+      const lift = Math.sin(Math.PI * p);
+      return {
+        x: sign * HIP_OFFSET_X + sign * 0.015 * lift,
+        y: lerp(-STANCE_HALF, STANCE_HALF, s),
+        z: BONE_TOE_ANKLE + 0.14 * lift,
+        pitch: 0.42 * lift
+      };
+    }
+
+    function mixHex(hex, target, amt) {
+      const a = parseInt(hex.slice(1), 16), b = parseInt(target.slice(1), 16);
+      const ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255;
+      const br = (b >> 16) & 255, bg = (b >> 8) & 255, bb = b & 255;
+      const r = Math.round(ar + (br - ar) * amt);
+      const g = Math.round(ag + (bg - ag) * amt);
+      const bl = Math.round(ab + (bb - ab) * amt);
+      return `rgb(${r},${g},${bl})`;
+    }
+
+    function shadeForDepth(color, itemDepth, centerDepth) {
+      const d = itemDepth - centerDepth;
+      if (d < -0.04) {
+        return mixHex(color, COL.bg, clamp((-d) * 0.55, 0.08, 0.56));
+      }
+      if (d > 0.04) {
+        return mixHex(color, "#ffffff", clamp(d * 0.16, 0.02, 0.20));
+      }
+      return color;
+    }
+
+    function rotateYaw(x, y, yawRad, z = 0) {
+      const cy = Math.cos(yawRad);
+      const sy = Math.sin(yawRad);
+      return {
+        x:  x * cy + y * sy,
+        y: -x * sy + y * cy,
+        z:  z
+      };
+    }
+
+    function normAngle(a) {
+      while (a > Math.PI) a -= Math.PI * 2;
+      while (a < -Math.PI) a += Math.PI * 2;
+      return a;
+    }
+
+    function turnToward(cur, target, maxStep) {
+      const d = normAngle(target - cur);
+      if (Math.abs(d) <= maxStep) return target;
+      return normAngle(cur + Math.sign(d) * maxStep);
+    }
+
+    function projectWorldPoint(wx, wy, wz, originX = arenaOriginX, originY = arenaOriginY, scale = SCALE) {
+      const sx = originX + wx * scale;
+      const sy = originY + wy * SIN * scale - wz * COS * scale;
+      const depth = wy;
+      return { sx, sy, depth };
+    }
+
+    // IK Analítico de 2 ossos em 3D
+    function solveIK2Bone(A, T, L1, L2, poleDir) {
+      const vx = T.x - A.x;
+      const vy = T.y - A.y;
+      const vz = T.z - A.z;
+      const dist = Math.sqrt(vx * vx + vy * vy + vz * vz);
+
+      const eps = 0.0001;
+      const maxReach = (L1 + L2) * 0.999;
+      const clampedDist = clamp(dist, Math.abs(L1 - L2) + eps, maxReach);
+      const ux = dist > eps ? vx / dist : 0;
+      const uy = dist > eps ? vy / dist : 1;
+      const uz = dist > eps ? vz / dist : 0;
+
+      const d1 = (L1 * L1 - L2 * L2 + clampedDist * clampedDist) / (2 * clampedDist);
+      const r2 = L1 * L1 - d1 * d1;
+      const r = Math.sqrt(Math.max(0, r2));
+
+      const cx = A.x + ux * d1;
+      const cy = A.y + uy * d1;
+      const cz = A.z + uz * d1;
+
+      const pz = (poleDir.z !== undefined && !isNaN(poleDir.z)) ? poleDir.z : 0;
+      const pDotU = poleDir.x * ux + poleDir.y * uy + pz * uz;
+      let wx = poleDir.x - pDotU * ux;
+      let wy = poleDir.y - pDotU * uy;
+      let wz = pz - pDotU * uz;
+      let wLen = Math.sqrt(wx * wx + wy * wy + wz * wz);
+
+      if (wLen < 0.0001) {
+        const alt = Math.abs(uz) < 0.9 ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
+        const altDotU = alt.x * ux + alt.y * uy + alt.z * uz;
+        wx = alt.x - altDotU * ux;
+        wy = alt.y - altDotU * uy;
+        wz = alt.z - altDotU * uz;
+        wLen = Math.sqrt(wx * wx + wy * wy + wz * wz);
+      }
+
+      const wHatX = wx / wLen;
+      const wHatY = wy / wLen;
+      const wHatZ = wz / wLen;
+
+      return {
+        x: cx + r * wHatX,
+        y: cy + r * wHatY,
+        z: cz + r * wHatZ
+      };
+    }
+
+    // =========================================================================
+    // 3. SISTEMA DE PARTÍCULAS, TRILHAS DE LÂMINA E DUMMIES
+    // =========================================================================
+    const particles = [];
+    const floatingTexts = [];
+    const bladeSlashTrails = []; // Trilhas de luz das adagas (alta ação)
+
+    function addDustParticle(wx, wy, wz, vx, vy, vz, size = 3, color = "rgba(148, 163, 184, 0.6)") {
+      particles.push({
+        x: wx, y: wy, z: wz,
+        vx, vy, vz,
+        size, color,
+        life: 0.35, maxLife: 0.35
+      });
+    }
+
+    function addHitSparks(wx, wy, wz, count = 12, baseColor = "#f59e0b") {
+      for (let i = 0; i < count; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = 1.8 + Math.random() * 4.0;
+        particles.push({
+          x: wx, y: wy, z: wz,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd,
+          vz: 1.2 + Math.random() * 3.2,
+          size: 2.8,
+          color: Math.random() > 0.4 ? baseColor : "#ffffff",
+          life: 0.28, maxLife: 0.28
+        });
+      }
+    }
+
+    function addDamageText(wx, wy, wz, text, isCrit = false) {
+      floatingTexts.push({
+        x: wx, y: wy, z: wz + 0.3,
+        text, isCrit,
+        life: 0.75, maxLife: 0.75
+      });
+    }
+
+    function recordBladeTrail(pBase, pTip, color, width = 16) {
+      bladeSlashTrails.push({
+        base: pBase,
+        tip: pTip,
+        color: color,
+        width: width,
+        life: 0.18,
+        maxLife: 0.18
+      });
+    }
+
+    class TargetDummy {
+      constructor(x, y) {
+        this.baseX = x;
+        this.baseY = y;
+        this.x = x;
+        this.y = y;
+        this.z = 0;
+        this.height = 1.55;
+        this.tiltX = 0;
+        this.tiltY = 0;
+        this.tiltVx = 0;
+        this.tiltVy = 0;
+        this.hitCooldown = 0;
+      }
+
+      hit(damage, hitVecX, hitVecY, isCrit = false) {
+        if (this.hitCooldown > 0) return false;
+        this.hitCooldown = 0.12;
+        this.tiltVx += hitVecX * (isCrit ? 14 : 8);
+        this.tiltVy += hitVecY * (isCrit ? 14 : 8);
+        addHitSparks(this.x, this.y, 0.9, isCrit ? 18 : 10, isCrit ? "#ef4444" : "#f59e0b");
+        addDamageText(this.x, this.y, 1.25, isCrit ? `${damage} CRIT!` : `${damage}`, isCrit);
+        return true;
+      }
+
+      update(dt) {
+        if (this.hitCooldown > 0) this.hitCooldown -= dt;
+        const k = 150; // rigidez elástica
+        const damping = 12; // amortecimento suave
+        this.tiltVx += (-k * this.tiltX - damping * this.tiltVx) * dt;
+        this.tiltVy += (-k * this.tiltY - damping * this.tiltVy) * dt;
+        this.tiltX += this.tiltVx * dt;
+        this.tiltY += this.tiltVy * dt;
+      }
+
+      draw(ctx, originX, originY, scale) {
+        const baseProj = projectWorldPoint(this.x, this.y, 0, originX, originY, scale);
+        const topWorldX = this.x + this.tiltX * 0.08;
+        const topWorldY = this.y + this.tiltY * 0.08;
+        const topProj = projectWorldPoint(topWorldX, topWorldY, this.height, originX, originY, scale);
+        const midProj = projectWorldPoint(this.x + this.tiltX * 0.04, this.y + this.tiltY * 0.04, this.height * 0.6, originX, originY, scale);
+
+        // Sombra suave
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(baseProj.sx, baseProj.sy, 0.32 * scale, 0.32 * scale * SIN, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+        ctx.fill();
+
+        // Mola de aço na base
+        const springH = 14;
+        ctx.strokeStyle = "#475569";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(baseProj.sx - 8, baseProj.sy);
+        ctx.lineTo(baseProj.sx + 8, baseProj.sy - springH * 0.3);
+        ctx.lineTo(baseProj.sx - 8, baseProj.sy - springH * 0.7);
+        ctx.lineTo(baseProj.sx, baseProj.sy - springH);
+        ctx.stroke();
+
+        // Poste central com contorno Ink
+        ctx.lineCap = "round";
+        ctx.strokeStyle = COL.ink;
+        ctx.lineWidth = 14;
+        ctx.beginPath();
+        ctx.moveTo(baseProj.sx, baseProj.sy - springH);
+        ctx.lineTo(topProj.sx, topProj.sy);
+        ctx.stroke();
+
+        ctx.strokeStyle = "#b45309";
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(baseProj.sx, baseProj.sy - springH);
+        ctx.lineTo(topProj.sx, topProj.sy);
+        ctx.stroke();
+
+        // Braços cruzados com Ink Outline
+        const crossW = 0.42 * scale;
+        ctx.strokeStyle = COL.ink;
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(midProj.sx - crossW, midProj.sy);
+        ctx.lineTo(midProj.sx + crossW, midProj.sy);
+        ctx.stroke();
+
+        ctx.strokeStyle = "#92400e";
+        ctx.lineWidth = 5.5;
+        ctx.beginPath();
+        ctx.moveTo(midProj.sx - crossW, midProj.sy);
+        ctx.lineTo(midProj.sx + crossW, midProj.sy);
+        ctx.stroke();
+
+        // Cabeça com alvo e Ink Outline
+        ctx.beginPath();
+        ctx.arc(topProj.sx, topProj.sy, 17, 0, Math.PI * 2);
+        ctx.fillStyle = COL.ink;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(topProj.sx, topProj.sy, 15, 0, Math.PI * 2);
+        ctx.fillStyle = "#fef3c7";
+        ctx.fill();
+
+        ctx.strokeStyle = "#dc2626";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(topProj.sx, topProj.sy, 7, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    const targetDummies = [
+      new TargetDummy( 2.4,  1.8),
+      new TargetDummy(-2.5,  1.5),
+      new TargetDummy( 0.0, -2.5)
+    ];
+
+    // =========================================================================
+    // 4. CONFIGURAÇÃO DE ESTADOS E MÁQUINA DE ANIMAÇÃO DO PERSONAGEM
+    // =========================================================================
+    const STATE_CONFIGS = {
+      idle:       { duration: 2.0,  loop: true },
+      run:        { duration: 0.80, loop: true, speed: 2.4 },
+      dash:       { duration: 0.35, loop: false, windup: 0.04, burst: 0.15, recovery: 0.16, distance: 2.6, cooldown: 0.40 },
+      roll:       { duration: 0.48, loop: false, windup: 0.06, roll: 0.28, recovery: 0.14, distance: 3.0, cooldown: 0.35 },
+      jump:       { duration: 0.72, loop: false, vz: 3.6, gravity: 9.8 },
+      air_attack: { duration: 0.40, loop: false, advance: 1.2 },
+      attack1:    { duration: 0.34, loop: false, windup: 0.08, active: 0.08, recovery: 0.18, advance: 0.20, damage: 25 },
+      attack2:    { duration: 0.35, loop: false, windup: 0.07, active: 0.08, recovery: 0.20, advance: 0.24, damage: 35 },
+      attack3:    { duration: 0.56, loop: false, windup: 0.14, active: 0.12, recovery: 0.30, advance: 0.16, damage: 70 }
+    };
+
+    class CharacterRig {
+      constructor() {
+        this.reset();
+      }
+
+      reset() {
+        this.root = { x: 0, y: 0, z: 0 };
+        this.vz = 0;
+        this.yaw = 0; // 0 = Sul (+Y / Câmera)
+        this.state = "idle";
+        this.clipTime = 0;
+        this.paused = false;
+        this.dashCooldownTimer = 0;
+        this.rollCooldownTimer = 0;
+        this.inputBuffer = null;
+        this.bufferTimer = 0;
+
+        // Transição suave entre poses
+        this.transition = null;
+        this.prevRawPose = null;
+
+        // Lâminas nas costas (estilo Kratos) vs em punho
+        this.weaponsDrawn = false;
+        this.combatTimer = 0;
+
+        // Combos e acertos
+        this.comboHits = 0;
+        this.comboResetTimer = 0;
+        this.hitRegistered = false;
+
+        // Métricas de foot slip
+        this.slipSamples = [];
+        this.maxSlipPx = 0;
+        this.meanSlipPx = 0;
+        this.lastFootScreens = { left: null, right: null };
+      }
+
+      setYawDegrees(deg) {
+        this.yaw = ((deg % 360 + 360) % 360) * Math.PI / 180;
+      }
+
+      getYawDegrees() {
+        return Math.round(((this.yaw * 180 / Math.PI) % 360 + 360) % 360);
+      }
+
+      setState(newState, blendDuration = 0.12) {
+        if (!STATE_CONFIGS[newState]) return;
+
+        if (blendDuration > 0 && this.prevRawPose) {
+          this.transition = {
+            from: JSON.parse(JSON.stringify(this.prevRawPose)),
+            t: 0,
+            duration: blendDuration
+          };
+        } else {
+          this.transition = null;
+        }
+
+        this.state = newState;
+        this.clipTime = 0;
+        this.inputBuffer = null;
+        this.hitRegistered = false;
+
+        if (newState.startsWith("attack") || newState === "roll" || newState === "air_attack") {
+          this.weaponsDrawn = true;
+          this.combatTimer = 3.5;
+        }
+
+        if (newState === "jump") {
+          this.vz = STATE_CONFIGS.jump.vz;
+        }
+      }
+
+      toggleWeapons() {
+        this.weaponsDrawn = !this.weaponsDrawn;
+        if (this.weaponsDrawn) this.combatTimer = 3.5;
+        else this.combatTimer = 0;
+      }
+
+      localToWorld(lx, ly, lz) {
+        const rot = rotateYaw(lx, ly, this.yaw, lz);
+        return {
+          x: this.root.x + rot.x,
+          y: this.root.y + rot.y,
+          z: this.root.z + lz
+        };
+      }
+
+      update(dt, inputVector, attackRequested, dashRequested, rollRequested, jumpRequested) {
+        if (this.paused) return;
+
+        if (this.dashCooldownTimer > 0) this.dashCooldownTimer -= dt;
+        if (this.rollCooldownTimer > 0) this.rollCooldownTimer -= dt;
+
+        if (this.combatTimer > 0) {
+          this.combatTimer -= dt;
+          if (this.combatTimer <= 0) {
+            this.weaponsDrawn = false;
+            this.combatTimer = 0;
+          }
+        }
+
+        if (this.comboResetTimer > 0) {
+          this.comboResetTimer -= dt;
+          if (this.comboResetTimer <= 0) {
+            this.comboHits = 0;
+            const display = document.getElementById("combo-display");
+            if (display) display.style.display = "none";
+          }
+        }
+
+        if (this.bufferTimer > 0) {
+          this.bufferTimer -= dt;
+          if (this.bufferTimer <= 0) this.inputBuffer = null;
+        }
+
+        if (this.transition) {
+          this.transition.t += dt;
+          if (this.transition.t >= this.transition.duration) {
+            this.transition = null;
+          }
+        }
+
+        const config = STATE_CONFIGS[this.state];
+
+        if (attackRequested) {
+          this.inputBuffer = "attack";
+          this.bufferTimer = 0.25;
+        }
+
+        // --- Transições de Estados e Inércia de Locomoção ---
+        if (this.state === "idle") {
+          if (jumpRequested) {
+            this.setState("jump", 0.08);
+          } else if (rollRequested && this.rollCooldownTimer <= 0) {
+            this.setState("roll", 0.06);
+            this.rollCooldownTimer = STATE_CONFIGS.roll.cooldown;
+          } else if (dashRequested && this.dashCooldownTimer <= 0) {
+            this.setState("dash", 0.04);
+            this.dashCooldownTimer = STATE_CONFIGS.dash.cooldown;
+          } else if (this.inputBuffer === "attack") {
+            this.setState("attack1", 0.05);
+            this.inputBuffer = null;
+          } else if (inputVector.active) {
+            this.setState("run", 0.10);
+            this.yaw = turnToward(this.yaw, inputVector.angle, 18 * dt);
+          } else {
+            this.clipTime = (this.clipTime + dt) % config.duration;
+          }
+        }
+        else if (this.state === "run") {
+          if (jumpRequested) {
+            this.setState("jump", 0.08);
+          } else if (rollRequested && this.rollCooldownTimer <= 0) {
+            this.setState("roll", 0.06);
+            this.rollCooldownTimer = STATE_CONFIGS.roll.cooldown;
+          } else if (dashRequested && this.dashCooldownTimer <= 0) {
+            this.setState("dash", 0.04);
+            this.dashCooldownTimer = STATE_CONFIGS.dash.cooldown;
+          } else if (this.inputBuffer === "attack") {
+            this.setState("attack1", 0.05);
+            this.inputBuffer = null;
+          } else if (!inputVector.active) {
+            this.setState("idle", 0.12);
+          } else {
+            const targetYaw = inputVector.angle;
+            this.yaw = turnToward(this.yaw, targetYaw, 16 * dt);
+            const dist = RUN_SPEED * dt;
+            const move = rotateYaw(0, dist, this.yaw);
+            this.root.x += move.x;
+            this.root.y += move.y;
+            this.clipTime = (this.clipTime + dt) % config.duration;
+
+            if (Math.random() < 0.25) {
+              addDustParticle(this.root.x, this.root.y, 0.05, -move.x * 0.3, -move.y * 0.3, 0.18, 2.5);
+            }
+          }
+        }
+        else if (this.state === "jump") {
+          this.clipTime += dt;
+          this.vz -= STATE_CONFIGS.jump.gravity * dt;
+          this.root.z += this.vz * dt;
+
+          if (inputVector.active) {
+            this.yaw = inputVector.angle;
+            const airDist = 2.4 * dt;
+            const move = rotateYaw(0, airDist, this.yaw);
+            this.root.x += move.x;
+            this.root.y += move.y;
+          }
+
+          if (this.inputBuffer === "attack") {
+            this.inputBuffer = null;
+            this.setState("air_attack");
+          }
+
+          if (this.root.z <= 0) {
+            this.root.z = 0;
+            this.vz = 0;
+            addDustParticle(this.root.x, this.root.y, 0.05, 0, 0, 0.35, 4);
+            if (inputVector.active) this.setState("run");
+            else this.setState("idle");
+          }
+        }
+        else if (this.state === "air_attack") {
+          this.clipTime += dt;
+          this.root.z -= 7.5 * dt;
+
+          if (this.root.z <= 0) {
+            this.root.z = 0;
+            this.vz = 0;
+            addHitSparks(this.root.x, this.root.y, 0.1, 20, "#38bdf8");
+            for (let i = 0; i < 8; i++) {
+              const ang = (i / 8) * Math.PI * 2;
+              addDustParticle(this.root.x, this.root.y, 0.05, Math.cos(ang) * 1.8, Math.sin(ang) * 1.8, 0.28, 4);
+            }
+            this.checkHit(60, 1.3, true);
+            this.setState("idle");
+          }
+        }
+        else if (this.state === "dash") {
+          this.clipTime += dt;
+          const { windup, burst, recovery, distance } = config;
+
+          if (this.clipTime >= windup && this.clipTime < windup + burst) {
+            const burstProgress = (this.clipTime - windup) / burst;
+            const burstSpeed = (distance / burst) * (1 - Math.cos(burstProgress * Math.PI));
+            const stepDist = burstSpeed * dt * 0.5;
+            const move = rotateYaw(0, stepDist, this.yaw);
+            this.root.x += move.x;
+            this.root.y += move.y;
+            addDustParticle(this.root.x, this.root.y, 0.05, -move.x * 0.5, -move.y * 0.5, 0.2, 3);
+          }
+
+          if (this.clipTime >= config.duration) {
+            if (inputVector.active) this.setState("run");
+            else this.setState("idle");
+          }
+        }
+        else if (this.state === "roll") {
+          this.clipTime += dt;
+          const { windup, roll, recovery, distance } = config;
+
+          if (this.clipTime >= windup && this.clipTime < windup + roll) {
+            const rollProgress = (this.clipTime - windup) / roll;
+            const rollSpeed = (distance / roll) * Math.sin(rollProgress * Math.PI);
+            const stepDist = rollSpeed * dt;
+            const move = rotateYaw(0, stepDist, this.yaw);
+            this.root.x += move.x;
+            this.root.y += move.y;
+            addDustParticle(this.root.x, this.root.y, 0.05, -move.x * 0.4, -move.y * 0.4, 0.15, 2.8);
+          }
+
+          if (this.clipTime >= config.duration) {
+            if (inputVector.active) this.setState("run");
+            else this.setState("idle");
+          }
+        }
+        else if (this.state === "attack1" || this.state === "attack2" || this.state === "attack3") {
+          this.clipTime += dt;
+          const { windup, active, recovery, advance, damage } = config;
+
+          if (this.clipTime >= windup && this.clipTime < windup + active) {
+            const stepDist = (advance / active) * dt;
+            const move = rotateYaw(0, stepDist, this.yaw);
+            this.root.x += move.x;
+            this.root.y += move.y;
+
+            if (!this.hitRegistered && this.clipTime >= windup + active * 0.4) {
+              const isCrit = (this.state === "attack3");
+              const range = (this.state === "attack3") ? 1.35 : 0.98;
+              this.checkHit(damage, range, isCrit);
+              this.hitRegistered = true;
+            }
+          }
+
+          const comboWindowOpen = (this.clipTime >= windup + active);
+          if (comboWindowOpen && this.inputBuffer === "attack") {
+            this.inputBuffer = null;
+            if (this.state === "attack1") this.setState("attack2");
+            else if (this.state === "attack2") this.setState("attack3");
+            return;
+          }
+
+          if (this.clipTime >= config.duration) {
+            if (inputVector.active) this.setState("run");
+            else this.setState("idle");
+          }
+        }
+      }
+
+      checkHit(damage, range, isCrit = false) {
+        const fwd = rotateYaw(0, 0.7, this.yaw);
+        const hitCenterX = (this.state === "attack3" || this.state === "air_attack") ? this.root.x : this.root.x + fwd.x;
+        const hitCenterY = (this.state === "attack3" || this.state === "air_attack") ? this.root.y : this.root.y + fwd.y;
+
+        for (const dummy of targetDummies) {
+          const dx = dummy.x - hitCenterX;
+          const dy = dummy.y - hitCenterY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist <= range) {
+            const hitDirX = dist > 0.001 ? dx / dist : 0;
+            const hitDirY = dist > 0.001 ? dy / dist : 1;
+            const hitOk = dummy.hit(damage, hitDirX, hitDirY, isCrit);
+            if (hitOk) {
+              this.comboHits++;
+              this.comboResetTimer = 2.0;
+              const display = document.getElementById("combo-display");
+              const num = document.getElementById("combo-number");
+              if (display && num) {
+                display.style.display = "block";
+                display.style.transform = "scale(1.2)";
+                setTimeout(() => { display.style.transform = "scale(1.0)"; }, 80);
+                num.textContent = this.comboHits;
+              }
+            }
+          }
+        }
+      }
+
+      // =======================================================================
+      // CÁLCULO DA POSE, GEOMETRIAS ANATÔMICAS E HIERARQUIA 3D
+      // =======================================================================
+      computePose(originX = arenaOriginX, originY = arenaOriginY, scale = SCALE, recordSlip = true) {
+        const t = this.clipTime;
+        let pelvisLocal = { x: 0, y: 0, z: PELVIS_REST_Z };
+        let torsoPitch = 0;
+        let torsoYaw = 0;
+
+        let headY = 0;
+
+        let leftFootTargetWorld = null;
+        let rightFootTargetWorld = null;
+        let leftFootPitch = 0;
+        let rightFootPitch = 0;
+
+        let rightHandTargetTorso = { x: -0.28, y: 0.14, z: -0.15 };
+        let leftHandTargetTorso  = { x:  0.28, y: 0.14, z: -0.15 };
+
+        let activeHitbox = null;
+        let leftStance = true;
+        let rightStance = true;
+
+        if (this.state === "idle") {
+          const phase = (t / 2.0) * Math.PI * 2;
+          const breath = Math.sin(phase);
+          const sway = Math.cos(phase);
+          pelvisLocal.x = 0.010 * sway;
+          pelvisLocal.z = 0.7405 - 0.0135 * sway;
+          torsoPitch = 0.045 + 0.005 * sway;
+          headY = 0.003 - 0.003 * sway;
+
+          leftFootTargetWorld = this.localToWorld(HIP_OFFSET_X, 0.06, BONE_TOE_ANKLE);
+          rightFootTargetWorld = this.localToWorld(-HIP_OFFSET_X, -0.04, BONE_TOE_ANKLE);
+
+          if (!this.weaponsDrawn) {
+            rightHandTargetTorso = { x: -0.28, y: 0.025, z: -0.38 + 0.01 * breath };
+            leftHandTargetTorso  = { x:  0.28, y: 0.025, z: -0.38 + 0.01 * breath };
+          } else {
+            torsoPitch = 0.10 + 0.02 * breath;
+            torsoYaw = 0.08;
+            rightHandTargetTorso = { x: -0.32, y: 0.28, z: -0.10 + 0.01 * breath };
+            leftHandTargetTorso  = { x:  0.30, y: 0.22, z: -0.05 + 0.01 * breath };
+          }
+        }
+        else if (this.state === "run") {
+          const normT = (t % RUN_DURATION) / RUN_DURATION;
+
+          // Compressão de joelho nos impactos (afunda para 0.690 no contato, sobe para 0.745 no impulso)
+          pelvisLocal.z = 0.7175 - 0.0275 * Math.cos(normT * Math.PI * 4);
+          torsoPitch = 0.215 + 0.005 * Math.cos(normT * Math.PI * 4);
+          torsoYaw = -0.10 * Math.cos(normT * Math.PI * 2);
+          headY = -0.056 + 0.004 * Math.cos(normT * Math.PI * 4);
+
+          // Cinemática determinística de contato do pé (Foot Lock absoluto: 0 slip)
+          const phiL = runPhase("L", t);
+          const phiR = runPhase("R", t);
+
+          if (phiL < SUPPORT_FRAC) {
+            leftStance = true;
+            const f = rotateYaw(0, 1, this.yaw);
+            const sw = footSideWorld("L", this.yaw);
+            leftFootTargetWorld = {
+              x: this.root.x - f.x * RUN_SPEED * phiL * RUN_DURATION + f.x * STANCE_HALF + sw.x,
+              y: this.root.y - f.y * RUN_SPEED * phiL * RUN_DURATION + f.y * STANCE_HALF + sw.y,
+              z: BONE_TOE_ANKLE
+            };
+            leftFootPitch = 0;
+          } else {
+            leftStance = false;
+            const loc = swingFootLocal("L", phiL);
+            leftFootTargetWorld = this.localToWorld(loc.x, loc.y, loc.z);
+            leftFootPitch = loc.pitch;
+          }
+
+          if (phiR < SUPPORT_FRAC) {
+            rightStance = true;
+            const f = rotateYaw(0, 1, this.yaw);
+            const sw = footSideWorld("R", this.yaw);
+            rightFootTargetWorld = {
+              x: this.root.x - f.x * RUN_SPEED * phiR * RUN_DURATION + f.x * STANCE_HALF + sw.x,
+              y: this.root.y - f.y * RUN_SPEED * phiR * RUN_DURATION + f.y * STANCE_HALF + sw.y,
+              z: BONE_TOE_ANKLE
+            };
+            rightFootPitch = 0;
+          } else {
+            rightStance = false;
+            const loc = swingFootLocal("R", phiR);
+            rightFootTargetWorld = this.localToWorld(loc.x, loc.y, loc.z);
+            rightFootPitch = loc.pitch;
+          }
+
+          const armSwing = Math.sin(normT * Math.PI * 2);
+          if (!this.weaponsDrawn) {
+            rightHandTargetTorso = { x: -0.27, y:  0.15 * armSwing, z: -0.31 - 0.02 * armSwing };
+            leftHandTargetTorso  = { x:  0.27, y: -0.15 * armSwing, z: -0.31 + 0.02 * armSwing };
+          } else {
+            rightHandTargetTorso = { x: -0.30, y:  0.18 * armSwing - 0.08, z: -0.16 };
+            leftHandTargetTorso  = { x:  0.30, y: -0.18 * armSwing - 0.08, z: -0.16 };
+          }
+        }
+        else if (this.state === "jump") {
+          pelvisLocal.z = PELVIS_REST_Z;
+          torsoPitch = 0.15;
+          const legBend = Math.min(1.0, this.root.z * 1.5);
+          leftFootTargetWorld = this.localToWorld(HIP_OFFSET_X, 0.05, BONE_TOE_ANKLE + 0.18 * legBend);
+          rightFootTargetWorld = this.localToWorld(-HIP_OFFSET_X, -0.05, BONE_TOE_ANKLE + 0.14 * legBend);
+          leftFootPitch = 0.22;
+          rightFootPitch = 0.22;
+          rightHandTargetTorso = { x: -0.32, y: 0.10, z: -0.05 };
+          leftHandTargetTorso  = { x:  0.32, y: 0.10, z: -0.05 };
+        }
+        else if (this.state === "air_attack") {
+          pelvisLocal.z = PELVIS_REST_Z;
+          torsoPitch = 0.50;
+          leftFootTargetWorld = this.localToWorld(HIP_OFFSET_X, -0.15, BONE_TOE_ANKLE + 0.25);
+          rightFootTargetWorld = this.localToWorld(-HIP_OFFSET_X, -0.15, BONE_TOE_ANKLE + 0.25);
+          leftFootPitch = 0.45;
+          rightFootPitch = 0.45;
+          rightHandTargetTorso = { x: -0.15, y: 0.20, z: -0.40 };
+          leftHandTargetTorso  = { x:  0.15, y: 0.20, z: -0.40 };
+          activeHitbox = { type: "circle360", radius: 0.55, color: "#38bdf8" };
+        }
+        else if (this.state === "dash") {
+          const { windup, burst, recovery } = STATE_CONFIGS.dash;
+          if (t < windup) {
+            const p = t / windup;
+            pelvisLocal.z = PELVIS_REST_Z - 0.14 * p;
+            torsoPitch = 0.35 * p;
+            rightHandTargetTorso = { x: -0.28, y: -0.10, z: -0.20 };
+            leftHandTargetTorso  = { x:  0.28, y: -0.10, z: -0.20 };
+            leftFootTargetWorld = this.localToWorld(HIP_OFFSET_X, -0.15, BONE_TOE_ANKLE);
+            rightFootTargetWorld = this.localToWorld(-HIP_OFFSET_X, -0.25, BONE_TOE_ANKLE);
+          } else if (t < windup + burst) {
+            pelvisLocal.z = PELVIS_REST_Z + 0.08;
+            torsoPitch = 0.60;
+            rightHandTargetTorso = { x: -0.34, y: -0.38, z: -0.05 };
+            leftHandTargetTorso  = { x:  0.34, y: -0.38, z: -0.05 };
+            leftFootTargetWorld = this.localToWorld(HIP_OFFSET_X, -0.55, BONE_TOE_ANKLE + 0.12);
+            rightFootTargetWorld = this.localToWorld(-HIP_OFFSET_X, -0.70, BONE_TOE_ANKLE + 0.18);
+            leftFootPitch = 0.35;
+            rightFootPitch = 0.45;
+          } else {
+            const p = (t - (windup + burst)) / recovery;
+            pelvisLocal.z = (PELVIS_REST_Z + 0.08) - 0.08 * p;
+            torsoPitch = 0.60 * (1 - p) + 0.05 * p;
+            rightHandTargetTorso = { x: -0.28, y: -0.15 * (1 - p), z: -0.25 };
+            leftHandTargetTorso  = { x:  0.28, y: -0.15 * (1 - p), z: -0.25 };
+            leftFootTargetWorld = this.localToWorld(HIP_OFFSET_X, 0, BONE_TOE_ANKLE);
+            rightFootTargetWorld = this.localToWorld(-HIP_OFFSET_X, 0, BONE_TOE_ANKLE);
+          }
+        }
+        else if (this.state === "roll") {
+          const { windup, roll, recovery } = STATE_CONFIGS.roll;
+          if (t < windup) {
+            const p = t / windup;
+            pelvisLocal.z = PELVIS_REST_Z - 0.40 * p;
+            torsoPitch = -0.60 * p;
+            rightHandTargetTorso = { x: -0.20, y: 0.15, z: -0.35 };
+            leftHandTargetTorso  = { x:  0.20, y: 0.15, z: -0.35 };
+            leftFootTargetWorld = this.localToWorld(HIP_OFFSET_X, -0.10, BONE_TOE_ANKLE);
+            rightFootTargetWorld = this.localToWorld(-HIP_OFFSET_X, -0.10, BONE_TOE_ANKLE);
+          } else if (t < windup + roll) {
+            const p = (t - windup) / roll;
+            const rollAngle = p * Math.PI * 2;
+            pelvisLocal.z = 0.28 + 0.12 * Math.sin(p * Math.PI);
+            torsoPitch = -(0.60 + rollAngle);
+            rightHandTargetTorso = { x: -0.22, y: 0.12, z: -0.10 };
+            leftHandTargetTorso  = { x:  0.22, y: 0.12, z: -0.10 };
+            leftFootTargetWorld = this.localToWorld(HIP_OFFSET_X, 0.15 * Math.sin(rollAngle), 0.16 + 0.12 * Math.cos(rollAngle));
+            rightFootTargetWorld = this.localToWorld(-HIP_OFFSET_X, 0.15 * Math.sin(rollAngle), 0.16 - 0.12 * Math.cos(rollAngle));
+            leftFootPitch = rollAngle;
+            rightFootPitch = rollAngle;
+          } else {
+            const p = (t - (windup + roll)) / recovery;
+            pelvisLocal.z = 0.28 + (PELVIS_REST_Z - 0.28) * p;
+            torsoPitch = -0.60 * (1 - p) + 0.10 * p;
+            rightHandTargetTorso = { x: -0.32, y: 0.25 * p, z: -0.10 };
+            leftHandTargetTorso  = { x:  0.30, y: 0.20 * p, z: -0.05 };
+            leftFootTargetWorld = this.localToWorld(HIP_OFFSET_X, 0.15 * (1 - p), BONE_TOE_ANKLE);
+            rightFootTargetWorld = this.localToWorld(-HIP_OFFSET_X, -0.25 * (1 - p), BONE_TOE_ANKLE);
+          }
+        }
+        else if (this.state === "attack1") {
+          const { windup, active, recovery } = STATE_CONFIGS.attack1;
+          leftFootTargetWorld = this.localToWorld(HIP_OFFSET_X, 0, BONE_TOE_ANKLE);
+          rightFootTargetWorld = this.localToWorld(-HIP_OFFSET_X, -0.10, BONE_TOE_ANKLE);
+
+          if (t < windup) {
+            const p = t / windup;
+            torsoYaw = -0.35 * p;
+            torsoPitch = 0.10 * p;
+            rightHandTargetTorso = { x: -0.25, y: -0.10, z: 0.18 * p };
+            leftHandTargetTorso  = { x:  0.28, y: 0.10, z: -0.15 };
+          } else if (t < windup + active) {
+            const p = (t - windup) / active;
+            torsoYaw = -0.35 + 0.70 * p;
+            torsoPitch = 0.18;
+            rightHandTargetTorso = {
+              x: -0.25 + 0.40 * p,
+              y: 0.38 * Math.sin(p * Math.PI) + 0.10,
+              z: 0.18 - 0.40 * p
+            };
+            leftHandTargetTorso  = { x:  0.30, y: -0.10, z: -0.15 };
+            activeHitbox = { type: "arc", hand: "right", radius: 0.50, color: "#3b82f6" };
+          } else {
+            const p = (t - (windup + active)) / recovery;
+            torsoYaw = 0.35 * (1 - p);
+            torsoPitch = 0.18 * (1 - p) + 0.10 * p;
+            rightHandTargetTorso = { x: 0.15 * (1 - p) - 0.30 * p, y: 0.20, z: -0.22 * (1 - p) - 0.10 * p };
+            leftHandTargetTorso  = { x: 0.28, y: 0.10, z: -0.10 };
+          }
+        }
+        else if (this.state === "attack2") {
+          const { windup, active, recovery } = STATE_CONFIGS.attack2;
+          leftFootTargetWorld = this.localToWorld(HIP_OFFSET_X, -0.10, BONE_TOE_ANKLE);
+          rightFootTargetWorld = this.localToWorld(-HIP_OFFSET_X, 0.10, BONE_TOE_ANKLE);
+
+          if (t < windup) {
+            const p = t / windup;
+            torsoYaw = 0.35 * p;
+            rightHandTargetTorso = { x: -0.28, y: 0.10, z: -0.15 };
+            leftHandTargetTorso  = { x:  0.20, y: -0.15, z: -0.28 * p };
+          } else if (t < windup + active) {
+            const p = (t - windup) / active;
+            torsoYaw = 0.35 - 0.75 * p;
+            torsoPitch = 0.12;
+            leftHandTargetTorso = {
+              x:  0.20 - 0.42 * p,
+              y:  0.36 * Math.sin(p * Math.PI) + 0.10,
+              z: -0.28 + 0.45 * p
+            };
+            rightHandTargetTorso = { x: -0.28, y: -0.10, z: -0.15 };
+            activeHitbox = { type: "arc", hand: "left", radius: 0.48, color: "#ef4444" };
+          } else {
+            const p = (t - (windup + active)) / recovery;
+            torsoYaw = -0.40 * (1 - p);
+            leftHandTargetTorso  = { x: -0.22 * (1 - p) + 0.30 * p, y: 0.18, z: 0.17 * (1 - p) - 0.05 * p };
+            rightHandTargetTorso = { x: -0.30, y: 0.15, z: -0.10 };
+          }
+        }
+        else if (this.state === "attack3") {
+          const { windup, active, recovery } = STATE_CONFIGS.attack3;
+          leftFootTargetWorld = this.localToWorld(HIP_OFFSET_X, 0, BONE_TOE_ANKLE);
+          rightFootTargetWorld = this.localToWorld(-HIP_OFFSET_X, 0, BONE_TOE_ANKLE);
+
+          if (t < windup) {
+            const p = t / windup;
+            pelvisLocal.z = PELVIS_REST_Z - 0.12 * p;
+            torsoPitch = 0.15 * p;
+            torsoYaw = -0.50 * p;
+            rightHandTargetTorso = { x: -0.15, y: -0.10, z: -0.10 };
+            leftHandTargetTorso  = { x:  0.15, y: -0.10, z: -0.10 };
+          } else if (t < windup + active) {
+            const p = (t - windup) / active;
+            pelvisLocal.z = PELVIS_REST_Z - 0.05;
+            torsoPitch = 0.05;
+            torsoYaw = -0.50 + (Math.PI * 2) * p;
+            rightHandTargetTorso = { x: -0.38, y: 0.12, z: 0.02 };
+            leftHandTargetTorso  = { x:  0.38, y: 0.12, z: 0.02 };
+            activeHitbox = { type: "circle360", radius: 0.65, color: "#f59e0b" };
+          } else {
+            const p = (t - (windup + active)) / recovery;
+            pelvisLocal.z = (PELVIS_REST_Z - 0.05) + 0.05 * p;
+            torsoPitch = 0.05 * (1 - p);
+            torsoYaw = (Math.PI * 2 - 0.50) * (1 - p);
+            rightHandTargetTorso = { x: -0.38 * (1 - p) - 0.30 * p, y: 0.15, z: 0.02 * (1 - p) - 0.10 * p };
+            leftHandTargetTorso  = { x:  0.38 * (1 - p) + 0.30 * p, y: 0.15, z: 0.02 * (1 - p) - 0.05 * p };
+          }
+        }
+
+        // Interpolação suave de transição de pose (blending entre estados)
+        if (this.transition && this.transition.from) {
+          const blendT = clamp(this.transition.t / this.transition.duration, 0, 1);
+          const u = smoothstep(blendT);
+          const from = this.transition.from;
+
+          pelvisLocal.x = lerp(from.pelvisLocal.x, pelvisLocal.x, u);
+          pelvisLocal.y = lerp(from.pelvisLocal.y, pelvisLocal.y, u);
+          pelvisLocal.z = lerp(from.pelvisLocal.z, pelvisLocal.z, u);
+          torsoPitch = lerp(from.torsoPitch, torsoPitch, u);
+          torsoYaw = lerp(from.torsoYaw, torsoYaw, u);
+          headY = lerp(from.headY || 0, headY, u);
+
+          rightHandTargetTorso.x = lerp(from.rightHandTargetTorso.x, rightHandTargetTorso.x, u);
+          rightHandTargetTorso.y = lerp(from.rightHandTargetTorso.y, rightHandTargetTorso.y, u);
+          rightHandTargetTorso.z = lerp(from.rightHandTargetTorso.z, rightHandTargetTorso.z, u);
+
+          leftHandTargetTorso.x = lerp(from.leftHandTargetTorso.x, leftHandTargetTorso.x, u);
+          leftHandTargetTorso.y = lerp(from.leftHandTargetTorso.y, leftHandTargetTorso.y, u);
+          leftHandTargetTorso.z = lerp(from.leftHandTargetTorso.z, leftHandTargetTorso.z, u);
+
+          if (!leftStance && from.leftFootTargetWorld) {
+            leftFootTargetWorld.x = lerp(from.leftFootTargetWorld.x, leftFootTargetWorld.x, u);
+            leftFootTargetWorld.y = lerp(from.leftFootTargetWorld.y, leftFootTargetWorld.y, u);
+            leftFootTargetWorld.z = lerp(from.leftFootTargetWorld.z, leftFootTargetWorld.z, u);
+            leftFootPitch = lerp(from.leftFootPitch, leftFootPitch, u);
+          }
+          if (!rightStance && from.rightFootTargetWorld) {
+            rightFootTargetWorld.x = lerp(from.rightFootTargetWorld.x, rightFootTargetWorld.x, u);
+            rightFootTargetWorld.y = lerp(from.rightFootTargetWorld.y, rightFootTargetWorld.y, u);
+            rightFootTargetWorld.z = lerp(from.rightFootTargetWorld.z, rightFootTargetWorld.z, u);
+            rightFootPitch = lerp(from.rightFootPitch, rightFootPitch, u);
+          }
+        }
+
+        // =====================================================================
+        // RESOLUÇÃO CINEMÁTICA RÍGIDA 3D
+        // =====================================================================
+        const pelvisWorld = this.localToWorld(pelvisLocal.x, pelvisLocal.y, pelvisLocal.z);
+
+        const cp = Math.cos(torsoPitch);
+        const sp = Math.sin(torsoPitch);
+        const cy = Math.cos(torsoYaw);
+        const sy = Math.sin(torsoYaw);
+
+        function torsoToLocal(tx, ty, tz) {
+          const y1 = ty * cp - tz * sp;
+          const z1 = ty * sp + tz * cp;
+          const x2 = tx * cy + y1 * sy;
+          const y2 = -tx * sy + y1 * cy;
+          return {
+            x: pelvisLocal.x + x2,
+            y: pelvisLocal.y + y2,
+            z: pelvisLocal.z + z1
+          };
+        }
+
+        const chestLocal = torsoToLocal(0, 0, BONE_PELVIS_CHEST);
+        const chestWorld = this.localToWorld(chestLocal.x, chestLocal.y, chestLocal.z);
+
+        const neckLocal = torsoToLocal(0, headY, BONE_PELVIS_CHEST + BONE_NECK);
+        const neckWorld = this.localToWorld(neckLocal.x, neckLocal.y, neckLocal.z);
+
+        const headCenterLocal = torsoToLocal(0, headY, BONE_PELVIS_CHEST + BONE_NECK + HEAD_RADIUS);
+        const headCenterWorld = this.localToWorld(headCenterLocal.x, headCenterLocal.y, headCenterLocal.z);
+
+        const hipLeftWorld  = this.localToWorld(pelvisLocal.x + HIP_OFFSET_X, pelvisLocal.y, pelvisLocal.z);
+        const hipRightWorld = this.localToWorld(pelvisLocal.x - HIP_OFFSET_X, pelvisLocal.y, pelvisLocal.z);
+
+        const shoulderLeftLocal  = torsoToLocal( SHOULDER_OFFSET, 0, BONE_PELVIS_CHEST);
+        const shoulderRightLocal = torsoToLocal(-SHOULDER_OFFSET, 0, BONE_PELVIS_CHEST);
+        const shoulderLeftWorld  = this.localToWorld(shoulderLeftLocal.x,  shoulderLeftLocal.y,  shoulderLeftLocal.z);
+        const shoulderRightWorld = this.localToWorld(shoulderRightLocal.x, shoulderRightLocal.y, shoulderRightLocal.z);
+
+        const handRightLocal = torsoToLocal(rightHandTargetTorso.x, rightHandTargetTorso.y, BONE_PELVIS_CHEST + rightHandTargetTorso.z);
+        const handLeftLocal  = torsoToLocal(leftHandTargetTorso.x,  leftHandTargetTorso.y,  BONE_PELVIS_CHEST + leftHandTargetTorso.z);
+        const handRightWorld = this.localToWorld(handRightLocal.x, handRightLocal.y, handRightLocal.z);
+        const handLeftWorld  = this.localToWorld(handLeftLocal.x,  handLeftLocal.y,  handLeftLocal.z);
+
+        const elbowPoleRLocal = torsoToLocal(-0.4, -1.0, -0.4);
+        const elbowPoleLLocal = torsoToLocal( 0.4, -1.0, -0.4);
+        const elbowPoleRWorld = {
+          x: elbowPoleRLocal.x - pelvisLocal.x,
+          y: elbowPoleRLocal.y - pelvisLocal.y,
+          z: elbowPoleRLocal.z - pelvisLocal.z
+        };
+        const elbowPoleLWorld = {
+          x: elbowPoleLLocal.x - pelvisLocal.x,
+          y: elbowPoleLLocal.y - pelvisLocal.y,
+          z: elbowPoleLLocal.z - pelvisLocal.z
+        };
+        const rotR = rotateYaw(elbowPoleRWorld.x, elbowPoleRWorld.y, this.yaw, elbowPoleRWorld.z);
+        const rotL = rotateYaw(elbowPoleLWorld.x, elbowPoleLWorld.y, this.yaw, elbowPoleLWorld.z);
+
+        const elbowRightWorld = solveIK2Bone(shoulderRightWorld, handRightWorld, BONE_UPPER_ARM, BONE_FOREARM, rotR);
+        const elbowLeftWorld  = solveIK2Bone(shoulderLeftWorld,  handLeftWorld,  BONE_UPPER_ARM, BONE_FOREARM, rotL);
+
+        if (!leftFootTargetWorld) leftFootTargetWorld = this.localToWorld(HIP_OFFSET_X, 0, BONE_TOE_ANKLE);
+        if (!rightFootTargetWorld) rightFootTargetWorld = this.localToWorld(-HIP_OFFSET_X, 0, BONE_TOE_ANKLE);
+
+        const kneePoleWorld = rotateYaw(0, 1, this.yaw, 0);
+        const kneeLeftWorld  = solveIK2Bone(hipLeftWorld,  leftFootTargetWorld,  BONE_THIGH, BONE_SHIN, kneePoleWorld);
+        const kneeRightWorld = solveIK2Bone(hipRightWorld, rightFootTargetWorld, BONE_THIGH, BONE_SHIN, kneePoleWorld);
+
+        // --- Geometria do Tronco e Faceta Peitoral ---
+        const torsoPts = [
+          torsoToLocal( 0.195, 0.000, BONE_PELVIS_CHEST + 0.035),
+          torsoToLocal( 0.000, 0.050, BONE_PELVIS_CHEST + 0.045),
+          torsoToLocal(-0.195, 0.000, BONE_PELVIS_CHEST + 0.035),
+          torsoToLocal(-0.125, 0.020, 0.19),
+          torsoToLocal( 0.000, 0.040, 0.12),
+          torsoToLocal( 0.125, 0.020, 0.19)
+        ].map(p => this.localToWorld(p.x, p.y, p.z));
+
+        const chestFacetPts = [
+          torsoToLocal( 0.155, 0.020, BONE_PELVIS_CHEST + 0.02),
+          torsoToLocal( 0.000, 0.075, BONE_PELVIS_CHEST + 0.015),
+          torsoToLocal(-0.155, 0.020, BONE_PELVIS_CHEST + 0.02),
+          torsoToLocal( 0.000, 0.065, 0.19)
+        ].map(p => this.localToWorld(p.x, p.y, p.z));
+
+        // --- Geometria dos Pés (Solas e Peito do Pé em 3D) ---
+        function createFoot3D(ankleWorld, side, pitch, yaw) {
+          const f = rotateYaw(side * 0.12, 1, yaw);
+          const n = { x: -f.y, y: f.x, z: 0 };
+          const cpF = Math.cos(pitch), spF = Math.sin(pitch);
+          const toe = {
+            x: ankleWorld.x + f.x * BONE_TOE_ANKLE * cpF,
+            y: ankleWorld.y + f.y * BONE_TOE_ANKLE * cpF,
+            z: ankleWorld.z - 0.055 + BONE_TOE_ANKLE * spF
+          };
+          const heel = {
+            x: ankleWorld.x - f.x * 0.045,
+            y: ankleWorld.y - f.y * 0.045,
+            z: ankleWorld.z - 0.055
+          };
+          const baseZ = Math.max(0.012, ankleWorld.z - 0.068);
+          const w = 0.048;
+          return {
+            ankle: ankleWorld, toe, heel, pitch, side,
+            sole: [
+              { x: heel.x + n.x * w * 0.7, y: heel.y + n.y * w * 0.7, z: baseZ },
+              { x: toe.x + n.x * w, y: toe.y + n.y * w, z: baseZ },
+              { x: toe.x - n.x * w, y: toe.y - n.y * w, z: baseZ },
+              { x: heel.x - n.x * w * 0.7, y: heel.y - n.y * w * 0.7, z: baseZ }
+            ],
+            top: [
+              { x: ankleWorld.x + n.x * 0.032, y: ankleWorld.y + n.y * 0.032, z: ankleWorld.z + 0.015 },
+              { x: toe.x + n.x * 0.032, y: toe.y + n.y * 0.032, z: toe.z + 0.025 },
+              { x: toe.x - n.x * 0.032, y: toe.y - n.y * 0.032, z: toe.z + 0.025 },
+              { x: ankleWorld.x - n.x * 0.032, y: ankleWorld.y - n.y * 0.032, z: ankleWorld.z + 0.015 }
+            ]
+          };
+        }
+
+        const footGeomL = createFoot3D(leftFootTargetWorld,  1, leftFootPitch, this.yaw);
+        const footGeomR = createFoot3D(rightFootTargetWorld, -1, rightFootPitch, this.yaw);
+
+        // Registro de Foot Slip no chão
+        if (recordSlip) {
+          const pLeftScreen = projectWorldPoint(leftFootTargetWorld.x, leftFootTargetWorld.y, leftFootTargetWorld.z, originX, originY, scale);
+          const pRightScreen = projectWorldPoint(rightFootTargetWorld.x, rightFootTargetWorld.y, rightFootTargetWorld.z, originX, originY, scale);
+
+          if (leftStance && this.lastFootScreens.left && this.lastFootScreens.left.stance) {
+            const dx = pLeftScreen.sx - this.lastFootScreens.left.sx;
+            const dy = pLeftScreen.sy - this.lastFootScreens.left.sy;
+            const slip = Math.sqrt(dx * dx + dy * dy);
+            this.slipSamples.push(slip);
+            if (slip > this.maxSlipPx) this.maxSlipPx = slip;
+          }
+          if (rightStance && this.lastFootScreens.right && this.lastFootScreens.right.stance) {
+            const dx = pRightScreen.sx - this.lastFootScreens.right.sx;
+            const dy = pRightScreen.sy - this.lastFootScreens.right.sy;
+            const slip = Math.sqrt(dx * dx + dy * dy);
+            this.slipSamples.push(slip);
+            if (slip > this.maxSlipPx) this.maxSlipPx = slip;
+          }
+
+          this.lastFootScreens.left = { sx: pLeftScreen.sx, sy: pLeftScreen.sy, stance: leftStance };
+          this.lastFootScreens.right = { sx: pRightScreen.sx, sy: pRightScreen.sy, stance: rightStance };
+
+          if (this.slipSamples.length > 300) this.slipSamples.shift();
+          if (this.slipSamples.length > 0) {
+            const sum = this.slipSamples.reduce((acc, v) => acc + v, 0);
+            this.meanSlipPx = sum / this.slipSamples.length;
+          }
+        }
+
+        // --- Adagas Embainhadas nas Costas em "X" (Estilo Kratos) ---
+        const sheathedDaggers = {
+          right: {
+            grip: this.localToWorld(...Object.values(torsoToLocal(-0.16, -0.09, BONE_PELVIS_CHEST + 0.12))),
+            base: this.localToWorld(...Object.values(torsoToLocal(-0.14, -0.09, BONE_PELVIS_CHEST + 0.05))),
+            tip:  this.localToWorld(...Object.values(torsoToLocal( 0.15, -0.09, 0.04))),
+            side: -1
+          },
+          left: {
+            grip: this.localToWorld(...Object.values(torsoToLocal( 0.16, -0.09, BONE_PELVIS_CHEST + 0.12))),
+            base: this.localToWorld(...Object.values(torsoToLocal( 0.14, -0.09, BONE_PELVIS_CHEST + 0.05))),
+            tip:  this.localToWorld(...Object.values(torsoToLocal(-0.15, -0.09, 0.04))),
+            side: 1
+          }
+        };
+
+        this.prevRawPose = {
+          pelvisLocal: { ...pelvisLocal },
+          torsoPitch,
+          torsoYaw,
+          headY,
+          leftFootTargetWorld: { ...leftFootTargetWorld },
+          rightFootTargetWorld: { ...rightFootTargetWorld },
+          leftFootPitch,
+          rightFootPitch,
+          rightHandTargetTorso: { ...rightHandTargetTorso },
+          leftHandTargetTorso: { ...leftHandTargetTorso }
+        };
+
+        return {
+          root: this.root,
+          yaw: this.yaw,
+          torsoYaw,
+          joints: {
+            pelvis: pelvisWorld,
+            chest: chestWorld,
+            neck: neckWorld,
+            headCenter: headCenterWorld,
+            hipL: hipLeftWorld,
+            kneeL: kneeLeftWorld,
+            ankleL: leftFootTargetWorld,
+            hipR: hipRightWorld,
+            kneeR: kneeRightWorld,
+            ankleR: rightFootTargetWorld,
+            shoulderL: shoulderLeftWorld,
+            elbowL: elbowLeftWorld,
+            wristL: handLeftWorld,
+            shoulderR: shoulderRightWorld,
+            elbowR: elbowRightWorld,
+            wristR: handRightWorld
+          },
+          targets: {
+            footL: leftFootTargetWorld,
+            footR: rightFootTargetWorld,
+            handL: handLeftWorld,
+            handR: handRightWorld
+          },
+          torsoPts,
+          chestFacetPts,
+          feetGeom: { L: footGeomL, R: footGeomR },
+          sheathedDaggers,
+          weaponsDrawn: this.weaponsDrawn,
+          activeHitbox,
+          leftStance,
+          rightStance
+        };
+      }
+    }
+
+    // =========================================================================
+    // 5. RENDERER ELITE DETERMINÍSTICO (INK OUTLINES + TWO-TONE STEEL + SHADING)
+    // =========================================================================
+    function renderRig(ctx, rig, pose, originX, originY, scale = SCALE, showDebug = false, isContactSheet = false) {
+      const joints = pose.joints;
+      const jProj = {};
+
+      for (const [key, pt] of Object.entries(joints)) {
+        jProj[key] = projectWorldPoint(pt.x, pt.y, pt.z, originX, originY, scale);
+      }
+
+      const centerDepth = jProj.pelvis.depth;
+      const inkWidth = scale > 70 ? 2.4 : 1.5;
+
+      // Sombra Dinâmica no chão
+      const shadowProj = projectWorldPoint(rig.root.x, rig.root.y, 0, originX, originY, scale);
+      const heightFactor = clamp(1.0 - (rig.root.z / 1.6), 0.25, 1.0);
+      ctx.save();
+      ctx.beginPath();
+      const shadowRadiusX = (rig.state === "roll" ? 0.38 : 0.32) * scale * heightFactor;
+      const shadowRadiusY = shadowRadiusX * SIN;
+      ctx.ellipse(shadowProj.sx, shadowProj.sy + 1, shadowRadiusX, shadowRadiusY, 0, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(0, 0, 0, 0.25)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+
+      const drawElements = [];
+
+      function addElement(layer, depth, name, drawFn) {
+        drawElements.push({ layer, depth, name, draw: drawFn });
+      }
+
+      function colorAt(baseHex, ptWorld) {
+        const p = projectWorldPoint(ptWorld.x, ptWorld.y, ptWorld.z, originX, originY, scale);
+        return shadeForDepth(baseHex, p.depth, centerDepth);
+      }
+
+      // --- Desenho de Cápsulas com Ink Outline ---
+      function drawCapsule(p1Key, p2Key, widthUnits, baseHex, layer, name) {
+        const p1 = jProj[p1Key];
+        const p2 = jProj[p2Key];
+        const avgDepth = (p1.depth + p2.depth) * 0.5;
+        const w = Math.max(2.4, widthUnits * scale);
+        const fill = shadeForDepth(baseHex, avgDepth, centerDepth);
+
+        addElement(layer, avgDepth, name, (g) => {
+          g.lineCap = "round";
+          g.strokeStyle = COL.ink;
+          g.lineWidth = w + inkWidth * 2;
+          g.beginPath(); g.moveTo(p1.sx, p1.sy); g.lineTo(p2.sx, p2.sy); g.stroke();
+          g.strokeStyle = fill;
+          g.lineWidth = w;
+          g.beginPath(); g.moveTo(p1.sx, p1.sy); g.lineTo(p2.sx, p2.sy); g.stroke();
+        });
+      }
+
+      // --- Desenho de Articulações (Joints) com Ink Outline ---
+      function drawJoint(pKey, radiusUnits, baseHex, layer, name) {
+        const p = jProj[pKey];
+        const r = Math.max(2.0, radiusUnits * scale);
+        const fill = shadeForDepth(baseHex, p.depth, centerDepth);
+
+        addElement(layer, p.depth, name, (g) => {
+          g.beginPath(); g.arc(p.sx, p.sy, r + inkWidth * 0.8, 0, Math.PI * 2);
+          g.fillStyle = COL.ink; g.fill();
+          g.beginPath(); g.arc(p.sx, p.sy, r, 0, Math.PI * 2);
+          g.fillStyle = fill; g.fill();
+        });
+      }
+
+      // --- Desenho de Polígonos (Tórax / Peitoral) com Ink Outline ---
+      function drawPolygon(ptsWorld, baseHex, strokeWidth, layer, name) {
+        const ptsScreen = ptsWorld.map(p => projectWorldPoint(p.x, p.y, p.z, originX, originY, scale));
+        const avgDepth = ptsScreen.reduce((s, p) => s + p.depth, 0) / ptsScreen.length;
+        const fill = baseHex ? shadeForDepth(baseHex, avgDepth, centerDepth) : null;
+
+        addElement(layer, avgDepth, name, (g) => {
+          g.beginPath();
+          g.moveTo(ptsScreen[0].sx, ptsScreen[0].sy);
+          for (let i = 1; i < ptsScreen.length; i++) g.lineTo(ptsScreen[i].sx, ptsScreen[i].sy);
+          g.closePath();
+          if (fill) { g.fillStyle = fill; g.fill(); }
+          if (strokeWidth) {
+            g.strokeStyle = COL.ink;
+            g.lineWidth = strokeWidth;
+            g.stroke();
+          }
+        });
+      }
+
+      // --- Desenho dos Pés em 3D (Solado + Peito do Pé) ---
+      function drawFoot3D(foot, sideHex, sideDarkHex) {
+        const ankleProj = projectWorldPoint(foot.ankle.x, foot.ankle.y, foot.ankle.z, originX, originY, scale);
+        const soleScreen = foot.sole.map(p => projectWorldPoint(p.x, p.y, p.z, originX, originY, scale));
+        const topScreen = foot.top.map(p => projectWorldPoint(p.x, p.y, p.z, originX, originY, scale));
+
+        const soleFill = shadeForDepth(sideDarkHex, ankleProj.depth, centerDepth);
+        const topFill  = shadeForDepth(sideHex, ankleProj.depth, centerDepth);
+
+        // Sola (placa de atrito escura)
+        addElement(10, ankleProj.depth, `foot-${foot.side}-sole`, (g) => {
+          g.beginPath(); g.moveTo(soleScreen[0].sx, soleScreen[0].sy);
+          for (let i = 1; i < 4; i++) g.lineTo(soleScreen[i].sx, soleScreen[i].sy);
+          g.closePath();
+          g.fillStyle = soleFill; g.fill();
+          g.strokeStyle = COL.ink; g.lineWidth = inkWidth * 1.4; g.stroke();
+        });
+
+        // Peito do pé (placa protetora colorida com ink outline)
+        addElement(11, ankleProj.depth - 0.001, `foot-${foot.side}-top`, (g) => {
+          g.beginPath(); g.moveTo(topScreen[0].sx, topScreen[0].sy);
+          for (let i = 1; i < 4; i++) g.lineTo(topScreen[i].sx, topScreen[i].sy);
+          g.closePath();
+          g.fillStyle = topFill; g.fill();
+          g.strokeStyle = COL.ink; g.lineWidth = inkWidth; g.stroke();
+        });
+      }
+
+      // --- Desenho das Adagas em Curva de Bézier com Aço Two-Tone ---
+      function drawCurvedDagger(pBase, pTip, dir, side, layerPrefix, isSheathed = false) {
+        const p0 = pBase;
+        const p2 = pTip;
+
+        // Ponto de curvatura da lâmina (Bézier quadratic)
+        const dlen = Math.sqrt((p2.sx - p0.sx) ** 2 + (p2.sy - p0.sy) ** 2) || 1;
+        const nx = -(p2.sy - p0.sy) / dlen * (side === 1 ? 1 : -1);
+        const ny =  (p2.sx - p0.sx) / dlen * (side === 1 ? 1 : -1);
+
+        const bow = 0.075 * scale;
+        const p1 = {
+          sx: p0.sx * 0.48 + p2.sx * 0.52 + nx * bow,
+          sy: p0.sy * 0.48 + p2.sy * 0.52 + ny * bow,
+          depth: (p0.depth + p2.depth) * 0.5
+        };
+
+        const depth = p1.depth;
+        const baseCol = (side === 1) ? COL.steelL : COL.steelR;
+        const fillSteel = shadeForDepth(baseCol, depth, centerDepth);
+        const darkSteel = shadeForDepth(COL.steelDark, depth, centerDepth);
+
+        // Cabo / Empunhadura
+        const gripLen = (isSheathed ? 0.09 : 0.075) * scale;
+        const gripStart = {
+          sx: p0.sx - ((p2.sx - p0.sx) / dlen) * gripLen,
+          sy: p0.sy - ((p2.sy - p0.sy) / dlen) * gripLen
+        };
+
+        // Trilha de corte para lâminas em combate
+        if (!isSheathed && (rig.state.startsWith("attack") || rig.state === "air_attack")) {
+          const trailColor = (rig.state === "attack1") ? "#38bdf8" : ((rig.state === "attack2") ? "#f43f5e" : "#f59e0b");
+          recordBladeTrail(p0, p2, trailColor);
+        }
+
+        // Desenha Grip
+        addElement(70, depth - 0.002, `${layerPrefix}-grip`, (g) => {
+          g.lineCap = "round";
+          g.strokeStyle = COL.ink; g.lineWidth = Math.max(3, 0.045 * scale) + inkWidth * 1.5;
+          g.beginPath(); g.moveTo(gripStart.sx, gripStart.sy); g.lineTo(p0.sx, p0.sy); g.stroke();
+          g.strokeStyle = COL.bronzeDark; g.lineWidth = Math.max(2, 0.045 * scale);
+          g.beginPath(); g.moveTo(gripStart.sx, gripStart.sy); g.lineTo(p0.sx, p0.sy); g.stroke();
+        });
+
+        // Desenha Guarda (Crossguard)
+        addElement(71, depth - 0.001, `${layerPrefix}-guard`, (g) => {
+          const gl = 0.055 * scale;
+          g.lineCap = "round";
+          g.strokeStyle = COL.ink; g.lineWidth = Math.max(3, 0.026 * scale) + inkWidth;
+          g.beginPath(); g.moveTo(p0.sx + nx * gl, p0.sy + ny * gl); g.lineTo(p0.sx - nx * gl, p0.sy - ny * gl); g.stroke();
+          g.strokeStyle = COL.bronze; g.lineWidth = Math.max(2, 0.026 * scale);
+          g.beginPath(); g.moveTo(p0.sx + nx * gl, p0.sy + ny * gl); g.lineTo(p0.sx - nx * gl, p0.sy - ny * gl); g.stroke();
+        });
+
+        // Desenha Lâmina Bézier Two-Tone
+        addElement(72, depth, `${layerPrefix}-blade`, (g) => {
+          const N = 12;
+          const leftPts = [], rightPts = [];
+          for (let i = 0; i <= N; i++) {
+            const u = i / N;
+            const inv = 1 - u;
+            const cx = inv * inv * p0.sx + 2 * inv * u * p1.sx + u * u * p2.sx;
+            const cy = inv * inv * p0.sy + 2 * inv * u * p1.sy + u * u * p2.sy;
+            const tx = 2 * inv * (p1.sx - p0.sx) + 2 * u * (p2.sx - p1.sx);
+            const ty = 2 * inv * (p1.sy - p0.sy) + 2 * u * (p2.sy - p1.sy);
+            const tl = Math.sqrt(tx * tx + ty * ty) || 1;
+            const px = -ty / tl, py = tx / tl;
+            let hw = (0.010 + 0.032 * Math.sin(Math.PI * u)) * scale;
+            if (u > 0.82) hw *= ((1 - u) / 0.18) * 0.85 + 0.15;
+            leftPts.push({ x: cx + px * hw, y: cy + py * hw });
+            rightPts.push({ x: cx - px * hw, y: cy - py * hw });
+          }
+
+          // Contorno total e preenchimento de aço
+          g.beginPath();
+          g.moveTo(leftPts[0].x, leftPts[0].y);
+          for (let a = 1; a < leftPts.length; a++) g.lineTo(leftPts[a].x, leftPts[a].y);
+          for (let b = rightPts.length - 1; b >= 0; b--) g.lineTo(rightPts[b].x, rightPts[b].y);
+          g.closePath();
+          g.fillStyle = fillSteel; g.fill();
+          g.strokeStyle = COL.ink; g.lineWidth = inkWidth; g.stroke();
+
+          // Faceta escurecida de sombra (Two-Tone Flat Steel)
+          g.beginPath();
+          g.moveTo(p0.sx, p0.sy);
+          for (let c = 1; c <= N; c++) {
+            const uu = c / N, ii = 1 - uu;
+            const xx = ii * ii * p0.sx + 2 * ii * uu * p1.sx + uu * uu * p2.sx;
+            const yy = ii * ii * p0.sy + 2 * ii * uu * p1.sy + uu * uu * p2.sy;
+            g.lineTo(xx, yy);
+          }
+          for (let d = rightPts.length - 1; d >= 0; d -= 2) g.lineTo(rightPts[d].x, rightPts[d].y);
+          g.closePath();
+          g.fillStyle = darkSteel; g.globalAlpha = 0.42; g.fill(); g.globalAlpha = 1.0;
+        });
+      }
+
+      // -----------------------------------------------------------------------
+      // ADIÇÃO DE ELEMENTOS AO PIPELINE DE PROFUNDIDADE
+      // -----------------------------------------------------------------------
+      // Pés 3D
+      drawFoot3D(pose.feetGeom.L, COL.left, COL.leftDark);
+      drawFoot3D(pose.feetGeom.R, COL.right, COL.rightDark);
+
+      // Pernas
+      drawCapsule("hipL", "kneeL", 0.105, COL.left, 20, "thighL");
+      drawCapsule("hipR", "kneeR", 0.105, COL.right, 20, "thighR");
+      drawCapsule("kneeL", "ankleL", 0.078, COL.left, 22, "shinL");
+      drawCapsule("kneeR", "ankleR", 0.078, COL.right, 22, "shinR");
+      drawJoint("kneeL", 0.034, COL.left, 23, "kneeLJoint");
+      drawJoint("kneeR", 0.034, COL.right, 23, "kneeRJoint");
+      drawJoint("ankleL", 0.030, COL.left, 24, "ankleLJoint");
+      drawJoint("ankleR", 0.030, COL.right, 24, "ankleRJoint");
+
+      // Pelve & Cinto
+      drawCapsule("hipL", "hipR", 0.115, COL.neutralDark, 18, "pelvisBar");
+      drawJoint("pelvis", 0.038, COL.neutral, 19, "pelvisJoint");
+      drawJoint("hipL", 0.032, COL.left, 19, "hipLJoint");
+      drawJoint("hipR", 0.032, COL.right, 19, "hipRJoint");
+
+      // Tronco e Faceta Peitoral
+      drawPolygon(pose.torsoPts, COL.neutral, inkWidth * 1.3, 40, "torso");
+      drawPolygon(pose.chestFacetPts, COL.neutralDark, 0, 41, "chestFacet");
+
+      // Pescoço
+      drawCapsule("chest", "neck", 0.085, COL.neutral, 45, "neck");
+      drawJoint("chest", 0.038, COL.neutral, 46, "chestJoint");
+      drawJoint("neck", 0.028, COL.neutral, 47, "neckJoint");
+
+      // Braços: Ombro, Cotovelo, Antebraço e Punho
+      drawCapsule("shoulderL", "elbowL", 0.076, COL.left, 50, "upperArmL");
+      drawCapsule("shoulderR", "elbowR", 0.076, COL.right, 50, "upperArmR");
+      drawCapsule("elbowL", "wristL", 0.066, COL.left, 52, "forearmL");
+      drawCapsule("elbowR", "wristR", 0.066, COL.right, 52, "forearmR");
+
+      drawJoint("shoulderL", 0.036, COL.left, 54, "shoulderLJoint");
+      drawJoint("shoulderR", 0.036, COL.right, 54, "shoulderRJoint");
+      drawJoint("elbowL", 0.029, COL.left, 55, "elbowLJoint");
+      drawJoint("elbowR", 0.029, COL.right, 55, "elbowRJoint");
+      drawJoint("wristL", 0.026, COL.left, 56, "wristLJoint");
+      drawJoint("wristR", 0.026, COL.right, 56, "wristRJoint");
+
+      // Cabeça estilizada com reflexo Specular Arc
+      const headProj = jProj.headCenter;
+      const headFill = shadeForDepth(COL.head, headProj.depth, centerDepth);
+      addElement(80, headProj.depth, "head", (g) => {
+        g.beginPath(); g.arc(headProj.sx, headProj.sy, HEAD_RADIUS * scale + inkWidth, 0, Math.PI * 2);
+        g.fillStyle = COL.ink; g.fill();
+        g.beginPath(); g.arc(headProj.sx, headProj.sy, HEAD_RADIUS * scale, 0, Math.PI * 2);
+        g.fillStyle = headFill; g.fill();
+
+        // Brilho chanfrado especular de elite
+        g.beginPath();
+        g.arc(headProj.sx, headProj.sy, HEAD_RADIUS * scale * 0.68, Math.PI * 1.06, Math.PI * 1.72);
+        g.strokeStyle = "rgba(255, 255, 255, 0.28)";
+        g.lineWidth = Math.max(1.4, 0.018 * scale);
+        g.stroke();
+      });
+
+      // Lâminas (Em Punho vs Nas Costas em "X")
+      if (pose.weaponsDrawn) {
+        // Empunhadas: mão direita e mão esquerda
+        const wR = jProj.wristR, eR = jProj.elbowR;
+        const wL = jProj.wristL, eL = jProj.elbowL;
+
+        const tipR = {
+          sx: wR.sx + (wR.sx - eR.sx) * (BONE_BLADE / BONE_FOREARM),
+          sy: wR.sy + (wR.sy - eR.sy) * (BONE_BLADE / BONE_FOREARM),
+          depth: wR.depth
+        };
+        const tipL = {
+          sx: wL.sx + (wL.sx - eL.sx) * (BONE_BLADE / BONE_FOREARM),
+          sy: wL.sy + (wL.sy - eL.sy) * (BONE_BLADE / BONE_FOREARM),
+          depth: wL.depth
+        };
+
+        drawCurvedDagger(wR, tipR, null, -1, "daggerR", false);
+        drawCurvedDagger(wL, tipL, null,  1, "daggerL", false);
+      } else {
+        // Nas Costas em "X" (Estilo Kratos): renderizadas com Bézier perfeito
+        const shR = pose.sheathedDaggers.right;
+        const shL = pose.sheathedDaggers.left;
+
+        const pBaseR = projectWorldPoint(shR.base.x, shR.base.y, shR.base.z, originX, originY, scale);
+        const pTipR  = projectWorldPoint(shR.tip.x,  shR.tip.y,  shR.tip.z,  originX, originY, scale);
+        const pBaseL = projectWorldPoint(shL.base.x, shL.base.y, shL.base.z, originX, originY, scale);
+        const pTipL  = projectWorldPoint(shL.tip.x,  shL.tip.y,  shL.tip.z,  originX, originY, scale);
+
+        drawCurvedDagger(pBaseR, pTipR, null, -1, "sheathedDaggerR", true);
+        drawCurvedDagger(pBaseL, pTipL, null,  1, "sheathedDaggerL", true);
+      }
+
+      // Ordenação Painter's Algorithm (Back to Front)
+      drawElements.sort((a, b) => {
+        if (Math.abs(a.depth - b.depth) > 0.001) return a.depth - b.depth;
+        return a.layer - b.layer;
+      });
+
+      for (const el of drawElements) {
+        el.draw(ctx);
+      }
+
+      // Trilhas de Luz das Lâminas (Action Slash Trails)
+      for (let i = bladeSlashTrails.length - 1; i >= 0; i--) {
+        const trail = bladeSlashTrails[i];
+        const alpha = trail.life / trail.maxLife;
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.strokeStyle = trail.color;
+        ctx.globalAlpha = alpha * 0.7;
+        ctx.lineWidth = trail.width * (trail.life / trail.maxLife);
+        ctx.beginPath();
+        ctx.moveTo(trail.base.sx, trail.base.sy);
+        ctx.lineTo(trail.tip.sx, trail.tip.sy);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Hitbox / Arcos Dinâmicos Ativos
+      if (pose.activeHitbox) {
+        ctx.save();
+        const hb = pose.activeHitbox;
+        ctx.strokeStyle = hb.color;
+        ctx.lineWidth = 3;
+
+        let rgbaFill = "rgba(59, 130, 246, 0.22)";
+        if (hb.color === "#ef4444") rgbaFill = "rgba(239, 68, 68, 0.22)";
+        if (hb.color === "#f59e0b") rgbaFill = "rgba(245, 158, 11, 0.22)";
+        if (hb.color === "#38bdf8") rgbaFill = "rgba(56, 189, 248, 0.22)";
+        ctx.fillStyle = rgbaFill;
+
+        if (hb.type === "circle360") {
+          const segments = 32;
+          const radius = hb.radius;
+          ctx.beginPath();
+          for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            const lx = Math.cos(angle) * radius;
+            const ly = Math.sin(angle) * radius;
+            const ptWorld = rig.localToWorld(lx, ly, PELVIS_REST_Z + 0.15);
+            const pScreen = projectWorldPoint(ptWorld.x, ptWorld.y, ptWorld.z, originX, originY, scale);
+            if (i === 0) ctx.moveTo(pScreen.sx, pScreen.sy);
+            else ctx.lineTo(pScreen.sx, pScreen.sy);
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        } else if (hb.hand === "right") {
+          const segments = 16;
+          const radius = hb.radius;
+          ctx.beginPath();
+          for (let i = 0; i <= segments; i++) {
+            const u = i / segments;
+            const angle = -0.3 + u * 1.5;
+            const lx = -SHOULDER_OFFSET - Math.cos(angle) * radius * 0.7;
+            const ly = Math.sin(angle) * radius * 1.1;
+            const lz = PELVIS_REST_Z + 0.35 - 0.45 * u;
+            const ptWorld = rig.localToWorld(lx, ly, lz);
+            const pScreen = projectWorldPoint(ptWorld.x, ptWorld.y, ptWorld.z, originX, originY, scale);
+            if (i === 0) ctx.moveTo(pScreen.sx, pScreen.sy);
+            else ctx.lineTo(pScreen.sx, pScreen.sy);
+          }
+          ctx.stroke();
+        } else if (hb.hand === "left") {
+          const segments = 16;
+          const radius = hb.radius;
+          ctx.beginPath();
+          for (let i = 0; i <= segments; i++) {
+            const u = i / segments;
+            const angle = -0.3 + u * 1.5;
+            const lx = SHOULDER_OFFSET + Math.cos(angle) * radius * 0.7;
+            const ly = Math.sin(angle) * radius * 1.1;
+            const lz = PELVIS_REST_Z - 0.10 + 0.50 * u;
+            const ptWorld = rig.localToWorld(lx, ly, lz);
+            const pScreen = projectWorldPoint(ptWorld.x, ptWorld.y, ptWorld.z, originX, originY, scale);
+            if (i === 0) ctx.moveTo(pScreen.sx, pScreen.sy);
+            else ctx.lineTo(pScreen.sx, pScreen.sy);
+          }
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // Overlay de Debug
+      if (showDebug && !isContactSheet) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 2]);
+
+        const connections = [
+          ["pelvis", "chest"], ["chest", "neck"], ["neck", "headCenter"],
+          ["pelvis", "hipL"], ["hipL", "kneeL"], ["kneeL", "ankleL"],
+          ["pelvis", "hipR"], ["hipR", "kneeR"], ["kneeR", "ankleR"],
+          ["chest", "shoulderL"], ["shoulderL", "elbowL"], ["elbowL", "wristL"],
+          ["chest", "shoulderR"], ["shoulderR", "elbowR"], ["elbowR", "wristR"]
+        ];
+
+        for (const [a, b] of connections) {
+          if (jProj[a] && jProj[b]) {
+            ctx.beginPath();
+            ctx.moveTo(jProj[a].sx, jProj[a].sy);
+            ctx.lineTo(jProj[b].sx, jProj[b].sy);
+            ctx.stroke();
+          }
+        }
+        ctx.setLineDash([]);
+
+        ctx.font = "9px monospace";
+        for (const [name, p] of Object.entries(jProj)) {
+          if (p) {
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(p.sx - 2, p.sy - 2, 4, 4);
+            ctx.fillText(name, p.sx + 4, p.sy - 2);
+          }
+        }
+        ctx.restore();
+      }
+    }
+
+    // =========================================================================
+    // 6. GRADE E ARENA EXPANDIDA (ESTILO TÉCNICO DEEPSEEK)
+    // =========================================================================
+    function drawArenaGrid(ctx, originX = arenaOriginX, originY = arenaOriginY, scale = SCALE) {
+      ctx.save();
+      ctx.lineWidth = 1;
+
+      const minX = -10, maxX = 10;
+      const minY = -8,  maxY = 8;
+
+      // Grade refinada
+      for (let x = minX; x <= maxX; x++) {
+        const p1 = projectWorldPoint(x, minY, 0, originX, originY, scale);
+        const p2 = projectWorldPoint(x, maxY, 0, originX, originY, scale);
+        ctx.strokeStyle = (x % 3 === 0) ? COL.gridMajor : COL.grid;
+        ctx.beginPath();
+        ctx.moveTo(p1.sx, p1.sy);
+        ctx.lineTo(p2.sx, p2.sy);
+        ctx.stroke();
+      }
+
+      for (let y = minY; y <= maxY; y++) {
+        const p1 = projectWorldPoint(minX, y, 0, originX, originY, scale);
+        const p2 = projectWorldPoint(maxX, y, 0, originX, originY, scale);
+        ctx.strokeStyle = (y % 3 === 0) ? COL.gridMajor : COL.grid;
+        ctx.beginPath();
+        ctx.moveTo(p1.sx, p1.sy);
+        ctx.lineTo(p2.sx, p2.sy);
+        ctx.stroke();
+      }
+
+      // Eixos Centrais X, Y, Z
+      const o = projectWorldPoint(0, 0, 0, originX, originY, scale);
+      const px = projectWorldPoint(2.2, 0, 0, originX, originY, scale);
+      ctx.strokeStyle = COL.axisX;
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(o.sx, o.sy); ctx.lineTo(px.sx, px.sy); ctx.stroke();
+
+      const py = projectWorldPoint(0, 2.2, 0, originX, originY, scale);
+      ctx.strokeStyle = COL.axisY;
+      ctx.beginPath();
+      ctx.moveTo(o.sx, o.sy); ctx.lineTo(py.sx, py.sy); ctx.stroke();
+
+      const pz = projectWorldPoint(0, 0, 2.2, originX, originY, scale);
+      ctx.strokeStyle = COL.axisZ;
+      ctx.beginPath();
+      ctx.moveTo(o.sx, o.sy); ctx.lineTo(pz.sx, pz.sy); ctx.stroke();
+
+      ctx.font = "11px Consolas, monospace";
+      ctx.fillStyle = COL.axisX; ctx.fillText("X", px.sx + 5, px.sy + 4);
+      ctx.fillStyle = COL.axisY; ctx.fillText("Y (Câmera)", py.sx + 5, py.sy - 4);
+      ctx.fillStyle = COL.axisZ; ctx.fillText("Z", pz.sx + 5, pz.sy - 4);
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // 7. FOLHA DE CONTATO DETERMINÍSTICA (1920 × 1120)
+    // =========================================================================
+    const CONTACT_COLS = [
+      { yaw: 0,   cardinal: "S"  },
+      { yaw: 45,  cardinal: "SE" },
+      { yaw: 90,  cardinal: "E"  },
+      { yaw: 135, cardinal: "NE" },
+      { yaw: 180, cardinal: "N"  },
+      { yaw: 225, cardinal: "NW" },
+      { yaw: 270, cardinal: "W"  },
+      { yaw: 315, cardinal: "SW" }
+    ];
+
+    const CONTACT_ROWS = [
+      { state: "idle",    time: 0.50, weaponsDrawn: false, label: "idle (costas X)" },
+      { state: "idle",    time: 0.50, weaponsDrawn: true,  label: "idle combat" },
+      { state: "run",     time: 0.20, weaponsDrawn: true,  label: "run corrida" },
+      { state: "roll",    time: 0.22, weaponsDrawn: true,  label: "roll (Dark Souls)" },
+      { state: "dash",    time: 0.12, weaponsDrawn: true,  label: "dash impulso" },
+      { state: "attack1", time: 0.12, weaponsDrawn: true,  label: "attack1 impacto" },
+      { state: "attack3", time: 0.19, weaponsDrawn: true,  label: "attack3 spin 360°" }
+    ];
+
+    function drawContactSheet(ctx, rig) {
+      const cellW = 240;
+      const cellH = 160;
+      const totalW = 1920;
+      const totalH = 1120;
+
+      ctx.save();
+      ctx.fillStyle = "#0d1017";
+      ctx.fillRect(0, 0, totalW, totalH);
+
+      const savedState = rig.state;
+      const savedTime = rig.clipTime;
+      const savedYaw = rig.yaw;
+      const savedWeapons = rig.weaponsDrawn;
+      const savedRoot = { ...rig.root };
+
+      for (let r = 0; r < CONTACT_ROWS.length; r++) {
+        for (let c = 0; c < CONTACT_COLS.length; c++) {
+          const colInfo = CONTACT_COLS[c];
+          const rowInfo = CONTACT_ROWS[r];
+
+          const cellX = c * cellW;
+          const cellY = r * cellH;
+
+          ctx.fillStyle = (r % 2 === 0) ? "#12151d" : "#141821";
+          ctx.fillRect(cellX, cellY, cellW, cellH);
+
+          ctx.strokeStyle = "#242b3a";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(cellX + 0.5, cellY + 0.5, cellW - 1, cellH - 1);
+
+          const groundY = cellY + 138;
+          ctx.strokeStyle = "rgba(126, 152, 194, 0.35)";
+          ctx.beginPath();
+          ctx.moveTo(cellX + 12, groundY);
+          ctx.lineTo(cellX + cellW - 12, groundY);
+          ctx.stroke();
+
+          ctx.font = "10px Consolas, monospace";
+          ctx.fillStyle = "#c7d0df";
+          ctx.fillText(rowInfo.label.toUpperCase(), cellX + 8, cellY + 14);
+          ctx.fillStyle = "#8b96aa";
+          ctx.fillText(`${colInfo.yaw}° ${colInfo.cardinal}`, cellX + 8, cellY + 27);
+
+          rig.state = rowInfo.state;
+          rig.clipTime = rowInfo.time;
+          rig.weaponsDrawn = rowInfo.weaponsDrawn;
+          rig.setYawDegrees(colInfo.yaw);
+          rig.root = { x: 0, y: 0, z: 0 };
+
+          const cellOriginX = cellX + cellW * 0.5;
+          const cellOriginY = groundY;
+
+          const pose = rig.computePose(cellOriginX, cellOriginY, 64, false);
+          renderRig(ctx, rig, pose, cellOriginX, cellOriginY, 64, false, true);
+        }
+      }
+
+      ctx.font = "11px Consolas, monospace";
+      ctx.fillStyle = "rgba(155, 170, 195, 0.55)";
+      ctx.fillText("RIG-01 ELITE  |  8 yaw x 7 clips  |  100% Canvas 2D Ink Outline & Two-Tone Steel", 14, totalH - 10);
+
+      rig.state = savedState;
+      rig.clipTime = savedTime;
+      rig.yaw = savedYaw;
+      rig.weaponsDrawn = savedWeapons;
+      rig.root = savedRoot;
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // 8. CONTROLES E LOOP DE GAMEPLAY
+    // =========================================================================
+    const canvas = document.getElementById("viewport");
+    const ctx = canvas.getContext("2d");
+
+    const hudState   = document.getElementById("hud-state");
+    const hudWeapons = document.getElementById("hud-weapons");
+    const hudYaw     = document.getElementById("hud-yaw");
+    const hudCard    = document.getElementById("hud-cardinal");
+    const hudVel     = document.getElementById("hud-vel");
+    const hudAlt     = document.getElementById("hud-alt");
+    const hudFps     = document.getElementById("hud-fps");
+    const hudSlipM   = document.getElementById("hud-slip-max");
+    const hudTimer   = document.getElementById("hud-timer");
+    const hudCam     = document.getElementById("hud-cam");
+
+    const rig = new CharacterRig();
+
+    let currentMode = "arena";
+    let debugMode = false;
+    let cameraFollow = true;
+    let attackQueued = false;
+    let dashQueued = false;
+    let rollQueued = false;
+    let jumpQueued = false;
+
+    const lastTapTimes = {};
+    const keys = {};
+
+    window.addEventListener("keydown", (e) => {
+      if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Tab"].includes(e.code)) {
+        e.preventDefault();
+      }
+
+      const now = performance.now();
+
+      // Double-Tap WASD para Hop Dash
+      if (["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) {
+        if (!keys[e.code]) {
+          const last = lastTapTimes[e.code] || 0;
+          if (now - last < 260) {
+            dashQueued = true;
+          }
+          lastTapTimes[e.code] = now;
+        }
+      }
+
+      keys[e.code] = true;
+
+      if (e.code === "Space") {
+        jumpQueued = true;
+      } else if (e.code === "KeyP") {
+        rig.paused = !rig.paused;
+      } else if (e.code === "KeyC") {
+        setAppMode(currentMode === "arena" ? "contact" : "arena");
+      } else if (e.code === "KeyV") {
+        cameraFollow = !cameraFollow;
+        hudCam.textContent = cameraFollow ? "SEGUIR" : "FIXA";
+      } else if (e.code === "F1") {
+        debugMode = !debugMode;
+      } else if (e.code === "KeyR") {
+        rig.reset();
+      } else if (e.code === "KeyT") {
+        runInteractiveFootLockTest();
+      } else if (e.code === "KeyQ" || e.code === "KeyX") {
+        rig.toggleWeapons();
+      } else if (e.code === "KeyF") {
+        rollQueued = true;
+      } else if (e.code === "BracketLeft") {
+        rig.setYawDegrees(rig.getYawDegrees() - 45);
+      } else if (e.code === "BracketRight") {
+        rig.setYawDegrees(rig.getYawDegrees() + 45);
+      } else if (e.code === "KeyJ") {
+        attackQueued = true;
+      } else if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+        dashQueued = true;
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      keys[e.code] = false;
+    });
+
+    canvas.addEventListener("mousedown", (e) => {
+      if (e.button === 0) {
+        attackQueued = true;
+      }
+    });
+
+    function setAppMode(mode) {
+      if (mode === "contact") {
+        currentMode = "contact";
+        canvas.width = 1920;
+        canvas.height = 1120;
+        document.getElementById("ui-hud").style.display = "none";
+        document.getElementById("combo-display").style.display = "none";
+      } else {
+        currentMode = "arena";
+        canvas.width = 1280;
+        canvas.height = 720;
+        document.getElementById("ui-hud").style.display = "block";
+      }
+    }
+
+    function getCardinalDirection(deg) {
+      const normalized = ((deg % 360) + 360) % 360;
+      if (normalized >= 337.5 || normalized < 22.5) return "S";
+      if (normalized < 67.5) return "SE";
+      if (normalized < 112.5) return "E";
+      if (normalized < 157.5) return "NE";
+      if (normalized < 202.5) return "N";
+      if (normalized < 247.5) return "NW";
+      if (normalized < 292.5) return "W";
+      return "SW";
+    }
+
+    function processInput() {
+      let dx = 0;
+      let dy = 0;
+
+      if (keys["KeyW"] || keys["ArrowUp"])    dy -= 1;
+      if (keys["KeyS"] || keys["ArrowDown"])  dy += 1;
+      if (keys["KeyA"] || keys["ArrowLeft"])  dx -= 1;
+      if (keys["KeyD"] || keys["ArrowRight"]) dx += 1;
+
+      const active = (dx !== 0 || dy !== 0);
+      let angle = rig.yaw;
+      if (active) {
+        angle = Math.atan2(dx, dy);
+      }
+
+      return { active, angle };
+    }
+
+    const FIXED_STEP = 1 / 120;
+    let accumulator = 0;
+    let lastTime = performance.now();
+    let frameCount = 0;
+    let fps = 60;
+    let lastFpsUpdate = performance.now();
+
+    let camTargetX = 640;
+    let camTargetY = 470;
+
+    function renderImmediate() {
+      if (currentMode === "arena") {
+        ctx.fillStyle = COL.bg;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        drawArenaGrid(ctx, arenaOriginX, arenaOriginY, SCALE);
+
+        for (const dummy of targetDummies) {
+          dummy.draw(ctx, arenaOriginX, arenaOriginY, SCALE);
+        }
+
+        const pose = rig.computePose(arenaOriginX, arenaOriginY, SCALE, true);
+        renderRig(ctx, rig, pose, arenaOriginX, arenaOriginY, SCALE, debugMode, false);
+
+        // Partículas
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          const proj = projectWorldPoint(p.x, p.y, p.z, arenaOriginX, arenaOriginY, SCALE);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(proj.sx, proj.sy, p.size * (p.life / p.maxLife), 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Números flutuantes de dano
+        for (let i = floatingTexts.length - 1; i >= 0; i--) {
+          const ft = floatingTexts[i];
+          const proj = projectWorldPoint(ft.x, ft.y, ft.z, arenaOriginX, arenaOriginY, SCALE);
+          ctx.font = ft.isCrit ? "bold 16px Impact, sans-serif" : "bold 13px Consolas, monospace";
+          ctx.fillStyle = ft.isCrit ? "#ef4444" : "#fef08a";
+          ctx.shadowColor = "#000000";
+          ctx.shadowBlur = 4;
+          ctx.fillText(ft.text, proj.sx - 10, proj.sy);
+          ctx.shadowBlur = 0;
+        }
+      } else {
+        drawContactSheet(ctx, rig);
+      }
+    }
+
+    function frame(now) {
+      const dtReal = (now - lastTime) / 1000;
+      lastTime = now;
+
+      frameCount++;
+      if (now - lastFpsUpdate >= 500) {
+        fps = Math.round((frameCount * 1000) / (now - lastFpsUpdate));
+        frameCount = 0;
+        lastFpsUpdate = now;
+      }
+
+      if (currentMode === "arena") {
+        accumulator += Math.min(dtReal, 0.1);
+
+        const input = processInput();
+        while (accumulator >= FIXED_STEP) {
+          rig.update(FIXED_STEP, input, attackQueued, dashQueued, rollQueued, jumpQueued);
+          attackQueued = false;
+          dashQueued = false;
+          rollQueued = false;
+          jumpQueued = false;
+
+          for (const dummy of targetDummies) {
+            dummy.update(FIXED_STEP);
+          }
+
+          // Atualiza partículas
+          for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx * FIXED_STEP;
+            p.y += p.vy * FIXED_STEP;
+            p.z += p.vz * FIXED_STEP;
+            p.life -= FIXED_STEP;
+            if (p.life <= 0) particles.splice(i, 1);
+          }
+
+          // Atualiza trilhas de lâmina
+          for (let i = bladeSlashTrails.length - 1; i >= 0; i--) {
+            bladeSlashTrails[i].life -= FIXED_STEP;
+            if (bladeSlashTrails[i].life <= 0) bladeSlashTrails.splice(i, 1);
+          }
+
+          // Atualiza textos de dano
+          for (let i = floatingTexts.length - 1; i >= 0; i--) {
+            const ft = floatingTexts[i];
+            ft.z += 0.8 * FIXED_STEP;
+            ft.life -= FIXED_STEP;
+            if (ft.life <= 0) floatingTexts.splice(i, 1);
+          }
+
+          accumulator -= FIXED_STEP;
+        }
+
+        // Câmera dinâmica com interpolação suave
+        if (cameraFollow) {
+          camTargetX = 640 - rig.root.x * SCALE;
+          camTargetY = 470 - rig.root.y * SIN * SCALE;
+          arenaOriginX += (camTargetX - arenaOriginX) * 0.08;
+          arenaOriginY += (camTargetY - arenaOriginY) * 0.08;
+        } else {
+          arenaOriginX += (640 - arenaOriginX) * 0.1;
+          arenaOriginY += (470 - arenaOriginY) * 0.1;
+        }
+
+        renderImmediate();
+
+        // Atualização do HUD
+        hudState.textContent = rig.state.toUpperCase();
+        hudWeapons.textContent = rig.weaponsDrawn ? "EMPUNHADAS" : "COSTAS (X)";
+        hudWeapons.style.background = rig.weaponsDrawn ? "#dc2626" : "#7c3aed";
+        const deg = rig.getYawDegrees();
+        hudYaw.textContent = deg + "°";
+        hudCard.textContent = getCardinalDirection(deg);
+        hudVel.textContent = (rig.state === "run" ? STATE_CONFIGS.run.speed : (rig.state === "roll" ? 5.8 : (rig.state === "dash" ? 6.5 : 0))).toFixed(2);
+        hudAlt.textContent = rig.root.z.toFixed(2);
+        hudFps.textContent = fps;
+        hudSlipM.textContent = rig.maxSlipPx.toFixed(2) + "px";
+        hudTimer.textContent = rig.combatTimer.toFixed(1) + "s";
+      } else {
+        drawContactSheet(ctx, rig);
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame((now) => {
+      lastTime = now;
+      requestAnimationFrame(frame);
+    });
+
+    function runInteractiveFootLockTest() {
+      const res = window.RIG01.runFootLockTest(2, 0);
+      alert(`Teste de Footlock (2s):\nMáximo: ${res.footSlipMaxPx.toFixed(3)} px\nMédio: ${res.footSlipMeanPx.toFixed(3)} px\nAmostras: ${res.footLockSamples}\nStatus: ${res.footLockPass ? "PASSOU (< 2 px)" : "FALHOU"}`);
+    }
+
+    // =========================================================================
+    // 9. API DETERMINÍSTICA window.RIG01
+    // =========================================================================
+    window.RIG01 = {
+      version: "3.0",
+      ready: Promise.resolve(),
+
+      setMode(mode) {
+        if (mode === "contact" || mode === "arena") {
+          setAppMode(mode);
+          renderImmediate();
+        }
+      },
+
+      getMode() {
+        return currentMode;
+      },
+
+      setDebug(bool) {
+        debugMode = !!bool;
+        renderImmediate();
+      },
+
+      isDebug() {
+        return debugMode;
+      },
+
+      setState(state) {
+        rig.setState(state);
+        renderImmediate();
+      },
+
+      getState() {
+        return rig.state;
+      },
+
+      setWeaponsDrawn(bool) {
+        rig.weaponsDrawn = !!bool;
+        renderImmediate();
+      },
+
+      isWeaponsDrawn() {
+        return rig.weaponsDrawn;
+      },
+
+      setTime(seconds) {
+        rig.clipTime = seconds;
+        renderImmediate();
+      },
+
+      getTime() {
+        return rig.clipTime;
+      },
+
+      setYaw(degrees) {
+        rig.setYawDegrees(degrees);
+        renderImmediate();
+      },
+
+      getYaw() {
+        return rig.getYawDegrees();
+      },
+
+      setPaused(bool) {
+        rig.paused = !!bool;
+      },
+
+      isPaused() {
+        return rig.paused;
+      },
+
+      step(dt = FIXED_STEP) {
+        rig.update(dt, { active: false, angle: rig.yaw }, false, false, false, false);
+        renderImmediate();
+      },
+
+      reset() {
+        rig.reset();
+        arenaOriginX = 640;
+        arenaOriginY = 470;
+        renderImmediate();
+      },
+
+      runFootLockTest(seconds = 2, yaw = 0) {
+        const testRig = new CharacterRig();
+        testRig.setState("run");
+        testRig.setYawDegrees(yaw);
+
+        const totalSteps = Math.round(seconds / FIXED_STEP);
+
+        for (let i = 0; i < totalSteps; i++) {
+          testRig.update(FIXED_STEP, { active: true, angle: testRig.yaw }, false, false, false, false);
+          testRig.computePose(640, 470, SCALE, true);
+        }
+
+        const maxSlip = testRig.maxSlipPx;
+        const meanSlip = testRig.meanSlipPx;
+
+        return {
+          state: "run",
+          yaw,
+          clipTime: testRig.clipTime,
+          fps,
+          frameCount: totalSteps,
+          footSlipMaxPx: maxSlip,
+          footSlipMeanPx: meanSlip,
+          footLockSamples: testRig.slipSamples.length,
+          footLockPass: maxSlip < 2.0,
+          root: { x: testRig.root.x, y: testRig.root.y },
+          errors: []
+        };
+      },
+
+      getMetrics() {
+        return {
+          state: rig.state,
+          yaw: rig.getYawDegrees(),
+          weaponsDrawn: rig.weaponsDrawn,
+          clipTime: rig.clipTime,
+          fps,
+          frameCount,
+          footSlipMaxPx: rig.maxSlipPx,
+          footSlipMeanPx: rig.meanSlipPx,
+          footLockSamples: rig.slipSamples.length,
+          footLockPass: rig.maxSlipPx < 2.0,
+          root: { x: rig.root.x, y: rig.root.y },
+          errors: []
+        };
+      },
+
+      capturePNG() {
+        renderImmediate();
+        return canvas.toDataURL("image/png");
+      },
+
+      getDebugInfo() {
+        const pose = rig.computePose(arenaOriginX, arenaOriginY, SCALE, false);
+        return {
+          version: "3.0",
+          state: rig.state,
+          weaponsDrawn: rig.weaponsDrawn,
+          clipTime: rig.clipTime,
+          yawDeg: rig.getYawDegrees(),
+          root: rig.root,
+          joints: pose.joints,
+          targets: pose.targets,
+          leftStance: pose.leftStance,
+          rightStance: pose.rightStance,
+          maxSlipPx: rig.maxSlipPx,
+          meanSlipPx: rig.meanSlipPx
+        };
+      }
+    };
+
+    document.body.dataset.ready = "1";
+  })();
+  </script>
+</body>
+</html>

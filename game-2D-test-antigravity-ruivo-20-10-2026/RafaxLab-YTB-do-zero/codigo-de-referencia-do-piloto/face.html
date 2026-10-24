@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Rosto — comparação com a referência (desenvolvimento)</title>
+<link rel="icon" href="data:,">
+<style>
+  html, body { margin: 0; background: #1d1d22; color: #ddd; font: 13px system-ui, sans-serif; }
+  canvas { display: block; }
+  p { margin: 6px 10px; }
+</style>
+</head>
+<body>
+<p>Ferramenta de desenvolvimento: <b>referência</b> | rosto desenhado por código em <b>vista frontal</b> | o mesmo rosto na <b>câmera do jogo (posição sul)</b> | tamanho real no jogo (1×, retina 2×) ampliado. Só esta página carrega a imagem de referência.</p>
+<canvas id="c"></canvas>
+<script src="js/core.js"></script>
+<script src="js/ink.js"></script>
+<script src="js/rig.js"></script>
+<script src="js/face_data.js"></script>
+<script src="js/head.js"></script>
+<script src="js/knight.js"></script>
+<script>
+  const q = new URLSearchParams(location.search);
+  const H = parseFloat(q.get('h') || '620');            // altura da cabeça (topo do cabelo ao queixo) em px
+  const img = new Image();
+  img.src = 'referencias/rosto_referencia.png';
+  img.onload = () => {
+    const refScale = H / (986 - 14);
+    const panelW = Math.round(1254 * refScale * 0.82), panelH = Math.round(1254 * refScale * 0.86);
+    const cv = document.getElementById('c');
+    cv.width = panelW * 3 + 300; cv.height = panelH;
+    const c = cv.getContext('2d');
+    c.fillStyle = '#5ad15a'; c.fillRect(0, 0, cv.width, cv.height);
+    // 1) referência
+    c.save(); c.beginPath(); c.rect(0, 0, panelW, panelH); c.clip();
+    c.drawImage(img, (panelW - 1254 * refScale) / 2, 0, 1254 * refScale, 1254 * refScale);
+    c.restore();
+    const eyeY = 652 * refScale;                           // linha dos olhos na referência
+    const unitPx = H / ((rZ(14) - rZ(986)) * HEAD_SCALE);  // px por unidade de mundo
+    const drawHeadInto = (x0, frame, view, offsetY) => {
+      Cam.px = unitPx;
+      c.save(); c.beginPath(); c.rect(x0, 0, panelW, panelH); c.clip();
+      c.setTransform(unitPx, 0, 0, unitPx, x0 + panelW / 2, offsetY);
+      const h = buildHead(frame, view, { px: unitPx });
+      c.beginPath(); h.sil(c); c.fillStyle = INK; c.strokeStyle = INK; c.lineWidth = KLW_OUT * 0.5; c.lineJoin = 'round'; c.fill(); c.stroke();
+      h.paint(c);
+      c.restore();
+    };
+    // 2) vista frontal (câmera de frente, sem inclinação)
+    {
+      const frame = { o: [0, 0, 0], x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] };
+      const view = makeOrthoView(0, 0, [0, 0, 0], 1);
+      const eyeLocal = view.project(fPoint(frame, [0, 0, 0.85 * HEAD_SCALE]))[1];
+      drawHeadInto(panelW, frame, view, eyeY - eyeLocal * unitPx);
+    }
+    // 3) câmera do jogo, posição sul: o cavaleiro inteiro em guarda, recortado na cabeça
+    {
+      const rig = solveRig(IDLE_A, [0, 0, 0], Math.PI / 4);
+      const hc = proj(rig.head.o);
+      const eye = proj(fPoint(rig.head, [11 * HEAD_SCALE, 0, 0.85 * HEAD_SCALE]));
+      Cam.px = unitPx;
+      c.save(); c.beginPath(); c.rect(panelW * 2, 0, panelW, panelH); c.clip();
+      Cam.offX = panelW * 2 + panelW / 2 - hc[0] * unitPx; Cam.offY = eyeY - eye[1] * unitPx;
+      setWorldTransform(c);
+      const cape = new Cape(); for (let i = 0; i < 60; i++) cape.update(rig, 1 / 60, [0, 0, 0], i / 60);
+      drawKnight(c, rig, cape, { halo: false });
+      c.restore();
+      // 4) tamanho real do jogo (1× e 2×), ampliado sem suavização
+      [1.19, 2.38].forEach((pxs, i) => {
+        const w = 70 * (i + 1), off = document.createElement('canvas'); off.width = w; off.height = w;
+        const oc = off.getContext('2d'); oc.fillStyle = '#5a9443'; oc.fillRect(0, 0, w, w);
+        Cam.px = pxs; Cam.offX = w / 2 - hc[0] * pxs; Cam.offY = w * 0.55 - hc[1] * pxs;
+        setWorldTransform(oc); drawKnight(oc, rig, cape, {});
+        c.imageSmoothingEnabled = false;
+        const s = i === 0 ? 4 : 2;
+        c.drawImage(off, panelW * 3 + 10, 10 + i * 300, w * s, w * s);
+        c.imageSmoothingEnabled = true;
+        c.fillStyle = '#fff'; c.font = '12px system-ui'; c.fillText(i ? 'retina 2× (ampliado 2×)' : 'jogo 1× (ampliado 4×)', panelW * 3 + 12, 24 + i * 300 + w * s);
+      });
+    }
+    window.__ready = true;
+  };
+</script>
+</body>
+</html>

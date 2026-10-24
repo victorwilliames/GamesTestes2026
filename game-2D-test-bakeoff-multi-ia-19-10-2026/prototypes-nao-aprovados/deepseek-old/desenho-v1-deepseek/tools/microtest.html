@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>DeepSeek · micro-benchmark de render</title>
+<style>
+  html, body { margin: 0; background: #101820; color: #dfe9f0; font: 13px/1.5 monospace; }
+  canvas { display: block; }
+  pre { padding: 12px; }
+</style>
+</head>
+<body>
+<canvas id="cv" width="1280" height="720"></canvas>
+<pre id="out">rodando…</pre>
+
+<script src="../src/00-core.js"></script>
+<script src="../src/01-head.js"></script>
+<script src="../src/02-body.js"></script>
+<script src="../src/03-limbs.js"></script>
+<script src="../src/04-weapon.js"></script>
+<script src="../src/05-skeleton.js"></script>
+<script src="../src/06-hero.js"></script>
+<script src="../src/07-arena.js"></script>
+<script src="../src/08-enemy.js"></script>
+<script src="../src/09-combat.js"></script>
+<script>
+/* Micro-benchmark: mede o custo isolado de cada operação do render.
+ * Não é o jogo: serve para decidir onde otimizar com número na mão. */
+(function () {
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d', { alpha: false });
+  const bench = (name, fn, n) => {
+    for (let i = 0; i < 4; i++) fn(i);
+    const t0 = performance.now();
+    for (let i = 0; i < n; i++) fn(i);
+    return { name, n, ms: +(((performance.now() - t0) / n).toFixed(3)) };
+  };
+  const res = [];
+  try {
+    // 0) preço do quadro vazio
+    res.push(bench('fillRect 1280x720 (limpar)', () => { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#123028'; ctx.fillRect(0, 0, 1280, 720); }, 40));
+
+    // 1) canvas de fundo grande (mesma topologia do chão da arena)
+    const big = document.createElement('canvas');
+    big.width = 2000; big.height = 1266;
+    const bx = big.getContext('2d');
+    bx.fillStyle = '#2f6b45'; bx.fillRect(0, 0, 2000, 1266);
+    res.push(bench('drawImage 2000x1266 -> 1280x720', () => {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(big, 0, 0, 2000, 1266, 0, 0, 1280, 720);
+    }, 40));
+    res.push(bench('drawImage 1:1 (2000->2000) deslocado', () => {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(big, -300, -200);
+    }, 40));
+
+    // 2) chão real da arena
+    DS.arena.init();
+    res.push(bench('arena.drawGround real', () => {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      DS.arena.drawGround(ctx, { x: 2200, y: 1500 }, 1280, 720, 1280 / 0.24);
+    }, 30));
+
+    // 3) props (com a transformação do jogo)
+    res.push(bench('arena.drawProps atrás+dentro da transform', (i) => {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.save(); ctx.scale(0.24, 0.24); ctx.translate(-2200, -1500);
+      DS.arena.drawProps(ctx, { x: 2200, y: 1500 }, 1280 / 0.24, 720 / 0.24, 1500 + (i % 100) * 20, true);
+      ctx.restore();
+    }, 20));
+
+    // 4) herói completo (peças em cache + armas procedurais)
+    res.push(bench('DS.drawHero idle', (i) => {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.save(); ctx.scale(0.24, 0.24); ctx.translate(1000, 1400);
+      DS.drawHero(ctx, { pose: DS.POSE.idle(i / 60), x: 0, y: -DS.SK.GROUND, yaw: 0.25, facing: 1 });
+      ctx.restore();
+    }, 20));
+    res.push(bench('DS.drawHero ataque', (i) => {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.save(); ctx.scale(0.24, 0.24); ctx.translate(1000, 1400);
+      DS.drawHero(ctx, { pose: DS.POSE.attack(i / 20, 0), x: 0, y: -DS.SK.GROUND, yaw: 0.25, facing: 1, frontArms: true });
+      ctx.restore();
+    }, 20));
+
+    // 5) arma sozinha
+    res.push(bench('DS.drawWeapon 1 adaga', () => {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.save(); ctx.translate(640, 360); ctx.rotate(0.4);
+      DS.drawWeapon(ctx, 1, {});
+      ctx.restore();
+    }, 30));
+
+    // 6) inimigo
+    const en = { x: 0, y: 0, facing: 1, flash: 0, pose: DS.SKELPOSE.idle(0), dead: false, hurtT: 0, hp: 30 };
+    res.push(bench('DS.drawEnemy', (i) => {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.save(); ctx.scale(0.24, 0.24); ctx.translate(2200, 1200);
+      DS.drawEnemy(ctx, Object.assign({}, en, { pose: DS.SKELPOSE.walk(i / 30) }), i / 60);
+      ctx.restore();
+    }, 20));
+
+    // 7) HUD não é medido aqui (é do jogo): mede-se o custo de texto
+    res.push(bench('fillText 60x', (i) => { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = '#fff'; ctx.fillText('texto ' + i, 100, 100); }, 20));
+
+    // 8) isolamento: cada pedaço do herói
+    const iso = (name, opts, n) => res.push(bench('  iso ' + name, (i) => {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.save(); ctx.scale(0.24, 0.24); ctx.translate(1000, 1400);
+      DS.drawHero(ctx, Object.assign({ x: 0, y: -DS.SK.GROUND, yaw: 0.25, facing: 1, pose: DS.POSE.attack(i / 20, 0) }, opts));
+      ctx.restore();
+    }, n || 15));
+    iso('only=armR', { only: 'armR' });
+    iso('only=armL', { only: 'armL' });
+    iso('only=body', { only: 'body' });
+    iso('only=legs', { only: 'legs' });
+    iso('only=head', { only: 'head' });
+    iso('only=armR (idle)', { only: 'armR', pose: DS.POSE.idle(0) });
+
+    // 9) corrente sozinha, em várias distâncias
+    const cp = DS.chainPath(0, 0, 400, 60, 120);
+    res.push(bench('drawChain ~400px', () => { ctx.setTransform(1, 0, 0, 1, 0, 0); DS.drawChain(ctx, cp, { pitch: 30, scale: 1.15, lw: 4.4 }); }, 30));
+    res.push(bench('chainPath build', () => { DS.chainPath(0, 0, 400 * Math.random(), 60, 260); }, 30));
+    res.push(bench('drawWeapon sem corrente', () => { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.save(); ctx.translate(600, 300); DS.drawWeapon(ctx, 1, {}); ctx.restore(); }, 30));
+    if (DS.drawHandGrip) res.push(bench('drawHandGrip back+front', () => { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.save(); ctx.translate(600, 300); DS.drawHandGrip(ctx, 1, 'back'); DS.drawHandGrip(ctx, 1, 'front'); ctx.restore(); }, 30));
+    if (DS.drawBladeOnly) res.push(bench('drawBladeOnly', () => { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.save(); ctx.translate(600, 300); DS.drawBladeOnly(ctx, 1); ctx.restore(); }, 30));
+
+    // 10) custo do SYNC (getImageData 1px força flush do canvas)
+    res.push(bench('getImageData 1px (sync) em 1280x720', () => ctx.getImageData(0, 0, 1, 1), 20));
+    res.push(bench('fillRect + getImageData (sync)', () => { ctx.fillRect(0, 0, 64, 64); ctx.getImageData(0, 0, 1, 1); }, 20));
+    // 11) 300 quadros do herói SEM sync (throughput de submissão)
+    {
+      const t = performance.now();
+      for (let i = 0; i < 300; i++) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.save(); ctx.scale(0.24, 0.24); ctx.translate(1000, 1400);
+        DS.drawHero(ctx, { pose: DS.POSE.idle(i / 60), x: 0, y: -DS.SK.GROUND, yaw: 0.25, facing: 1 });
+        ctx.restore();
+      }
+      res.push({ name: '300x drawHero sem sync', n: 300, ms: +((performance.now() - t) / 300).toFixed(3) });
+    }
+
+    document.getElementById('out').textContent = JSON.stringify(res, null, 2);
+    window.__DS_MICRO = res;
+  } catch (e) {
+    document.getElementById('out').textContent = 'ERRO: ' + (e && e.stack || e);
+    window.__DS_MICRO = { error: String(e) };
+  } finally {
+    window.__MICRO_READY = true;
+  }
+})();
+</script>
+</body>
+</html>

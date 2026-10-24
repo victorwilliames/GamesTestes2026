@@ -1,0 +1,1997 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RIG-01 - Gate 1 - DeepSeek</title>
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #0d1017; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  canvas { display: block; background: #12151d; image-rendering: auto; }
+  ::selection { background: transparent; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="1280" height="720"></canvas>
+<script>
+(function () {
+  'use strict';
+
+  // =========================================================================
+  // RIG-01 - Gate 1 technical rig bench.
+  // Canvas 2D only. No images, no WebGL, no libraries, no network, no build.
+  // Coordinate convention:
+  //   +X = anatomical LEFT in rig space (screen right at yaw 0)
+  //   -X = anatomical RIGHT in rig space (screen left at yaw 0)
+  //   +Y = character forward at yaw 0 (South / toward camera)
+  //   +Z = up
+  //   yaw 0 = S, 90 = E, 180 = N, 270 = W
+  // Projection: orthographic, fixed camera PITCH 30deg.
+  // =========================================================================
+
+  var VERSION = '1.0';
+  var FIXED_DT = 1 / 120;
+  var PITCH = 30 * Math.PI / 180;
+  var SIN = Math.sin(PITCH);          // 0.5
+  var COS = Math.cos(PITCH);          // 0.8660254038
+  var SCALE = 90;                     // pixels per world unit
+  var ORIGIN_X = 640;
+  var ORIGIN_Y = 470;
+
+  var ARENA_W = 1280, ARENA_H = 720;
+  var CONTACT_W = 1920, CONTACT_H = 1120;
+  var CELL_W = 240, CELL_H = 160;
+  var COLS = 8, ROWS = 7;
+
+  // Bone constants (world units). Never scaled during animation.
+  var L = {
+    foot: 0.08,
+    shin: 0.34,
+    thigh: 0.34,
+    torso: 0.34,
+    neck: 0.06,
+    headDiameter: 0.54,
+    headRadius: 0.27,
+    shoulder: 0.20,
+    upperArm: 0.26,
+    forearm: 0.24,
+    hand: 0.07,
+    blade: 0.36,
+    hipHalf: 0.09,
+    ankleZ: 0.08
+  };
+
+  var IDLE_DURATION = 2.0;
+  var RUN_DURATION = 0.8;
+  var RUN_SPEED = 2.2;
+  var STANCE_HALF = 0.17;
+  var SUPPORT_FRAC = (STANCE_HALF * 2) / (RUN_SPEED * RUN_DURATION); // 0.1932
+  var DASH_DURATION = 0.42;
+  var DASH_DISTANCE = 2.4;
+  var DASH_COOLDOWN = 0.6;
+  var ATTACKS = [
+    { id: 'attack1', windup: 0.08, active: 0.08, recovery: 0.18, root: 0.18, name: 'A1 right diagonal' },
+    { id: 'attack2', windup: 0.07, active: 0.08, recovery: 0.20, root: 0.22, name: 'A2 left reverse' },
+    { id: 'attack3', windup: 0.14, active: 0.10, recovery: 0.32, root: 0.12, name: 'A3 360 heavy' }
+  ];
+  ATTACKS.forEach(function (a) {
+    a.duration = a.windup + a.active + a.recovery;
+    a.windupEnd = a.windup / a.duration;
+    a.activeEnd = (a.windup + a.active) / a.duration;
+    a.recoveryStart = a.windup + a.active;
+  });
+
+  var canvas = document.getElementById('stage');
+  var ctx = canvas.getContext('2d', { alpha: false });
+  if (!ctx) throw new Error('Canvas 2D unavailable');
+
+  var CAPTURE = new URLSearchParams(location.search);
+
+  // =========================================================================
+  // Small helpers
+  // =========================================================================
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function smoothstep(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
+  function easeOutCubic(t) { t = clamp(t, 0, 1); return 1 - Math.pow(1 - t, 3); }
+  function easeInOut(t) { t = clamp(t, 0, 1); return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+  function normAngle(a) { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; }
+  function turnToward(cur, target, maxStep) {
+    var d = normAngle(target - cur);
+    if (Math.abs(d) <= maxStep) return target;
+    return normAngle(cur + Math.sign(d) * maxStep);
+  }
+  function deg(rad) { var d = rad * 180 / Math.PI; d %= 360; if (d < 0) d += 360; return d; }
+  function rad(degv) { return degv * Math.PI / 180; }
+  function len2(x, y) { return Math.sqrt(x * x + y * y); }
+  function len3(v) { return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z); }
+  function add3(a, b) { return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z }; }
+  function sub3(a, b) { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
+  function mul3(a, s) { return { x: a.x * s, y: a.y * s, z: a.z * s }; }
+  function norm3(v) { var m = len3(v); return m < 1e-9 ? { x: 0, y: 0, z: 0 } : { x: v.x / m, y: v.y / m, z: v.z / m }; }
+  function dot3(a, b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+  function cross3(a, b) { return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x }; }
+  function rotZ(v, a) {
+    var c = Math.cos(a), s = Math.sin(a);
+    return { x: v.x * c - v.y * s, y: v.x * s + v.y * c, z: v.z };
+  }
+  function mixHex(hex, target, amt) {
+    var a = parseInt(hex.slice(1), 16), b = parseInt(target.slice(1), 16);
+    var ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255;
+    var br = (b >> 16) & 255, bg = (b >> 8) & 255, bb = b & 255;
+    var r = Math.round(lerp(ar, br, amt)), g = Math.round(lerp(ag, bg, amt)), bl = Math.round(lerp(ab, bb, amt));
+    return 'rgb(' + r + ',' + g + ',' + bl + ')';
+  }
+  function rgba(hex, a) {
+    var v = parseInt(hex.slice(1), 16);
+    return 'rgba(' + ((v >> 16) & 255) + ',' + ((v >> 8) & 255) + ',' + (v & 255) + ',' + a + ')';
+  }
+
+  // =========================================================================
+  // Projection - exact contract from the brief.
+  // =========================================================================
+  function project(local, yaw, rootX, rootY, view) {
+    var cy = Math.cos(yaw), sy = Math.sin(yaw);
+    var xr = local.x * cy + local.y * sy;
+    var yr = -local.x * sy + local.y * cy;
+    var wx = rootX + xr;
+    var wy = rootY + yr;
+    var s = view.scale;
+    return {
+      x: view.originX + wx * s,
+      y: view.originY + wy * SIN * s - local.z * COS * s,
+      depth: wy
+    };
+  }
+
+  function worldToLocal(dx, dy, yaw) {
+    var cy = Math.cos(yaw), sy = Math.sin(yaw);
+    return { x: dx * cy - dy * sy, y: dx * sy + dy * cy };
+  }
+  function localForward(yaw) { return { x: Math.sin(yaw), y: Math.cos(yaw) }; }
+  function localSide(side, yaw) {
+    // side +1 is anatomical left, -1 anatomical right.
+    return { x: Math.cos(yaw) * side, y: -Math.sin(yaw) * side };
+  }
+
+  // =========================================================================
+  // Keyframe sampling. Keys are data, not branches in render.
+  // =========================================================================
+  function sampleNumber(keys, t, field, loop) {
+    if (!keys.length) return 0;
+    var time = loop ? ((t % 1) + 1) % 1 : clamp(t, 0, 1);
+    for (var i = 0; i < keys.length - 1; i++) {
+      var a = keys[i], b = keys[i + 1];
+      if (time >= a.t && time <= b.t) {
+        var span = b.t - a.t || 1;
+        var u = (time - a.t) / span;
+        if (b.ease) u = b.ease(u);
+        return lerp(a[field] || 0, b[field] || 0, u);
+      }
+    }
+    if (loop && time > keys[keys.length - 1].t) {
+      var a2 = keys[keys.length - 1], b2 = keys[0];
+      var span2 = (1 - a2.t) + b2.t || 1;
+      var u2 = (time - a2.t) / span2;
+      if (b2.ease) u2 = b2.ease(u2);
+      return lerp(a2[field] || 0, b2[field] || 0, u2);
+    }
+    return keys[keys.length - 1][field] || 0;
+  }
+
+  function sampleVector(keys, t, field, loop) {
+    var x = sampleNumber(keys.map(function (k) { return { t: k.t, v: k[field] ? k[field].x : 0, ease: k.ease }; }), t, 'v', loop);
+    var y = sampleNumber(keys.map(function (k) { return { t: k.t, v: k[field] ? k[field].y : 0, ease: k.ease }; }), t, 'v', loop);
+    var z = sampleNumber(keys.map(function (k) { return { t: k.t, v: k[field] ? k[field].z : 0, ease: k.ease }; }), t, 'v', loop);
+    return { x: x, y: y, z: z };
+  }
+
+  function sampleScalar(keys, t, getter, loop) {
+    return sampleNumber(keys.map(function (k) { return { t: k.t, v: getter(k) || 0, ease: k.ease }; }), t, 'v', loop);
+  }
+
+  // =========================================================================
+  // Extra state / placeholders are filled in the next sections.
+  // =========================================================================
+  var sim = null;
+  var view = null;
+  var readyResolve = null;
+  var readyPromise = new Promise(function (res) { readyResolve = res; });
+  var runtimeErrors = [];
+  window.addEventListener('error', function (e) {
+    runtimeErrors.push(String(e.message || e.error || 'unknown error'));
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    runtimeErrors.push('unhandled rejection: ' + String(e.reason));
+  });
+
+  // === RIG DATA ===
+  function basePose() {
+    return {
+      pelvisZ: 0.745, sway: 0, lean: 0.05, twist: 0, headX: 0, headY: 0, spin: 0,
+      handL: { x: 0.30, y: 0.025, z: -0.42 },
+      handR: { x: -0.30, y: 0.025, z: -0.42 },
+      footL: { x: 0.11, y: 0.06, z: L.ankleZ, pitch: 0 },
+      footR: { x: -0.11, y: -0.04, z: L.ankleZ, pitch: 0 }
+    };
+  }
+
+  function poseClone(p) {
+    return {
+      pelvisZ: p.pelvisZ, sway: p.sway, lean: p.lean, twist: p.twist,
+      headX: p.headX, headY: p.headY, spin: p.spin,
+      handL: { x: p.handL.x, y: p.handL.y, z: p.handL.z },
+      handR: { x: p.handR.x, y: p.handR.y, z: p.handR.z },
+      footL: { x: p.footL.x, y: p.footL.y, z: p.footL.z, pitch: p.footL.pitch },
+      footR: { x: p.footR.x, y: p.footR.y, z: p.footR.z, pitch: p.footR.pitch }
+    };
+  }
+
+  function blendPose(a, b, t) {
+    var out = poseClone(a);
+    var fields = ['pelvisZ', 'sway', 'lean', 'twist', 'headX', 'headY', 'spin'];
+    fields.forEach(function (f) { out[f] = lerp(a[f], b[f], t); });
+    ['handL', 'handR', 'footL', 'footR'].forEach(function (f) {
+      out[f].x = lerp(a[f].x, b[f].x, t);
+      out[f].y = lerp(a[f].y, b[f].y, t);
+      out[f].z = lerp(a[f].z, b[f].z, t);
+      if (f === 'footL' || f === 'footR') out[f].pitch = lerp(a[f].pitch, b[f].pitch, t);
+    });
+    return out;
+  }
+
+  function makeLoopKeys(entries) {
+    return entries.map(function (e) {
+      var k = { t: e.t };
+      Object.keys(e).forEach(function (key) { if (key !== 't') k[key] = e[key]; });
+      return k;
+    });
+  }
+
+  var CLIPS = {};
+  CLIPS.idle = {
+    duration: IDLE_DURATION, loop: true,
+    keys: makeLoopKeys([
+      { t: 0.00, pelvisZ: 0.727, sway: 0.010, lean: 0.050, headY: 0.000, handL: { x: 0.300, y: 0.025, z: -0.420 }, handR: { x: -0.300, y: 0.025, z: -0.420 } },
+      { t: 0.25, pelvisZ: 0.744, sway: 0.000, lean: 0.043, headY: 0.004, handL: { x: 0.297, y: 0.035, z: -0.432 }, handR: { x: -0.297, y: 0.035, z: -0.432 } },
+      { t: 0.50, pelvisZ: 0.754, sway: -0.010, lean: 0.040, headY: 0.006, handL: { x: 0.300, y: 0.040, z: -0.438 }, handR: { x: -0.300, y: 0.040, z: -0.438 } },
+      { t: 0.75, pelvisZ: 0.741, sway: 0.000, lean: 0.046, headY: 0.003, handL: { x: 0.298, y: 0.030, z: -0.428 }, handR: { x: -0.298, y: 0.030, z: -0.428 } },
+      { t: 1.00, pelvisZ: 0.727, sway: 0.010, lean: 0.050, headY: 0.000, handL: { x: 0.300, y: 0.025, z: -0.420 }, handR: { x: -0.300, y: 0.025, z: -0.420 } }
+    ])
+  };
+
+  CLIPS.run = {
+    duration: RUN_DURATION, loop: true,
+    keys: makeLoopKeys([
+      { t: 0.00, pelvisZ: 0.690, lean: 0.22, twist: -0.10, headY: -0.060, handL: { x: 0.27, y: -0.16, z: -0.32 }, handR: { x: -0.27, y: 0.15, z: -0.30 } },
+      { t: 0.25, pelvisZ: 0.745, lean: 0.21, twist: 0.00, headY: -0.052, handL: { x: 0.26, y: 0.00, z: -0.35 }, handR: { x: -0.26, y: 0.00, z: -0.34 } },
+      { t: 0.50, pelvisZ: 0.690, lean: 0.22, twist: 0.10, headY: -0.060, handL: { x: 0.27, y: 0.15, z: -0.30 }, handR: { x: -0.27, y: -0.16, z: -0.32 } },
+      { t: 0.75, pelvisZ: 0.745, lean: 0.21, twist: 0.00, headY: -0.052, handL: { x: 0.26, y: 0.00, z: -0.34 }, handR: { x: -0.26, y: 0.00, z: -0.35 } },
+      { t: 1.00, pelvisZ: 0.690, lean: 0.22, twist: -0.10, headY: -0.060, handL: { x: 0.27, y: -0.16, z: -0.32 }, handR: { x: -0.27, y: 0.15, z: -0.30 } }
+    ])
+  };
+
+  CLIPS.dash = {
+    duration: DASH_DURATION, loop: false,
+    keys: [
+      { t: 0.000, pelvisZ: 0.700, lean: 0.12, handL: { x: 0.28, y: -0.16, z: -0.30 }, handR: { x: -0.28, y: -0.16, z: -0.30 }, footL: { x: 0.12, y: 0.02, z: 0.08, pitch: 0 }, footR: { x: -0.12, y: -0.06, z: 0.08, pitch: 0 } },
+      { t: 0.1667, pelvisZ: 0.675, lean: 0.30, handL: { x: 0.26, y: -0.27, z: -0.24 }, handR: { x: -0.26, y: -0.27, z: -0.24 }, footL: { x: 0.12, y: 0.10, z: 0.10, pitch: 0.10 }, footR: { x: -0.13, y: -0.16, z: 0.14, pitch: 0.20 }, ease: easeOutCubic },
+      { t: 0.5238, pelvisZ: 0.735, lean: 0.52, handL: { x: 0.24, y: -0.34, z: -0.18 }, handR: { x: -0.24, y: -0.34, z: -0.18 }, footL: { x: 0.13, y: 0.24, z: 0.20, pitch: 0.35 }, footR: { x: -0.13, y: -0.30, z: 0.26, pitch: 0.45 }, ease: easeOutCubic },
+      { t: 0.800, pelvisZ: 0.720, lean: 0.20, handL: { x: 0.28, y: -0.10, z: -0.30 }, handR: { x: -0.28, y: -0.10, z: -0.30 }, footL: { x: 0.12, y: 0.10, z: 0.10, pitch: 0.08 }, footR: { x: -0.12, y: -0.10, z: 0.12, pitch: 0.10 }, ease: easeInOut },
+      { t: 1.000, pelvisZ: 0.745, lean: 0.05, handL: { x: 0.30, y: 0.025, z: -0.42 }, handR: { x: -0.30, y: 0.025, z: -0.42 }, footL: { x: 0.11, y: 0.06, z: 0.08, pitch: 0 }, footR: { x: -0.11, y: -0.04, z: 0.08, pitch: 0 } }
+    ]
+  };
+
+  CLIPS.attack1 = {
+    duration: ATTACKS[0].duration, loop: false,
+    keys: [
+      { t: 0.000, pelvisZ: 0.740, lean: 0.06, twist: -0.08, handL: { x: 0.30, y: 0.025, z: -0.42 }, handR: { x: -0.30, y: 0.025, z: -0.42 }, footL: { x: 0.11, y: 0.06, z: 0.08, pitch: 0 }, footR: { x: -0.11, y: -0.04, z: 0.08, pitch: 0 } },
+      { t: 0.235, pelvisZ: 0.715, lean: 0.10, twist: -0.42, handL: { x: 0.16, y: 0.20, z: -0.22 }, handR: { x: -0.42, y: -0.16, z: 0.16 }, footL: { x: 0.13, y: 0.13, z: 0.08, pitch: 0 }, footR: { x: -0.13, y: -0.08, z: 0.08, pitch: 0 }, ease: easeOutCubic },
+      { t: 0.470, pelvisZ: 0.742, lean: 0.18, twist: 0.25, handL: { x: 0.10, y: 0.10, z: -0.28 }, handR: { x: 0.24, y: 0.20, z: -0.05 }, footL: { x: 0.14, y: 0.14, z: 0.08, pitch: 0 }, footR: { x: -0.13, y: -0.12, z: 0.08, pitch: 0 }, ease: easeOutCubic },
+      { t: 0.720, pelvisZ: 0.740, lean: 0.09, twist: 0.10, handL: { x: 0.25, y: 0.04, z: -0.35 }, handR: { x: -0.20, y: 0.12, z: -0.28 }, footL: { x: 0.12, y: 0.10, z: 0.08, pitch: 0 }, footR: { x: -0.12, y: -0.07, z: 0.08, pitch: 0 }, ease: easeInOut },
+      { t: 1.000, pelvisZ: 0.745, lean: 0.05, twist: 0, handL: { x: 0.30, y: 0.025, z: -0.42 }, handR: { x: -0.30, y: 0.025, z: -0.42 }, footL: { x: 0.11, y: 0.06, z: 0.08, pitch: 0 }, footR: { x: -0.11, y: -0.04, z: 0.08, pitch: 0 } }
+    ]
+  };
+
+  CLIPS.attack2 = {
+    duration: ATTACKS[1].duration, loop: false,
+    keys: [
+      { t: 0.000, pelvisZ: 0.740, lean: 0.06, twist: 0.08, handL: { x: 0.30, y: 0.025, z: -0.42 }, handR: { x: -0.30, y: 0.025, z: -0.42 }, footL: { x: 0.11, y: 0.06, z: 0.08, pitch: 0 }, footR: { x: -0.11, y: -0.04, z: 0.08, pitch: 0 } },
+      { t: 0.200, pelvisZ: 0.715, lean: 0.10, twist: 0.44, handL: { x: 0.42, y: -0.16, z: 0.16 }, handR: { x: -0.16, y: 0.20, z: -0.22 }, footL: { x: 0.13, y: 0.13, z: 0.08, pitch: 0 }, footR: { x: -0.13, y: -0.08, z: 0.08, pitch: 0 }, ease: easeOutCubic },
+      { t: 0.4286, pelvisZ: 0.742, lean: 0.16, twist: -0.25, handL: { x: -0.24, y: 0.20, z: -0.05 }, handR: { x: -0.10, y: 0.10, z: -0.28 }, footL: { x: 0.14, y: 0.14, z: 0.08, pitch: 0 }, footR: { x: -0.13, y: -0.12, z: 0.08, pitch: 0 }, ease: easeOutCubic },
+      { t: 0.720, pelvisZ: 0.740, lean: 0.09, twist: -0.10, handL: { x: 0.20, y: 0.12, z: -0.28 }, handR: { x: -0.25, y: 0.04, z: -0.35 }, footL: { x: 0.12, y: 0.10, z: 0.08, pitch: 0 }, footR: { x: -0.12, y: -0.07, z: 0.08, pitch: 0 }, ease: easeInOut },
+      { t: 1.000, pelvisZ: 0.745, lean: 0.05, twist: 0, handL: { x: 0.30, y: 0.025, z: -0.42 }, handR: { x: -0.30, y: 0.025, z: -0.42 }, footL: { x: 0.11, y: 0.06, z: 0.08, pitch: 0 }, footR: { x: -0.11, y: -0.04, z: 0.08, pitch: 0 } }
+    ]
+  };
+
+  CLIPS.attack3 = {
+    duration: ATTACKS[2].duration, loop: false,
+    keys: [
+      { t: 0.000, pelvisZ: 0.740, lean: 0.06, twist: 0, spin: 0, handL: { x: 0.30, y: 0.025, z: -0.42 }, handR: { x: -0.30, y: 0.025, z: -0.42 }, footL: { x: 0.11, y: 0.06, z: 0.08, pitch: 0 }, footR: { x: -0.11, y: -0.04, z: 0.08, pitch: 0 } },
+      { t: 0.250, pelvisZ: 0.690, lean: 0.04, twist: 0, spin: 0, handL: { x: 0.20, y: -0.10, z: -0.26 }, handR: { x: -0.20, y: -0.10, z: -0.26 }, footL: { x: 0.14, y: 0.08, z: 0.08, pitch: 0 }, footR: { x: -0.14, y: -0.06, z: 0.08, pitch: 0 }, ease: easeOutCubic },
+      { t: 0.339, pelvisZ: 0.720, lean: 0.06, twist: 0, spin: 180, handL: { x: 0.55, y: 0.20, z: -0.02 }, handR: { x: -0.55, y: 0.20, z: -0.02 }, footL: { x: 0.15, y: 0.10, z: 0.08, pitch: 0 }, footR: { x: -0.15, y: -0.08, z: 0.08, pitch: 0 }, ease: easeOutCubic },
+      { t: 0.500, pelvisZ: 0.730, lean: 0.08, twist: 0, spin: 250, handL: { x: 0.58, y: 0.12, z: -0.06 }, handR: { x: -0.58, y: 0.12, z: -0.06 }, footL: { x: 0.15, y: 0.10, z: 0.08, pitch: 0 }, footR: { x: -0.15, y: -0.08, z: 0.08, pitch: 0 }, ease: easeInOut },
+      { t: 0.750, pelvisZ: 0.740, lean: 0.05, twist: 0, spin: 330, handL: { x: 0.40, y: 0.06, z: -0.24 }, handR: { x: -0.40, y: 0.06, z: -0.24 }, footL: { x: 0.13, y: 0.08, z: 0.08, pitch: 0 }, footR: { x: -0.13, y: -0.06, z: 0.08, pitch: 0 }, ease: easeInOut },
+      { t: 1.000, pelvisZ: 0.745, lean: 0.05, twist: 0, spin: 360, handL: { x: 0.30, y: 0.025, z: -0.42 }, handR: { x: -0.30, y: 0.025, z: -0.42 }, footL: { x: 0.11, y: 0.06, z: 0.08, pitch: 0 }, footR: { x: -0.11, y: -0.04, z: 0.08, pitch: 0 } }
+    ]
+  };
+
+  function sampleClip(stateName, clipTime, contactOverride) {
+    var clip = CLIPS[stateName];
+    if (!clip) clip = CLIPS.idle;
+    var t = clip.loop ? (clipTime / clip.duration) % 1 : clamp(clipTime / clip.duration, 0, 1);
+    var p = basePose();
+    var fields = ['pelvisZ', 'sway', 'lean', 'twist', 'headX', 'headY', 'spin'];
+    fields.forEach(function (f) {
+      if (clip.keys.some(function (k) { return k[f] !== undefined; })) p[f] = sampleNumber(clip.keys, t, f, clip.loop);
+    });
+    ['handL', 'handR', 'footL', 'footR'].forEach(function (f) {
+      if (clip.keys.some(function (k) { return k[f] !== undefined; })) p[f] = sampleVector(clip.keys, t, f, clip.loop);
+    });
+    var pitchL = sampleScalar(clip.keys, t, function (k) { return k.footPitchL; }, clip.loop);
+    var pitchR = sampleScalar(clip.keys, t, function (k) { return k.footPitchR; }, clip.loop);
+    p.footL.pitch = sampleScalar(clip.keys, t, function (k) { return k.footL ? k.footL.pitch : 0; }, clip.loop);
+    p.footR.pitch = sampleScalar(clip.keys, t, function (k) { return k.footR ? k.footR.pitch : 0; }, clip.loop);
+    if (!pitchL) p.footL.pitch += 0;
+    if (!pitchR) p.footR.pitch += 0;
+    if (contactOverride && stateName === 'attack3') p.spin = 0;
+    return p;
+  }
+
+  // === RIG BUILD ===
+  function solveIK2(root, target, l1, l2, pole, tag) {
+    var d = sub3(target, root);
+    var dist = len3(d);
+    var min = Math.abs(l1 - l2) + 0.0005;
+    var max = l1 + l2 - 0.0005;
+    var clamped = false;
+    if (dist < min) { dist = min; clamped = true; }
+    if (dist > max) { dist = max; clamped = true; }
+    var dir = dist > 1e-8 ? norm3(d) : { x: 0, y: 1, z: 0 };
+    if (clamped) target = add3(root, mul3(dir, dist));
+    var poleOrtho = sub3(pole, mul3(dir, dot3(pole, dir)));
+    if (len3(poleOrtho) < 1e-5) {
+      var fallback = Math.abs(dir.z) < 0.9 ? { x: 0, y: 0, z: 1 } : { x: 0, y: 1, z: 0 };
+      poleOrtho = sub3(fallback, mul3(dir, dot3(fallback, dir)));
+    }
+    poleOrtho = norm3(poleOrtho);
+    var cosA = clamp((l1 * l1 + dist * dist - l2 * l2) / (2 * l1 * dist), -1, 1);
+    var a = Math.acos(cosA);
+    var joint = add3(root, add3(mul3(dir, Math.cos(a) * l1), mul3(poleOrtho, Math.sin(a) * l1)));
+    var endDir = norm3(sub3(target, joint));
+    var end = add3(joint, mul3(endDir, l2));
+    return {
+      root: root, joint: joint, end: end, target: target, clamped: clamped,
+      reach: dist, min: min, max: max, tag: tag,
+      b1: l1, b2: l2
+    };
+  }
+
+  function buildRig(pose, opts) {
+    opts = opts || {};
+    var yaw = opts.yaw || 0;
+    var contact = !!opts.contact;
+    var sway = pose.sway;
+    var pelvis = { x: sway, y: 0, z: pose.pelvisZ };
+    var lean = pose.lean;
+    var chest = { x: pelvis.x, y: pelvis.y + Math.sin(lean) * L.torso, z: pelvis.z + Math.cos(lean) * L.torso };
+    var neck = { x: chest.x, y: chest.y + Math.sin(lean) * L.neck, z: chest.z + Math.cos(lean) * L.neck };
+    var head = { x: neck.x + pose.headX, y: neck.y + pose.headY, z: neck.z + L.headRadius + 0.005 };
+
+    var twist = pose.twist;
+    function shoulderOffset(side) { return rotZ({ x: L.shoulder * side, y: 0, z: 0.02 }, twist); }
+    var shoulderL = add3(chest, shoulderOffset(1));
+    var shoulderR = add3(chest, shoulderOffset(-1));
+
+    var hipL = add3(pelvis, { x: L.hipHalf, y: 0, z: 0 });
+    var hipR = add3(pelvis, { x: -L.hipHalf, y: 0, z: 0 });
+
+    var legPole = { x: 0, y: 1, z: 0.15 };
+    var legL = solveIK2(hipL, pose.footL, L.thigh, L.shin, legPole, 'legL');
+    var legR = solveIK2(hipR, pose.footR, L.thigh, L.shin, legPole, 'legR');
+
+    var armPoleL = rotZ({ x: 0.45, y: -1, z: -0.25 }, twist);
+    var armPoleR = rotZ({ x: -0.45, y: -1, z: -0.25 }, twist);
+    var handOffsetL = rotZ(pose.handL, twist);
+    var handOffsetR = rotZ(pose.handR, twist);
+    var wristTargetL = add3(chest, handOffsetL);
+    var wristTargetR = add3(chest, handOffsetR);
+    var armL = solveIK2(shoulderL, wristTargetL, L.upperArm, L.forearm, armPoleL, 'armL');
+    var armR = solveIK2(shoulderR, wristTargetR, L.upperArm, L.forearm, armPoleR, 'armR');
+
+    var wristL = armL.end, wristR = armR.end;
+    var handDirL = norm3(sub3(wristL, armL.joint));
+    var handDirR = norm3(sub3(wristR, armR.joint));
+    var handL = add3(wristL, mul3(handDirL, L.hand));
+    var handR = add3(wristR, mul3(handDirR, L.hand));
+
+    function makeBlade(hand, dir, side) {
+      var d = norm3(dir);
+      var outward = { x: side, y: 0, z: 0 };
+      var bow = sub3(outward, mul3(d, dot3(outward, d)));
+      if (len3(bow) < 0.1) {
+        bow = cross3(d, { x: 0, y: 0, z: 1 });
+        if (len3(bow) < 0.1) bow = { x: 0, y: 1, z: 0 };
+        bow = mul3(norm3(bow), side);
+      }
+      bow = mul3(norm3(bow), 0.075);
+      var mid = add3(hand, add3(mul3(d, L.blade * 0.48), bow));
+      var tip = add3(hand, mul3(d, L.blade));
+      return { base: hand, mid: mid, tip: tip, dir: d, side: side };
+    }
+    var bladeL = makeBlade(handL, handDirL, 1);
+    var bladeR = makeBlade(handR, handDirR, -1);
+
+    function footGeom(ankle, side, pitch) {
+      var f = norm3({ x: side * 0.12, y: 1, z: 0 });
+      var n = { x: -f.y, y: f.x, z: 0 };
+      var cp = Math.cos(pitch), sp = Math.sin(pitch);
+      var toe = {
+        x: ankle.x + f.x * L.foot * cp,
+        y: ankle.y + f.y * L.foot * cp,
+        z: ankle.z - 0.06 + L.foot * sp
+      };
+      var heel = {
+        x: ankle.x - f.x * 0.045,
+        y: ankle.y - f.y * 0.045,
+        z: ankle.z - 0.055
+      };
+      // The planted sole sits exactly on the ground plane (z = 0).
+      var baseZ = Math.max(0, ankle.z - 0.08);
+      var w = 0.052;
+      return {
+        ankle: ankle, toe: toe, heel: heel, f: f, n: n, pitch: pitch,
+        sole: [
+          { x: heel.x + n.x * w * 0.7, y: heel.y + n.y * w * 0.7, z: baseZ },
+          { x: toe.x + n.x * w, y: toe.y + n.y * w, z: baseZ },
+          { x: toe.x - n.x * w, y: toe.y - n.y * w, z: baseZ },
+          { x: heel.x - n.x * w * 0.7, y: heel.y - n.y * w * 0.7, z: baseZ }
+        ],
+        top: [
+          { x: ankle.x + n.x * 0.035, y: ankle.y + n.y * 0.035, z: ankle.z + 0.015 },
+          { x: toe.x + n.x * 0.034, y: toe.y + n.y * 0.034, z: toe.z + 0.025 },
+          { x: toe.x - n.x * 0.034, y: toe.y - n.y * 0.034, z: toe.z + 0.025 },
+          { x: ankle.x - n.x * 0.035, y: ankle.y - n.y * 0.035, z: ankle.z + 0.015 }
+        ]
+      };
+    }
+    var footL = footGeom(legL.end, 1, pose.footL.pitch);
+    var footR = footGeom(legR.end, -1, pose.footR.pitch);
+
+    var torso = [
+      { x: chest.x + shoulderL.x - chest.x, y: shoulderL.y, z: shoulderL.z + 0.015 },
+      { x: chest.x + shoulderOffset(1).x, y: chest.y + 0.015, z: chest.z + 0.03 },
+      { x: chest.x, y: chest.y + 0.045, z: chest.z + 0.04 },
+      { x: chest.x - 0.20 * Math.cos(twist), y: chest.y - 0.20 * Math.sin(twist) + 0.015, z: chest.z + 0.03 },
+      { x: pelvis.x - 0.13, y: pelvis.y + 0.015, z: pelvis.z + 0.20 },
+      { x: pelvis.x, y: pelvis.y + 0.035, z: pelvis.z + 0.17 },
+      { x: pelvis.x + 0.13, y: pelvis.y + 0.015, z: pelvis.z + 0.20 }
+    ];
+    // Simpler, stable torso silhouette (shoulder line, waist, hips).
+    torso = [
+      { x: chest.x + 0.195 * Math.cos(twist), y: chest.y - 0.195 * Math.sin(twist), z: chest.z + 0.035 },
+      { x: chest.x, y: chest.y + 0.05, z: chest.z + 0.045 },
+      { x: chest.x - 0.195 * Math.cos(twist), y: chest.y + 0.195 * Math.sin(twist), z: chest.z + 0.035 },
+      { x: pelvis.x - 0.125, y: pelvis.y + 0.02, z: pelvis.z + 0.19 },
+      { x: pelvis.x, y: pelvis.y + 0.04, z: pelvis.z + 0.12 },
+      { x: pelvis.x + 0.125, y: pelvis.y + 0.02, z: pelvis.z + 0.19 }
+    ];
+    var chestFacet = [
+      { x: chest.x + 0.155 * Math.cos(twist), y: chest.y - 0.155 * Math.sin(twist) + 0.02, z: chest.z + 0.02 },
+      { x: chest.x, y: chest.y + 0.075, z: chest.z + 0.015 },
+      { x: chest.x - 0.155 * Math.cos(twist), y: chest.y + 0.155 * Math.sin(twist) + 0.02, z: chest.z + 0.02 },
+      { x: pelvis.x, y: pelvis.y + 0.065, z: pelvis.z + 0.19 }
+    ];
+
+    var headTop = head.z + L.headRadius;
+    var height = headTop;
+    var clampList = [];
+    [legL, legR, armL, armR].forEach(function (s) { if (s.clamped) clampList.push(s.tag); });
+
+    return {
+      pose: pose, yaw: yaw, rootX: opts.rootX || 0, rootY: opts.rootY || 0, contact: contact,
+      joints: {
+        root: { x: 0, y: 0, z: 0 }, pelvis: pelvis, chest: chest, neck: neck, head: head,
+        shoulderL: shoulderL, shoulderR: shoulderR,
+        elbowL: armL.joint, elbowR: armR.joint,
+        wristL: wristL, wristR: wristR,
+        handL: handL, handR: handR,
+        hipL: hipL, hipR: hipR,
+        kneeL: legL.joint, kneeR: legR.joint,
+        ankleL: legL.end, ankleR: legR.end,
+        toeL: footL.toe, toeR: footR.toe,
+        heelL: footL.heel, heelR: footR.heel
+      },
+      legs: { L: legL, R: legR },
+      arms: { L: armL, R: armR },
+      feet: { L: footL, R: footR },
+      blades: { L: bladeL, R: bladeR },
+      torso: torso, chestFacet: chestFacet,
+      targets: { handL: wristTargetL, handR: wristTargetR, footL: pose.footL, footR: pose.footR },
+      height: height, clamps: clampList,
+      headTop: headTop
+    };
+  }
+
+  // === RENDERER ===
+  var COL = {
+    bg: '#12151d', panel: 'rgba(10,13,20,0.82)', ink: '#20232c',
+    neutral: '#c4cad4', neutralDark: '#8e96a5', head: '#d8dce3',
+    right: '#4d8dff', rightDark: '#2e5ca8', left: '#ff5a63', leftDark: '#a83940',
+    steelL: '#cfc3b6', steelR: '#c2ccda', steelDark: '#707887',
+    bronze: '#b58a52', bronzeDark: '#6f512d',
+    grid: 'rgba(110,132,166,0.20)', gridMajor: 'rgba(126,152,194,0.34)',
+    axisX: '#e0805f', axisY: '#70c27b', axisZ: '#72aee8',
+    debug: '#ffd166', debug2: '#7cf0c8', hit: '#ff9b3d'
+  };
+
+  function viewArena() {
+    return { originX: ORIGIN_X, originY: ORIGIN_Y, scale: SCALE, contact: false };
+  }
+  function cellView(col, row) {
+    return {
+      originX: col * CELL_W + CELL_W / 2,
+      originY: row * CELL_H + 128,
+      scale: 64,
+      contact: true
+    };
+  }
+
+  function shadeForDepth(color, itemDepth, centerDepth, near) {
+    var d = itemDepth - centerDepth;
+    if (d < -0.04) {
+      return mixHex(color, COL.bg, clamp((-d) * 0.55, 0.08, 0.56));
+    }
+    if (d > 0.04) {
+      return mixHex(color, '#ffffff', clamp(d * (near ? 0.20 : 0.12), 0.02, 0.18));
+    }
+    return color;
+  }
+
+  function renderRig(c, rig, v, options) {
+    options = options || {};
+    var items = [];
+    var j = rig.joints;
+    var centerDepth = project(j.pelvis, rig.yaw, rig.rootX || 0, rig.rootY || 0, v).depth;
+    var ink = v.scale > 70 ? 2.4 : 1.35;
+    var drawCount = 0;
+
+    function addItem(layer, depth, name, draw, debugPoint) {
+      items.push({ layer: layer, depth: depth, name: name, draw: draw, debugPoint: debugPoint || null });
+    }
+    function pd(p) { return project(p, rig.yaw, rig.rootX || 0, rig.rootY || 0, v); }
+    function colorAt(base, p) { return shadeForDepth(base, pd(p).depth, centerDepth, true); }
+
+    function capsule(a, b, widthUnits, base, name) {
+      var pa = pd(a), pb = pd(b);
+      var mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: (a.z + b.z) / 2 };
+      var w = Math.max(2.2, widthUnits * v.scale);
+      var fill = colorAt(base, mid);
+      addItem(20, pa.depth * 0.5 + pb.depth * 0.5, name, function (g) {
+        g.lineCap = 'round';
+        g.strokeStyle = COL.ink;
+        g.lineWidth = w + ink * 2;
+        g.beginPath(); g.moveTo(pa.x, pa.y); g.lineTo(pb.x, pb.y); g.stroke();
+        g.strokeStyle = fill;
+        g.lineWidth = w;
+        g.beginPath(); g.moveTo(pa.x, pa.y); g.lineTo(pb.x, pb.y); g.stroke();
+      }, mid);
+    }
+
+    function joint(p, radiusUnits, base, name) {
+      var pp = pd(p);
+      var r = Math.max(2.0, radiusUnits * v.scale);
+      var fill = colorAt(base, p);
+      addItem(60, pp.depth, name, function (g) {
+        g.beginPath(); g.arc(pp.x, pp.y, r + ink * 0.8, 0, Math.PI * 2);
+        g.fillStyle = COL.ink; g.fill();
+        g.beginPath(); g.arc(pp.x, pp.y, r, 0, Math.PI * 2);
+        g.fillStyle = fill; g.fill();
+      }, p);
+    }
+
+    function polygon(points, layer, base, name, strokeWidth, debugPoint) {
+      var pts = points.map(pd);
+      var depth = pts.reduce(function (s, p) { return s + p.depth; }, 0) / pts.length;
+      var fill = base ? colorAt(base, points[0]) : null;
+      addItem(layer, depth, name, function (g) {
+        g.beginPath();
+        g.moveTo(pts[0].x, pts[0].y);
+        for (var i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
+        g.closePath();
+        if (fill) { g.fillStyle = fill; g.fill(); }
+        if (strokeWidth) {
+          g.strokeStyle = COL.ink;
+          g.lineWidth = strokeWidth;
+          g.stroke();
+        }
+      }, debugPoint || points[0]);
+    }
+
+    function drawFoot(side, foot, base) {
+      var depth = pd(foot.ankle).depth;
+      var sole = foot.sole.map(pd), top = foot.top.map(pd);
+      var soleFill = colorAt(side === 1 ? COL.leftDark : COL.rightDark, foot.ankle);
+      var topFill = colorAt(base, foot.ankle);
+      addItem(10, depth, 'foot' + (side === 1 ? 'L' : 'R') + '-sole', function (g) {
+        g.beginPath(); g.moveTo(sole[0].x, sole[0].y);
+        for (var i = 1; i < 4; i++) g.lineTo(sole[i].x, sole[i].y);
+        g.closePath();
+        g.fillStyle = soleFill; g.fill();
+        g.strokeStyle = COL.ink; g.lineWidth = ink * 1.4; g.stroke();
+      }, foot.ankle);
+      addItem(11, depth - 0.001, 'foot' + (side === 1 ? 'L' : 'R') + '-top', function (g) {
+        g.beginPath(); g.moveTo(top[0].x, top[0].y);
+        for (var i = 1; i < 4; i++) g.lineTo(top[i].x, top[i].y);
+        g.closePath();
+        g.fillStyle = topFill; g.fill();
+        g.strokeStyle = COL.ink; g.lineWidth = ink; g.stroke();
+      }, foot.ankle);
+    }
+
+    // Feet (lowest, drawn early but still depth-sorted).
+    drawFoot(1, rig.feet.L, COL.left);
+    drawFoot(-1, rig.feet.R, COL.right);
+
+    // Legs.
+    capsule(j.hipL, j.kneeL, 0.105, COL.left, 'thighL');
+    capsule(j.hipR, j.kneeR, 0.105, COL.right, 'thighR');
+    capsule(j.kneeL, j.ankleL, 0.078, COL.left, 'shinL');
+    capsule(j.kneeR, j.ankleR, 0.078, COL.right, 'shinR');
+    capsule(j.ankleL, j.toeL, 0.055, COL.left, 'footboneL');
+    capsule(j.ankleR, j.toeR, 0.055, COL.right, 'footboneR');
+
+    // Pelvis / belt.
+    capsule(j.hipL, j.hipR, 0.115, COL.neutralDark, 'pelvis');
+    joint(j.pelvis, 0.038, COL.neutral, 'pelvisJoint');
+    joint(j.hipL, 0.032, COL.left, 'hipLJoint');
+    joint(j.hipR, 0.032, COL.right, 'hipRJoint');
+
+    // Torso and chest facet.
+    polygon(rig.torso, 40, COL.neutral, 'torso', ink * 1.2, j.chest);
+    polygon(rig.chestFacet, 41, COL.neutralDark, 'chestFacet', 0, j.chest);
+    capsule(j.chest, j.neck, 0.085, COL.neutral, 'neckBase');
+    joint(j.chest, 0.038, COL.neutral, 'chestJoint');
+    joint(j.neck, 0.028, COL.neutral, 'neckJoint');
+
+    // Arms: upper + forearm + hand.
+    capsule(j.shoulderL, j.elbowL, 0.076, COL.left, 'upperArmL');
+    capsule(j.shoulderR, j.elbowR, 0.076, COL.right, 'upperArmR');
+    capsule(j.elbowL, j.wristL, 0.066, COL.left, 'forearmL');
+    capsule(j.elbowR, j.wristR, 0.066, COL.right, 'forearmR');
+    capsule(j.wristL, j.handL, 0.058, COL.left, 'handL');
+    capsule(j.wristR, j.handR, 0.058, COL.right, 'handR');
+    joint(j.shoulderL, 0.036, COL.left, 'shoulderLJoint');
+    joint(j.shoulderR, 0.036, COL.right, 'shoulderRJoint');
+    joint(j.elbowL, 0.029, COL.left, 'elbowLJoint');
+    joint(j.elbowR, 0.029, COL.right, 'elbowRJoint');
+    joint(j.wristL, 0.026, COL.left, 'wristLJoint');
+    joint(j.wristR, 0.026, COL.right, 'wristRJoint');
+    joint(j.handL, 0.024, COL.left, 'handLJoint');
+    joint(j.handR, 0.024, COL.right, 'handRJoint');
+
+    // Daggers. Each is anchored to its own hand. No swapping, no mirroring views.
+    function drawBlade(blade, side) {
+      var p0 = pd(blade.base), p1 = pd(blade.mid), p2 = pd(blade.tip);
+      var baseCol = side === 1 ? COL.steelL : COL.steelR;
+      var fill = colorAt(baseCol, blade.mid);
+      var dark = colorAt(COL.steelDark, blade.base);
+      var depth = p1.depth;
+      var gripStart = pd(add3(blade.base, mul3(blade.dir, -0.085)));
+      var sx = p2.x - p0.x, sy = p2.y - p0.y;
+      var sl = Math.sqrt(sx * sx + sy * sy) || 1;
+      var nx = -sy / sl, ny = sx / sl;
+      if (side === -1) { nx = -nx; ny = -ny; }
+      addItem(70, depth - 0.002, 'dagger' + (side === 1 ? 'L' : 'R') + '-grip', function (g) {
+        g.lineCap = 'round';
+        g.strokeStyle = COL.ink; g.lineWidth = Math.max(3, 0.045 * v.scale) + ink * 1.5;
+        g.beginPath(); g.moveTo(gripStart.x, gripStart.y); g.lineTo(p0.x, p0.y); g.stroke();
+        g.strokeStyle = colorAt(COL.bronzeDark, blade.base); g.lineWidth = Math.max(2, 0.045 * v.scale);
+        g.beginPath(); g.moveTo(gripStart.x, gripStart.y); g.lineTo(p0.x, p0.y); g.stroke();
+      }, blade.base);
+      addItem(71, depth - 0.001, 'dagger' + (side === 1 ? 'L' : 'R') + '-guard', function (g) {
+        var gl = 0.055 * v.scale;
+        g.lineCap = 'round';
+        g.strokeStyle = COL.ink; g.lineWidth = Math.max(3, 0.026 * v.scale) + ink;
+        g.beginPath(); g.moveTo(p0.x + nx * gl, p0.y + ny * gl); g.lineTo(p0.x - nx * gl, p0.y - ny * gl); g.stroke();
+        g.strokeStyle = colorAt(COL.bronze, blade.base); g.lineWidth = Math.max(2, 0.026 * v.scale);
+        g.beginPath(); g.moveTo(p0.x + nx * gl, p0.y + ny * gl); g.lineTo(p0.x - nx * gl, p0.y - ny * gl); g.stroke();
+      }, blade.base);
+      addItem(72, depth, 'dagger' + (side === 1 ? 'L' : 'R') + '-blade', function (g) {
+        var N = 12;
+        var left = [], right = [];
+        for (var i = 0; i <= N; i++) {
+          var u = i / N;
+          var inv = 1 - u;
+          var cx = inv * inv * p0.x + 2 * inv * u * p1.x + u * u * p2.x;
+          var cy = inv * inv * p0.y + 2 * inv * u * p1.y + u * u * p2.y;
+          var tx = 2 * inv * (p1.x - p0.x) + 2 * u * (p2.x - p1.x);
+          var ty = 2 * inv * (p1.y - p0.y) + 2 * u * (p2.y - p1.y);
+          var tl = Math.sqrt(tx * tx + ty * ty) || 1;
+          var px = -ty / tl, py = tx / tl;
+          var hw = (0.010 + 0.032 * Math.sin(Math.PI * u)) * v.scale;
+          if (u > 0.82) hw *= (1 - u) / 0.18 * 0.85 + 0.15;
+          left.push({ x: cx + px * hw, y: cy + py * hw });
+          right.push({ x: cx - px * hw, y: cy - py * hw });
+        }
+        g.beginPath();
+        g.moveTo(left[0].x, left[0].y);
+        for (var a = 1; a < left.length; a++) g.lineTo(left[a].x, left[a].y);
+        for (var b = right.length - 1; b >= 0; b--) g.lineTo(right[b].x, right[b].y);
+        g.closePath();
+        g.fillStyle = fill; g.fill();
+        g.strokeStyle = COL.ink; g.lineWidth = ink; g.stroke();
+        // Dark facet on one half, flat two-tone steel.
+        g.beginPath();
+        g.moveTo(p0.x, p0.y);
+        for (var c = 1; c <= N; c++) {
+          var uu = c / N, ii = 1 - uu;
+          var xx = ii * ii * p0.x + 2 * ii * uu * p1.x + uu * uu * p2.x;
+          var yy = ii * ii * p0.y + 2 * ii * uu * p1.y + uu * uu * p2.y;
+          g.lineTo(xx, yy);
+        }
+        for (var d = right.length - 1; d >= 0; d -= 2) g.lineTo(right[d].x, right[d].y);
+        g.closePath();
+        g.fillStyle = dark; g.globalAlpha = 0.42; g.fill(); g.globalAlpha = 1;
+      }, blade.mid);
+    }
+    drawBlade(rig.blades.L, 1);
+    drawBlade(rig.blades.R, -1);
+
+    // Head (arc, never ellipse).
+    var hp = pd(j.head);
+    var headFill = colorAt(COL.head, j.head);
+    addItem(80, hp.depth, 'head', function (g) {
+      g.beginPath(); g.arc(hp.x, hp.y, L.headRadius * v.scale + ink, 0, Math.PI * 2);
+      g.fillStyle = COL.ink; g.fill();
+      g.beginPath(); g.arc(hp.x, hp.y, L.headRadius * v.scale, 0, Math.PI * 2);
+      g.fillStyle = headFill; g.fill();
+      // Flat hand-drawn technical facet (no face, no gradient).
+      g.beginPath();
+      g.arc(hp.x, hp.y, L.headRadius * v.scale * 0.68, Math.PI * 1.06, Math.PI * 1.72);
+      g.strokeStyle = 'rgba(255,255,255,0.22)';
+      g.lineWidth = Math.max(1.2, 0.018 * v.scale);
+      g.stroke();
+    }, j.head);
+    joint(j.head, 0.030, COL.head, 'headJoint');
+
+    items.sort(function (a, b) {
+      if (a.depth === b.depth) return a.layer - b.layer;
+      return a.depth - b.depth;
+    });
+
+    items.forEach(function (it) {
+      it.draw(c);
+      drawCount++;
+    });
+
+    return { items: items, drawCount: drawCount, centerDepth: centerDepth };
+  }
+
+  // === RENDERER SCENE ===
+  var gridCache = null;
+  function buildGridCache(v) {
+    var corners = [
+      project({ x: -9, y: -6, z: 0 }, 0, 0, 0, v),
+      project({ x: 9, y: -6, z: 0 }, 0, 0, 0, v),
+      project({ x: 9, y: 6, z: 0 }, 0, 0, 0, v),
+      project({ x: -9, y: 6, z: 0 }, 0, 0, 0, v)
+    ];
+    var board = new Path2D();
+    board.moveTo(corners[0].x, corners[0].y);
+    for (var i = 1; i < 4; i++) board.lineTo(corners[i].x, corners[i].y);
+    board.closePath();
+
+    var minor = new Path2D(), major = new Path2D();
+    for (var x = -9; x <= 9; x++) {
+      var a = project({ x: x, y: -6, z: 0 }, 0, 0, 0, v);
+      var b = project({ x: x, y: 6, z: 0 }, 0, 0, 0, v);
+      var xp = x % 3 === 0 ? major : minor;
+      xp.moveTo(a.x, a.y); xp.lineTo(b.x, b.y);
+    }
+    for (var y = -6; y <= 6; y++) {
+      var d = project({ x: -9, y: y, z: 0 }, 0, 0, 0, v);
+      var e = project({ x: 9, y: y, z: 0 }, 0, 0, 0, v);
+      var yp = y % 3 === 0 ? major : minor;
+      yp.moveTo(d.x, d.y); yp.lineTo(e.x, e.y);
+    }
+
+    var ax0 = project({ x: -9, y: 0, z: 0 }, 0, 0, 0, v);
+    var ax1 = project({ x: 9, y: 0, z: 0 }, 0, 0, 0, v);
+    var ay0 = project({ x: 0, y: -6, z: 0 }, 0, 0, 0, v);
+    var ay1 = project({ x: 0, y: 6, z: 0 }, 0, 0, 0, v);
+    var az0 = project({ x: 6.4, y: -4.4, z: 0 }, 0, 0, 0, v);
+    var az1 = project({ x: 6.4, y: -4.4, z: 2 }, 0, 0, 0, v);
+    function axis(a, b) { var p = new Path2D(); p.moveTo(a.x, a.y); p.lineTo(b.x, b.y); return p; }
+
+    return {
+      board: board, minor: minor, major: major,
+      axisX: axis(ax0, ax1), axisY: axis(ay0, ay1), axisZ: axis(az0, az1),
+      ax1: ax1, ay1: ay1, az1: az1
+    };
+  }
+
+  function drawGrid(c, v) {
+    if (!gridCache) gridCache = buildGridCache(v);
+    c.fillStyle = '#151a24';
+    c.fill(gridCache.board);
+
+    c.lineWidth = 1;
+    c.strokeStyle = COL.grid;
+    c.stroke(gridCache.minor);
+    c.strokeStyle = COL.gridMajor;
+    c.stroke(gridCache.major);
+
+    var ax1 = gridCache.ax1, ay1 = gridCache.ay1, az1 = gridCache.az1;
+    c.lineWidth = 2;
+    c.strokeStyle = COL.axisX; c.stroke(gridCache.axisX);
+    c.strokeStyle = COL.axisY; c.stroke(gridCache.axisY);
+    c.strokeStyle = COL.axisZ; c.stroke(gridCache.axisZ);
+
+    c.font = '11px Consolas, monospace';
+    c.fillStyle = COL.axisX; c.fillText('X', ax1.x - 14, ax1.y + 4);
+    c.fillStyle = COL.axisY; c.fillText('Y', ay1.x + 5, ay1.y - 5);
+    c.fillStyle = COL.axisZ; c.fillText('Z', az1.x + 5, az1.y - 4);
+    c.fillStyle = 'rgba(150,165,190,0.55)';
+    c.fillText('1 unit grid  |  orthographic pitch 30 deg', 18, ARENA_H - 18);
+  }
+
+  function drawShadow(c, v, rootX, rootY) {
+    var p = project({ x: 0, y: 0, z: 0 }, 0, rootX, rootY, v);
+    c.beginPath();
+    c.ellipse(p.x, p.y + 1, 0.32 * v.scale, 0.32 * v.scale * SIN, 0, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(0,0,0,0.38)';
+    c.fill();
+    c.strokeStyle = 'rgba(0,0,0,0.22)';
+    c.lineWidth = 1;
+    c.stroke();
+  }
+
+  function drawHUD(c) {
+    var m = sim;
+    var x = 16, y = 16, w = 440, h = 126;
+    c.fillStyle = COL.panel;
+    c.fillRect(x, y, w, h);
+    c.strokeStyle = '#2a3141'; c.lineWidth = 1; c.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    c.font = '11px Consolas, monospace';
+    c.fillStyle = '#eef1f7';
+    c.fillText('RIG-01  |  GATE 1  |  TECHNICAL RIG', x + 10, y + 18);
+    c.fillStyle = '#8f9ab0';
+    c.fillText('MODE ' + sim.mode.toUpperCase() + '   STATE ' + sim.state.toUpperCase() + '   PHASE ' + sim.phaseLabel, x + 10, y + 35);
+    c.fillStyle = '#cbd2df';
+    c.fillText('yaw ' + sim.yawDeg.toFixed(0) + ' deg (' + cardinal(sim.yawDeg) + ')   clip ' + sim.clipTime.toFixed(3) + 's / ' + sim.clipDuration.toFixed(2) + 's', x + 10, y + 52);
+    c.fillText('root ' + sim.rootX.toFixed(2) + ', ' + sim.rootY.toFixed(2) + '   speed ' + sim.speed.toFixed(2) + ' u/s', x + 10, y + 69);
+    var slipText = 'not run';
+    var passText = '';
+    if (sim.footTests) {
+      slipText = sim.footTests.yaw0.maxPx.toFixed(2) + ' / ' + sim.footTests.yaw90.maxPx.toFixed(2) + ' px';
+      passText = '   ' + (sim.footLockPass ? 'PASS' : 'FAIL');
+    } else if (sim.lastTest) {
+      slipText = sim.lastTest.maxPx.toFixed(2) + ' px';
+      passText = '   ' + (sim.lastTest.pass ? 'PASS' : 'FAIL');
+    }
+    c.fillStyle = (sim.footTests || sim.lastTest) ? (sim.footLockPass ? '#7cf0c8' : '#ffd166') : '#8f9ab0';
+    c.fillText('fps ' + sim.fps.toFixed(0) + '   foot slip 0/90 ' + slipText + passText, x + 10, y + 86);
+    c.fillStyle = '#8f9ab0';
+    c.fillText('frames ' + sim.frameCount + '   draws ' + sim.drawCount + '   errors ' + runtimeErrors.length + '   draw ' + sim.drawMs.toFixed(2) + 'ms   samples ' + (sim.lastTest ? sim.lastTest.samples : '-') + (sim.paused ? '   [PAUSED]' : ''), x + 10, y + 103);
+    c.fillStyle = '#cbd2df';
+    c.fillText('combo buffer ' + (sim.attackQueued ? 'QUEUED ' + (sim.clipTime - sim.attackQueuedAt).toFixed(2) + 's' : '-') + '   dash cd ' + Math.max(0, sim.dashCooldown).toFixed(2) + 's', x + 10, y + 120);
+
+    var cx = 16, cy = ARENA_H - 50;
+    c.fillStyle = COL.panel;
+    c.fillRect(cx, cy, 640, 34);
+    c.strokeStyle = '#2a3141'; c.strokeRect(cx + 0.5, cy + 0.5, 639, 33);
+    c.font = '11px Consolas, monospace';
+    c.fillStyle = '#98a2b5';
+    c.fillText('WASD/arrows move  |  Shift dash  |  J/click attack  |  Space pause  |  F1 debug  |  C contact', cx + 10, cy + 15);
+    c.fillText('R reset  |  T foot-lock test  |  [ ] yaw 45 deg (contact focus)  |  deterministic API window.RIG01', cx + 10, cy + 29);
+  }
+
+  function cardinal(degv) {
+    var dirs = ['S', 'SE', 'E', 'NE', 'N', 'NW', 'W', 'SW'];
+    return dirs[Math.round(degv / 45) % 8];
+  }
+
+  function drawHitbox(c, v, rig) {
+    if (!sim || !sim.state.match(/^attack/)) return;
+    var idx = parseInt(sim.state.slice(6), 10) - 1;
+    var a = ATTACKS[idx];
+    if (!a) return;
+    var t = sim.clipTime;
+    var active = t >= a.windup && t <= a.windup + a.active;
+    if (!active) return;
+    var u0 = (t - a.windup) / a.active;
+    c.save();
+    c.lineCap = 'round';
+    var pts = [];
+    if (idx === 0) {
+      for (var i = 0; i <= 30; i++) {
+        var u = i / 30;
+        var ang = lerp(-2.05, 1.25, u);
+        var rr = 0.70;
+        pts.push(project({ x: Math.sin(ang) * rr, y: Math.cos(ang) * rr, z: 1.24 - 0.92 * u }, rig.yaw, rig.rootX, rig.rootY, v));
+      }
+    } else if (idx === 1) {
+      for (var i2 = 0; i2 <= 30; i2++) {
+        var u2 = i2 / 30;
+        var ang2 = lerp(2.05, -1.25, u2);
+        var rr2 = 0.70;
+        pts.push(project({ x: Math.sin(ang2) * rr2, y: Math.cos(ang2) * rr2, z: 1.24 - 0.92 * u2 }, rig.yaw, rig.rootX, rig.rootY, v));
+      }
+    } else {
+      for (var i3 = 0; i3 <= 64; i3++) {
+        var ang3 = i3 / 64 * Math.PI * 2;
+        var rr3 = 0.78;
+        pts.push(project({ x: Math.sin(ang3) * rr3, y: Math.cos(ang3) * rr3, z: 0.92 + 0.06 * Math.sin(ang3 * 2) }, rig.yaw, rig.rootX, rig.rootY, v));
+      }
+    }
+    c.strokeStyle = 'rgba(255,155,61,0.22)';
+    c.lineWidth = 12;
+    c.beginPath(); c.moveTo(pts[0].x, pts[0].y);
+    for (var k = 1; k < pts.length; k++) c.lineTo(pts[k].x, pts[k].y);
+    c.stroke();
+    c.strokeStyle = COL.hit;
+    c.lineWidth = 2;
+    c.stroke();
+    var mid = pts[Math.floor(pts.length * 0.55)];
+    c.fillStyle = COL.hit;
+    c.font = '11px Consolas, monospace';
+    c.fillText('ACTIVE HITBOX ' + (idx + 1) + '  |  u=' + u0.toFixed(2), mid.x + 8, mid.y - 8);
+    c.restore();
+  }
+
+  function drawDebug(c, v, rig, renderInfo) {
+    var j = rig.joints;
+    function p(local) { return project(local, rig.yaw, rig.rootX, rig.rootY, v); }
+    var names = {
+      pelvis: j.pelvis, chest: j.chest, neck: j.neck, head: j.head,
+      shoulderL: j.shoulderL, shoulderR: j.shoulderR,
+      elbowL: j.elbowL, elbowR: j.elbowR,
+      wristL: j.wristL, wristR: j.wristR,
+      hipL: j.hipL, hipR: j.hipR, kneeL: j.kneeL, kneeR: j.kneeR,
+      ankleL: j.ankleL, ankleR: j.ankleR
+    };
+    var labelNames = {
+      pelvis: j.pelvis, chest: j.chest, head: j.head,
+      shoulderL: j.shoulderL, shoulderR: j.shoulderR,
+      elbowL: j.elbowL, elbowR: j.elbowR,
+      kneeL: j.kneeL, kneeR: j.kneeR, ankleL: j.ankleL, ankleR: j.ankleR
+    };
+    c.save();
+    c.setLineDash([4, 4]);
+    c.lineWidth = 1;
+    c.strokeStyle = 'rgba(255,255,255,0.45)';
+    [['pelvis', 'chest'], ['chest', 'neck'], ['neck', 'head'],
+      ['shoulderL', 'elbowL'], ['elbowL', 'wristL'], ['wristL', 'handL'],
+      ['shoulderR', 'elbowR'], ['elbowR', 'wristR'], ['wristR', 'handR'],
+      ['hipL', 'kneeL'], ['kneeL', 'ankleL'], ['ankleL', 'toeL'],
+      ['hipR', 'kneeR'], ['kneeR', 'ankleR'], ['ankleR', 'toeR']].forEach(function (pair) {
+      var a = names[pair[0]], b = names[pair[1]] || rig.joints[pair[1]];
+      if (!a || !b) return;
+      var pa = p(a), pb = p(b);
+      c.beginPath(); c.moveTo(pa.x, pa.y); c.lineTo(pb.x, pb.y); c.stroke();
+    });
+    c.setLineDash([]);
+
+    c.font = '9px Consolas, monospace';
+    Object.keys(labelNames).forEach(function (name) {
+      var pp = p(labelNames[name]);
+      var dx = 5, dy = -3;
+      if (name === 'pelvis') { dx = -42; dy = 10; }
+      else if (name === 'chest') { dx = 8; dy = 2; }
+      else if (name === 'head') { dx = 12; dy = -10; }
+      else if (name === 'shoulderL' || name === 'elbowL' || name === 'wristL' || name === 'kneeL' || name === 'ankleL') { dx = 6; dy = -3; }
+      else if (name === 'shoulderR' || name === 'elbowR' || name === 'wristR' || name === 'kneeR' || name === 'ankleR') { dx = -38; dy = -3; }
+      c.fillStyle = 'rgba(235,240,250,0.8)';
+      c.fillText(name, pp.x + dx, pp.y + dy);
+    });
+
+    function cross(local, color, label, size, ldx, ldy) {
+      var pp = p(local);
+      size = size || 6;
+      c.strokeStyle = color; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(pp.x - size, pp.y); c.lineTo(pp.x + size, pp.y);
+      c.moveTo(pp.x, pp.y - size); c.lineTo(pp.x, pp.y + size); c.stroke();
+      c.beginPath(); c.arc(pp.x, pp.y, 3, 0, Math.PI * 2); c.stroke();
+      if (label) { c.fillStyle = color; c.fillText(label, pp.x + (ldx || 8), pp.y + (ldy || 12)); }
+    }
+    cross(rig.targets.handL, '#7cf0c8', 'handL IK', 5, 8, 14);
+    cross(rig.targets.handR, '#7cf0c8', 'handR IK', 5, -46, 14);
+    cross(rig.targets.footL, '#ffd166', 'footL IK', 6, 8, -9);
+    cross(rig.targets.footR, '#ffd166', 'footR IK', 6, -44, -9);
+
+    // Ground anchors: world-fixed while a foot is locked, otherwise the current sole contact.
+    ['L', 'R'].forEach(function (side) {
+      var f = sim && sim.gait ? sim.gait.feet[side] : null;
+      var pp;
+      if (f && f.lockWorld) {
+        pp = project({ x: 0, y: 0, z: 0 }, 0, f.lockWorld.x, f.lockWorld.y, v);
+      } else {
+        var target = rig.targets['foot' + side];
+        pp = project({ x: target.x, y: target.y, z: 0 }, rig.yaw, rig.rootX, rig.rootY, v);
+      }
+      var locked = !!(f && f.locked && f.lockWorld);
+      c.save();
+      c.strokeStyle = locked ? '#7cf0c8' : 'rgba(124,240,200,0.55)';
+      c.fillStyle = c.strokeStyle;
+      c.lineWidth = 1.5;
+      c.setLineDash([3, 3]);
+      c.beginPath(); c.arc(pp.x, pp.y, 9, 0, Math.PI * 2); c.stroke();
+      c.setLineDash([]);
+      c.beginPath(); c.arc(pp.x, pp.y, 1.5, 0, Math.PI * 2); c.fill();
+      c.fillText('anchor' + side, pp.x + (side === 'L' ? 12 : -48), pp.y + 20);
+      c.restore();
+    });
+
+    if (rig.clamps.length) {
+      c.fillStyle = '#ff6b6b';
+      c.fillText('IK CLAMP: ' + rig.clamps.join(', '), 18, 165);
+    } else {
+      c.fillStyle = '#78e6be';
+      c.fillText('IK: all targets reachable', 18, 165);
+    }
+    c.fillStyle = '#cbd2df';
+    c.fillText('height ' + rig.height.toFixed(3) + ' u  |  pelvis depth ' + renderInfo.centerDepth.toFixed(3) + '  |  draws ' + renderInfo.drawCount, 18, 181);
+
+    var panelX = ARENA_W - 358, panelY = 16, panelW = 342, panelH = 436;
+    c.fillStyle = COL.panel;
+    c.fillRect(panelX, panelY, panelW, panelH);
+    c.strokeStyle = '#2a3141'; c.strokeRect(panelX + 0.5, panelY + 0.5, panelW - 1, panelH - 1);
+    c.fillStyle = '#eef1f7';
+    c.fillText('DEBUG  |  draw order (far -> near)  |  n=' + renderInfo.items.length, panelX + 10, panelY + 16);
+    c.font = '8px Consolas, monospace';
+    c.fillStyle = '#9aa5ba';
+    renderInfo.items.forEach(function (it, i2) {
+      c.fillText((i2 + 1) + '. ' + it.name.padEnd(16, ' ') + ' d=' + it.depth.toFixed(3), panelX + 10, panelY + 31 + i2 * 9);
+    });
+    c.font = '9px Consolas, monospace';
+    c.fillStyle = '#ffd166';
+    c.fillText('yaw ' + sim.yawDeg.toFixed(1) + '  |  state ' + sim.state + '  |  phase ' + sim.phaseLabel, panelX + 10, panelY + 425);
+    c.restore();
+  }
+
+  function drawContact(c) {
+    c.fillStyle = COL.bg;
+    c.fillRect(0, 0, CONTACT_W, CONTACT_H);
+    var rowDefs = [
+      { state: 'idle', time: 0.35, label: 'IDLE' },
+      { state: 'run', time: 0.13, label: 'RUN CONTACT L' },
+      { state: 'run', time: 0.24, label: 'RUN PASSAGE' },
+      { state: 'dash', time: 0.16, label: 'DASH BURST' },
+      { state: 'attack1', time: 0.1598, label: 'ATTACK 1 IMPACT' },
+      { state: 'attack2', time: 0.15, label: 'ATTACK 2 IMPACT' },
+      { state: 'attack3', time: 0.19, label: 'ATTACK 3 IMPACT' }
+    ];
+    var dirs = ['S', 'SE', 'E', 'NE', 'N', 'NW', 'W', 'SW'];
+    var contactDraws = 0;
+    for (var row = 0; row < ROWS; row++) {
+      for (var col = 0; col < COLS; col++) {
+        var left = col * CELL_W, top = row * CELL_H;
+        c.save();
+        c.beginPath(); c.rect(left, top, CELL_W, CELL_H); c.clip();
+        c.fillStyle = row % 2 === 0 ? '#12151d' : '#141821';
+        c.fillRect(left, top, CELL_W, CELL_H);
+        c.strokeStyle = '#242b3a'; c.lineWidth = 1;
+        c.strokeRect(left + 0.5, top + 0.5, CELL_W - 1, CELL_H - 1);
+        if (sim && sim.contactFocus === col) {
+          c.strokeStyle = '#ffd166'; c.lineWidth = 2;
+          c.strokeRect(left + 2, top + 2, CELL_W - 4, CELL_H - 4);
+        }
+        var v = cellView(col, row);
+        c.strokeStyle = 'rgba(126,152,194,0.42)';
+        c.lineWidth = 1;
+        c.beginPath(); c.moveTo(left + 12, v.originY); c.lineTo(left + CELL_W - 12, v.originY); c.stroke();
+        c.strokeStyle = 'rgba(126,152,194,0.18)';
+        c.beginPath(); c.moveTo(v.originX, v.originY - 3); c.lineTo(v.originX, v.originY + 3); c.stroke();
+
+        var rowDef = rowDefs[row];
+        var pose = sampleClip(rowDef.state, rowDef.time, true);
+        if (rowDef.state === 'run') {
+          var targets = runFootTargetsAtTime(rowDef.time, 0, 0, 0);
+          pose.footL.x = targets.L.x; pose.footL.y = targets.L.y; pose.footL.z = targets.L.z; pose.footL.pitch = targets.L.pitch;
+          pose.footR.x = targets.R.x; pose.footR.y = targets.R.y; pose.footR.z = targets.R.z; pose.footR.pitch = targets.R.pitch;
+        }
+        var rig = buildRig(pose, { yaw: rad(col * 45), rootX: 0, rootY: 0, contact: true });
+        drawShadow(c, v, 0, 0);
+        contactDraws += renderRig(c, rig, v, { contact: true }).drawCount;
+        c.font = '10px Consolas, monospace';
+        c.fillStyle = '#c7d0df';
+        c.fillText(rowDef.label, left + 8, top + 14);
+        c.fillStyle = '#8b96aa';
+        c.fillText(col * 45 + ' deg ' + dirs[col], left + 8, top + 27);
+        c.fillStyle = 'rgba(155,170,195,0.6)';
+        c.fillText('t=' + rowDef.time.toFixed(3) + 's', left + CELL_W - 66, top + 14);
+        c.restore();
+      }
+    }
+    sim.drawCount = contactDraws;
+    c.font = '11px Consolas, monospace';
+    c.fillStyle = 'rgba(155,170,195,0.55)';
+    c.fillText('RIG-01  |  8 yaw x 7 clips  |  same rig / same renderer  |  attack3 sampled with spin overlay disabled for yaw comparison', 12, CONTACT_H - 8);
+  }
+
+  function drawArena(c) {
+    c.fillStyle = COL.bg;
+    c.fillRect(0, 0, ARENA_W, ARENA_H);
+    var v = viewArena();
+    drawGrid(c, v);
+    drawShadow(c, v, sim.rootX, sim.rootY);
+    var rig = currentRig();
+    var info = renderRig(c, rig, v, {});
+    sim.drawCount = info.drawCount;
+    sim.lastRig = rig;
+    sim.lastDrawInfo = info;
+    if (sim.debug) {
+      drawHitbox(c, v, rig);
+      drawDebug(c, v, rig, info);
+    }
+    drawHUD(c);
+  }
+
+  function draw() {
+    var drawStart = performance.now();
+    if (sim.mode === 'contact') {
+      drawContact(ctx);
+    } else {
+      drawArena(ctx);
+    }
+    sim.drawMs = sim.drawMs * 0.9 + (performance.now() - drawStart) * 0.1;
+    sim.frameCount++;
+  }
+
+  // === SIMULATION ===
+  function createSim() {
+    return {
+      mode: 'arena', paused: false, state: 'idle',
+      yaw: 0, yawDeg: 0, rootX: 0, rootY: 0,
+      clipTime: 0, clipDuration: IDLE_DURATION, phaseLabel: 'breath',
+      speed: 0, frameCount: 0, drawCount: 0, fps: 60, drawMs: 0,
+      accumulator: 0, apiCarry: 0, lastFrameTime: 0, debug: false, contactFocus: -1,
+      keys: {}, testDrive: null,
+      transition: null, prevPose: null,
+      gait: {
+        feet: {
+          L: { locked: false, lockWorld: null, local: { x: 0.11, y: 0.06, z: L.ankleZ, pitch: 0 }, phase: 0 },
+          R: { locked: false, lockWorld: null, local: { x: -0.11, y: -0.04, z: L.ankleZ, pitch: 0 }, phase: 0 }
+        }
+      },
+      dashCooldown: 0, dashDir: { x: 0, y: 1 }, dashYaw: 0, dashStartX: 0, dashStartY: 0,
+      attackIndex: 0, attackQueued: false, attackQueuedAt: 0, attackEntryYaw: 0, attackStartX: 0, attackStartY: 0,
+      slip: { maxPx: 0, sumPx: 0, samples: 0 },
+      clampedSamples: 0,
+      lastTest: null, footLockPass: false, lastRig: null, renderYaw: 0
+    };
+  }
+
+  function resetSim() {
+    var mode = sim ? sim.mode : 'arena';
+    var debug = sim ? sim.debug : false;
+    var fps = sim ? sim.fps : 60;
+    var ns = createSim();
+    ns.mode = mode;
+    ns.debug = debug;
+    ns.fps = fps;
+    sim = ns;
+    sim.yawDeg = 0;
+  }
+
+  function inputDirection() {
+    if (sim.testDrive) return { x: Math.sin(sim.testDrive.yaw), y: Math.cos(sim.testDrive.yaw) };
+    var x = 0, y = 0;
+    if (sim.keys['KeyW'] || sim.keys['ArrowUp']) y -= 1;
+    if (sim.keys['KeyS'] || sim.keys['ArrowDown']) y += 1;
+    if (sim.keys['KeyA'] || sim.keys['ArrowLeft']) x -= 1;
+    if (sim.keys['KeyD'] || sim.keys['ArrowRight']) x += 1;
+    var m = len2(x, y);
+    if (m > 0) { x /= m; y /= m; }
+    return { x: x, y: y };
+  }
+
+  function startState(name, opts) {
+    opts = opts || {};
+    var cut = !!opts.cut;
+    var blend = cut ? 0 : (opts.blend !== undefined ? opts.blend : 0.1);
+    if (blend > 0) {
+      var prev = getPoseRaw();
+      sim.transition = { pose: poseClone(prev), t: 0, duration: blend };
+    } else {
+      sim.transition = null;
+    }
+    sim.state = name;
+    sim.clipTime = 0;
+    sim.clipDuration = CLIPS[name] ? CLIPS[name].duration : IDLE_DURATION;
+    sim.apiCarry = 0;
+    sim.attackQueued = false;
+    sim.attackQueuedAt = 0;
+    sim.speed = 0;
+    if (name === 'run') initRunGaitAtTime(0);
+    if (name === 'idle') sim.phaseLabel = 'breath';
+    if (name === 'dash') sim.phaseLabel = 'windup';
+    if (name.indexOf('attack') === 0) sim.phaseLabel = 'windup';
+  }
+
+  function startAttack(index) {
+    var a = ATTACKS[index];
+    sim.transition = null;
+    sim.state = a.id;
+    sim.attackIndex = index;
+    sim.clipTime = 0;
+    sim.clipDuration = a.duration;
+    sim.apiCarry = 0;
+    sim.attackEntryYaw = sim.yaw;
+    sim.attackStartX = sim.rootX;
+    sim.attackStartY = sim.rootY;
+    sim.attackQueued = false;
+    sim.attackQueuedAt = 0;
+    sim.speed = 0;
+    sim.phaseLabel = 'windup';
+  }
+
+  function tryStartDash() {
+    if (sim.paused) return false;
+    if (sim.state === 'dash' || sim.state.indexOf('attack') === 0) return false;
+    if (sim.dashCooldown > 0) return false;
+    var dir = inputDirection();
+    if (!dir.x && !dir.y) dir = localForward(sim.yaw);
+    sim.dashDir = { x: dir.x, y: dir.y };
+    sim.dashYaw = Math.atan2(dir.x, dir.y);
+    sim.yaw = sim.dashYaw;
+    sim.dashStartX = sim.rootX;
+    sim.dashStartY = sim.rootY;
+    sim.dashCooldown = DASH_COOLDOWN;
+    sim.transition = null;
+    sim.state = 'dash';
+    sim.clipTime = 0;
+    sim.clipDuration = DASH_DURATION;
+    sim.attackQueued = false;
+    sim.phaseLabel = 'windup';
+    sim.speed = 0;
+    return true;
+  }
+
+  function handleAttackInput() {
+    if (sim.paused) return false;
+    if (sim.state === 'dash') return false;
+    if (sim.state.indexOf('attack') === 0) {
+      var a = ATTACKS[sim.attackIndex];
+      // Combo window opens exactly at recovery start; a buffered press expires 250 ms later.
+      if (sim.attackIndex < 2 && !sim.attackQueued && sim.clipTime + 1e-9 >= a.recoveryStart) {
+        sim.attackQueued = true;
+        sim.attackQueuedAt = sim.clipTime;
+      }
+      return sim.attackQueued;
+    }
+    startAttack(0);
+    return true;
+  }
+
+  function endAction() {
+    var dir = inputDirection();
+    if (dir.x || dir.y) startState('run', { blend: 0.1 });
+    else startState('idle', { blend: 0.1 });
+  }
+
+  function runPhase(side, clipTime) {
+    var offset = side === 'R' ? 0.5 : 0;
+    return (((clipTime / RUN_DURATION) + offset) % 1 + 1) % 1;
+  }
+
+  function footSideWorld(side, yaw) {
+    var sign = side === 'L' ? 1 : -1;
+    return { x: Math.cos(yaw) * 0.11 * sign, y: -Math.sin(yaw) * 0.11 * sign };
+  }
+
+  function swingFootLocal(side, phase) {
+    var sign = side === 'L' ? 1 : -1;
+    var p = clamp((phase - SUPPORT_FRAC) / (1 - SUPPORT_FRAC), 0, 1);
+    var s = smoothstep(p);
+    var lift = Math.sin(Math.PI * p);
+    return {
+      x: sign * 0.11 + sign * 0.015 * lift,
+      y: lerp(-STANCE_HALF, STANCE_HALF, s),
+      z: L.ankleZ + 0.14 * lift,
+      pitch: 0.42 * lift
+    };
+  }
+
+  function runFootTargetsAtTime(clipTime, yaw, rootX, rootY) {
+    var out = {};
+    ['L', 'R'].forEach(function (side) {
+      var phase = runPhase(side, clipTime);
+      if (phase < SUPPORT_FRAC) {
+        var f = localForward(yaw);
+        var sw = footSideWorld(side, yaw);
+        var lock = {
+          x: rootX - f.x * RUN_SPEED * phase * RUN_DURATION + f.x * STANCE_HALF + sw.x,
+          y: rootY - f.y * RUN_SPEED * phase * RUN_DURATION + f.y * STANCE_HALF + sw.y
+        };
+        var loc = worldToLocal(lock.x - rootX, lock.y - rootY, yaw);
+        out[side] = {
+          x: loc.x, y: loc.y, z: L.ankleZ, pitch: 0,
+          locked: true, lockWorld: lock, phase: phase
+        };
+      } else {
+        var local = swingFootLocal(side, phase);
+        out[side] = {
+          x: local.x, y: local.y, z: local.z, pitch: local.pitch,
+          locked: false, lockWorld: null, phase: phase
+        };
+      }
+    });
+    return out;
+  }
+
+  function initRunGaitAtTime(clipTime) {
+    var targets = runFootTargetsAtTime(clipTime, sim.yaw, sim.rootX, sim.rootY);
+    sim.gait = { feet: {} };
+    ['L', 'R'].forEach(function (side) {
+      var t = targets[side];
+      sim.gait.feet[side] = {
+        locked: t.locked, lockWorld: t.lockWorld,
+        local: { x: t.x, y: t.y, z: t.z, pitch: t.pitch },
+        phase: t.phase
+      };
+    });
+  }
+
+  function updateRunGait() {
+    ['L', 'R'].forEach(function (side) {
+      var f = sim.gait.feet[side];
+      var newPhase = runPhase(side, sim.clipTime);
+      var oldPhase = f.phase;
+      var support = newPhase < SUPPORT_FRAC;
+      var wrapped = newPhase < oldPhase - 1e-9;
+      if (support && (!f.locked || wrapped)) {
+        var fwd = localForward(sim.yaw);
+        var sw = footSideWorld(side, sim.yaw);
+        f.lockWorld = {
+          x: sim.rootX + fwd.x * STANCE_HALF + sw.x,
+          y: sim.rootY + fwd.y * STANCE_HALF + sw.y
+        };
+      }
+      if (support && f.lockWorld) {
+        var loc = worldToLocal(f.lockWorld.x - sim.rootX, f.lockWorld.y - sim.rootY, sim.yaw);
+        f.local = { x: loc.x, y: loc.y, z: L.ankleZ, pitch: 0 };
+        f.locked = true;
+      } else {
+        var swing = swingFootLocal(side, newPhase);
+        f.local = swing;
+        f.locked = false;
+        f.lockWorld = null;
+      }
+      f.phase = newPhase;
+    });
+    var l = sim.gait.feet.L.locked, r = sim.gait.feet.R.locked;
+    sim.phaseLabel = l ? 'contact L' : (r ? 'contact R' : 'flight');
+  }
+
+  function clampRootToArena() {
+    sim.rootX = clamp(sim.rootX, -5.5, 5.5);
+    sim.rootY = clamp(sim.rootY, -4.6, 4.6);
+  }
+
+  function applyAttackRoot() {
+    var a = ATTACKS[sim.attackIndex];
+    var u = smoothstep(clamp((sim.clipTime - a.windup * 0.4) / (a.duration * 0.72), 0, 1));
+    var f = localForward(sim.attackEntryYaw);
+    sim.rootX = sim.attackStartX + f.x * a.root * u;
+    sim.rootY = sim.attackStartY + f.y * a.root * u;
+    clampRootToArena();
+  }
+
+  function dashProgress(t) {
+    var windup = 0.07, burst = 0.15, recovery = 0.20;
+    if (t <= windup) return 0;
+    if (t <= windup + burst) return easeOutCubic((t - windup) / burst) * 0.82;
+    return 0.82 + easeInOut((t - windup - burst) / recovery) * 0.18;
+  }
+
+  function applyDashRoot() {
+    var p = dashProgress(sim.clipTime);
+    sim.rootX = sim.dashStartX + sim.dashDir.x * DASH_DISTANCE * p;
+    sim.rootY = sim.dashStartY + sim.dashDir.y * DASH_DISTANCE * p;
+    clampRootToArena();
+  }
+
+  function getPoseRaw() {
+    var p = sampleClip(sim.state, sim.clipTime);
+    if (sim.state === 'run') {
+      var fl = sim.gait.feet.L, fr = sim.gait.feet.R;
+      p.footL = { x: fl.local.x, y: fl.local.y, z: fl.local.z, pitch: fl.local.pitch };
+      p.footR = { x: fr.local.x, y: fr.local.y, z: fr.local.z, pitch: fr.local.pitch };
+    }
+    return p;
+  }
+
+  function getPose() {
+    var cur = getPoseRaw();
+    if (sim.transition) {
+      var u = smoothstep(clamp(sim.transition.t / sim.transition.duration, 0, 1));
+      return blendPose(sim.transition.pose, cur, u);
+    }
+    return cur;
+  }
+
+  function currentRig() {
+    var pose = getPose();
+    var renderYaw = normAngle(sim.yaw + rad(pose.spin));
+    sim.renderYaw = renderYaw;
+    return buildRig(pose, { yaw: renderYaw, rootX: sim.rootX, rootY: sim.rootY });
+  }
+
+  function measureLiveSlip() {
+    if (sim.state !== 'run') return;
+    var rig = currentRig();
+    sim.lastRig = rig;
+    if (rig.clamps.length) sim.clampedSamples++;
+    var v = viewArena();
+    ['L', 'R'].forEach(function (side) {
+      var f = sim.gait.feet[side];
+      if (!f.locked || !f.lockWorld) return;
+      var localAnkle = side === 'L' ? rig.joints.ankleL : rig.joints.ankleR;
+      var actual = project(localAnkle, rig.yaw, sim.rootX, sim.rootY, v);
+      var anchor = project({ x: 0, y: 0, z: L.ankleZ }, 0, f.lockWorld.x, f.lockWorld.y, v);
+      var dx = actual.x - anchor.x, dy = actual.y - anchor.y;
+      var d = Math.sqrt(dx * dx + dy * dy);
+      sim.slip.maxPx = Math.max(sim.slip.maxPx, d);
+      sim.slip.sumPx += d;
+      sim.slip.samples++;
+    });
+  }
+
+  function updateLocomotion(dt) {
+    var dir = inputDirection();
+    var moving = !!(dir.x || dir.y);
+    if (!moving) {
+      if (sim.state === 'run') startState('idle', { blend: 0.1 });
+      sim.clipTime += dt;
+      if (sim.state === 'idle') {
+        if (sim.clipTime >= IDLE_DURATION) sim.clipTime -= IDLE_DURATION;
+        sim.phaseLabel = 'breath';
+      }
+      sim.speed = 0;
+      return;
+    }
+
+    var targetYaw = Math.atan2(dir.x, dir.y);
+    if (sim.state !== 'run') {
+      startState('run', { blend: 0.1 });
+      initRunGaitAtTime(sim.clipTime);
+    }
+    sim.yaw = turnToward(sim.yaw, targetYaw, 14 * dt);
+    var align = Math.abs(normAngle(targetYaw - sim.yaw));
+    sim.clipTime += dt;
+    if (sim.clipTime >= RUN_DURATION) sim.clipTime -= RUN_DURATION;
+    if (align < 0.12) {
+      var f = localForward(sim.yaw);
+      sim.rootX += f.x * RUN_SPEED * dt;
+      sim.rootY += f.y * RUN_SPEED * dt;
+      clampRootToArena();
+      sim.speed = RUN_SPEED;
+    } else {
+      sim.speed = 0;
+    }
+    updateRunGait();
+  }
+
+  function updateAttack(dt) {
+    sim.clipTime += dt;
+    var a = ATTACKS[sim.attackIndex];
+    applyAttackRoot();
+    if (sim.attackQueued && sim.clipTime - sim.attackQueuedAt > 0.25 + 1e-9) {
+      sim.attackQueued = false;
+    }
+    if (sim.clipTime < a.windup) sim.phaseLabel = 'windup';
+    else if (sim.clipTime < a.windup + a.active) sim.phaseLabel = 'active';
+    else sim.phaseLabel = 'recovery';
+    if (sim.clipTime >= a.duration) {
+      if (sim.attackQueued && sim.attackIndex < 2) {
+        startAttack(sim.attackIndex + 1);
+      } else {
+        endAction();
+      }
+    }
+  }
+
+  function updateDash(dt) {
+    sim.clipTime += dt;
+    applyDashRoot();
+    if (sim.clipTime < 0.07) sim.phaseLabel = 'windup';
+    else if (sim.clipTime < 0.22) sim.phaseLabel = 'burst';
+    else sim.phaseLabel = 'recovery';
+    sim.speed = dashProgress(sim.clipTime) > 0 ? RUN_SPEED * 1.6 : 0;
+    if (sim.clipTime >= DASH_DURATION) {
+      sim.dashCooldown = DASH_COOLDOWN;
+      endAction();
+    }
+  }
+
+  function updateSim(dt) {
+    if (sim.state !== 'dash') sim.dashCooldown = Math.max(0, sim.dashCooldown - dt);
+    if (sim.transition) {
+      sim.transition.t += dt;
+      if (sim.transition.t >= sim.transition.duration) sim.transition = null;
+    }
+    if (sim.state === 'dash') updateDash(dt);
+    else if (sim.state.indexOf('attack') === 0) updateAttack(dt);
+    else updateLocomotion(dt);
+    sim.yawDeg = deg(sim.yaw);
+    if (sim.state === 'run') measureLiveSlip();
+  }
+
+  function runFootLockTest(seconds, yawDegrees) {
+    seconds = seconds === undefined ? 2 : seconds;
+    yawDegrees = yawDegrees === undefined ? 0 : yawDegrees;
+    var old = sim;
+    var test = createSim();
+    test.mode = 'arena';
+    test.paused = false;
+    test.yaw = rad(yawDegrees);
+    test.yawDeg = deg(test.yaw);
+    test.state = 'run';
+    test.clipTime = 0;
+    test.clipDuration = RUN_DURATION;
+    test.testDrive = { yaw: test.yaw };
+    test.slip = { maxPx: 0, sumPx: 0, samples: 0 };
+    test.clampedSamples = 0;
+    sim = test;
+    initRunGaitAtTime(0);
+    var steps = Math.round(seconds / FIXED_DT);
+    for (var i = 0; i < steps; i++) updateSim(FIXED_DT);
+    var res = {
+      yaw: yawDegrees,
+      seconds: seconds,
+      maxPx: test.slip.maxPx,
+      meanPx: test.slip.samples ? test.slip.sumPx / test.slip.samples : null,
+      samples: test.slip.samples,
+      clampedSamples: test.clampedSamples,
+      pass: test.slip.samples > 0 && test.slip.maxPx < 2
+    };
+    sim = old;
+    return res;
+  }
+
+  // === API / CONTROLS / INIT ===
+  function fitCanvas() {
+    var exact = CAPTURE.has('capture');
+    if (exact) {
+      canvas.style.width = canvas.width + 'px';
+      canvas.style.height = canvas.height + 'px';
+      return;
+    }
+    var s = Math.min(window.innerWidth / canvas.width, window.innerHeight / canvas.height);
+    canvas.style.width = Math.floor(canvas.width * s) + 'px';
+    canvas.style.height = Math.floor(canvas.height * s) + 'px';
+  }
+
+  function setMode(mode) {
+    sim.mode = mode === 'contact' ? 'contact' : 'arena';
+    if (sim.mode === 'contact') {
+      sim.paused = true;
+      canvas.width = CONTACT_W;
+      canvas.height = CONTACT_H;
+    } else {
+      canvas.width = ARENA_W;
+      canvas.height = ARENA_H;
+      sim.paused = false;
+      sim.accumulator = 0;
+    }
+    fitCanvas();
+    draw();
+  }
+
+  function getMode() { return sim.mode; }
+  function getState() { return sim.state; }
+  function getTime() { return sim.clipTime; }
+  function setPaused(v) {
+    sim.paused = !!v;
+    sim.accumulator = 0;
+    draw();
+  }
+  function isPaused() { return sim.paused; }
+
+  function refreshPhaseLabel() {
+    if (sim.state === 'idle') { sim.phaseLabel = 'breath'; return; }
+    if (sim.state === 'run') {
+      var l = sim.gait.feet.L.locked, r = sim.gait.feet.R.locked;
+      sim.phaseLabel = l ? 'contact L' : (r ? 'contact R' : 'flight');
+      return;
+    }
+    if (sim.state === 'dash') {
+      sim.phaseLabel = sim.clipTime < 0.07 ? 'windup' : (sim.clipTime < 0.22 ? 'burst' : 'recovery');
+      return;
+    }
+    var idx = parseInt(sim.state.slice(6), 10) - 1;
+    var a = ATTACKS[idx];
+    if (!a) { sim.phaseLabel = '-'; return; }
+    sim.phaseLabel = sim.clipTime < a.windup ? 'windup' : (sim.clipTime < a.windup + a.active ? 'active' : 'recovery');
+  }
+
+  function setState(name) {
+    if (['idle', 'run', 'dash', 'attack1', 'attack2', 'attack3'].indexOf(name) < 0) return false;
+    sim.transition = null;
+    if (name === 'dash') {
+      var dir = inputDirection();
+      if (!dir.x && !dir.y) dir = localForward(sim.yaw);
+      sim.dashDir = { x: dir.x, y: dir.y };
+      sim.dashYaw = Math.atan2(dir.x, dir.y);
+      sim.yaw = sim.dashYaw;
+      sim.dashStartX = sim.rootX;
+      sim.dashStartY = sim.rootY;
+      sim.dashCooldown = DASH_COOLDOWN;
+      sim.state = 'dash';
+      sim.clipTime = 0;
+      sim.clipDuration = DASH_DURATION;
+      sim.apiCarry = 0;
+      sim.attackQueued = false;
+    } else if (name.indexOf('attack') === 0) {
+      startAttack(parseInt(name.slice(6), 10) - 1);
+    } else {
+      startState(name, { cut: true });
+    }
+    sim.yawDeg = deg(sim.yaw);
+    refreshPhaseLabel();
+    draw();
+    return true;
+  }
+
+  function setTime(seconds) {
+    var clip = CLIPS[sim.state] || CLIPS.idle;
+    var value = Number(seconds) || 0;
+    if (clip.loop) {
+      sim.clipTime = ((value % clip.duration) + clip.duration) % clip.duration;
+    } else {
+      sim.clipTime = clamp(value, 0, clip.duration);
+    }
+    sim.transition = null;
+    sim.apiCarry = 0;
+    if (sim.state === 'run') initRunGaitAtTime(sim.clipTime);
+    if (sim.state.indexOf('attack') === 0) applyAttackRoot();
+    if (sim.state === 'dash') applyDashRoot();
+    sim.yawDeg = deg(sim.yaw);
+    refreshPhaseLabel();
+    draw();
+  }
+
+  function setYaw(degrees) {
+    sim.yaw = rad(Number(degrees) || 0);
+    sim.yawDeg = deg(sim.yaw);
+    if (sim.state === 'run') initRunGaitAtTime(sim.clipTime);
+    draw();
+  }
+
+  function step(dt) {
+    // Accumulate the API remainder instead of rounding up to a full extra step.
+    var pending = Math.max(0, Number(dt) || 0) + (sim.apiCarry || 0);
+    sim.apiCarry = 0;
+    var guard = 0;
+    while (pending + 1e-9 >= FIXED_DT && guard < 2400) {
+      updateSim(FIXED_DT);
+      pending -= FIXED_DT;
+      guard++;
+    }
+    if (guard >= 2400) pending = 0;
+    sim.apiCarry = pending > 1e-9 ? pending : 0;
+    sim.yawDeg = deg(sim.yaw);
+    draw();
+  }
+
+  function executeAndStoreFootTest(seconds, yawDegrees) {
+    var res = runFootLockTest(seconds, yawDegrees);
+    sim.lastTest = res;
+    sim.footLockPass = !!res.pass;
+    sim.slip = {
+      maxPx: res.maxPx,
+      sumPx: res.meanPx === null ? 0 : res.meanPx * res.samples,
+      samples: res.samples
+    };
+    sim.clampedSamples = res.clampedSamples;
+    draw();
+    return res;
+  }
+
+  function runBothFootTests() {
+    var a = executeAndStoreFootTest(2, 0);
+    var b = executeAndStoreFootTest(2, 90);
+    var worst = a.maxPx >= b.maxPx ? a : b;
+    sim.footTests = { yaw0: a, yaw90: b };
+    sim.lastTest = worst;
+    sim.footLockPass = !!a.pass && !!b.pass;
+    draw();
+    return sim.footTests;
+  }
+
+  function getMetrics() {
+    var slip = sim.lastTest || {
+      maxPx: sim.slip.maxPx,
+      meanPx: sim.slip.samples ? sim.slip.sumPx / sim.slip.samples : null,
+      samples: sim.slip.samples,
+      pass: sim.footLockPass
+    };
+    return {
+      state: sim.state,
+      yaw: deg(sim.yaw),
+      clipTime: sim.clipTime,
+      clipDuration: sim.clipDuration,
+      fps: sim.fps,
+      drawMs: sim.drawMs,
+      frameCount: sim.frameCount,
+      footSlipMaxPx: slip.maxPx,
+      footSlipMeanPx: slip.meanPx,
+      footLockSamples: slip.samples,
+      footLockPass: sim.footLockPass || !!slip.pass,
+      root: { x: sim.rootX, y: sim.rootY },
+      speed: sim.speed,
+      dashCooldown: sim.dashCooldown,
+      mode: sim.mode,
+      paused: sim.paused,
+      phase: sim.phaseLabel,
+      drawCount: sim.drawCount,
+      attackQueued: sim.attackQueued,
+      attackQueuedAge: sim.attackQueued ? sim.clipTime - sim.attackQueuedAt : null,
+      clampedSamples: sim.clampedSamples,
+      footTests: sim.footTests || null,
+      errors: runtimeErrors.slice()
+    };
+  }
+
+  function getDebugInfo() {
+    var rig = currentRig();
+    var v = viewArena();
+    var joints = {};
+    Object.keys(rig.joints).forEach(function (name) {
+      var p = rig.joints[name];
+      var q = project(p, rig.yaw, sim.rootX, sim.rootY, v);
+      joints[name] = { local: p, screen: { x: q.x, y: q.y }, depth: q.depth };
+    });
+    var targets = {};
+    Object.keys(rig.targets).forEach(function (name) {
+      var p = rig.targets[name];
+      var q = project(p, rig.yaw, sim.rootX, sim.rootY, v);
+      targets[name] = { local: p, screen: { x: q.x, y: q.y }, depth: q.depth };
+    });
+    var order = sim.lastDrawInfo ? sim.lastDrawInfo.items.map(function (it, i) {
+      return { i: i, name: it.name, depth: Number(it.depth.toFixed(4)), layer: it.layer };
+    }) : [];
+    return {
+      state: sim.state,
+      mode: sim.mode,
+      yaw: deg(sim.yaw),
+      clipTime: sim.clipTime,
+      phase: sim.phaseLabel,
+      root: { x: sim.rootX, y: sim.rootY },
+      paused: sim.paused,
+      inputBuffer: {
+        queued: sim.attackQueued,
+        age: sim.attackQueued ? sim.clipTime - sim.attackQueuedAt : 0,
+        limit: 0.25
+      },
+      height: rig.height,
+      joints: joints,
+      targets: targets,
+      clamps: rig.clamps.slice(),
+      gait: {
+        feet: {
+          L: { locked: sim.gait.feet.L.locked, phase: sim.gait.feet.L.phase, lockWorld: sim.gait.feet.L.lockWorld },
+          R: { locked: sim.gait.feet.R.locked, phase: sim.gait.feet.R.phase, lockWorld: sim.gait.feet.R.lockWorld }
+        }
+      },
+      drawOrder: order,
+      drawCount: sim.drawCount,
+      errors: runtimeErrors.slice()
+    };
+  }
+
+  function setupCapture(name) {
+    resetSim();
+    sim.paused = true;
+    sim.debug = false;
+    sim.mode = 'arena';
+    canvas.width = ARENA_W;
+    canvas.height = ARENA_H;
+
+    if (name === 'contact') {
+      sim.mode = 'contact';
+      canvas.width = CONTACT_W;
+      canvas.height = CONTACT_H;
+      fitCanvas();
+      draw();
+      return;
+    }
+    if (name === 'run' || name === 'debug') {
+      var t0 = runFootLockTest(2, 0);
+      var t90 = runFootLockTest(2, 90);
+      sim.footTests = { yaw0: t0, yaw90: t90 };
+      sim.lastTest = t0;
+      sim.footLockPass = !!t0.pass && !!t90.pass;
+      sim.slip = { maxPx: t0.maxPx, sumPx: t0.meanPx * t0.samples, samples: t0.samples };
+    }
+
+    if (name === 'idle') {
+      sim.yaw = 0; startState('idle', { cut: true }); sim.clipTime = 0.35;
+    } else if (name === 'run') {
+      sim.yaw = rad(90); sim.yawDeg = 90;
+      sim.rootX = 1.2;
+      startState('run', { cut: true });
+      sim.clipTime = 0.13;
+      sim.speed = RUN_SPEED;
+      initRunGaitAtTime(sim.clipTime);
+      refreshPhaseLabel();
+    } else if (name === 'dash') {
+      sim.yaw = rad(90); sim.yawDeg = 90;
+      sim.paused = false;
+      initDashForCapture();
+      sim.clipTime = 0.16;
+      applyDashRoot();
+      sim.speed = RUN_SPEED * 1.6;
+      sim.paused = true;
+    } else if (name === 'a1' || name === 'a2' || name === 'a3') {
+      var idx = name === 'a1' ? 0 : (name === 'a2' ? 1 : 2);
+      sim.yaw = 0; sim.yawDeg = 0;
+      startAttack(idx);
+      // Sample the actual strike keys: A1 0.470 and A2 0.4286 of clip duration.
+      sim.clipTime = idx === 0 ? 0.1598 : (idx === 1 ? 0.15 : 0.19);
+      applyAttackRoot();
+    } else if (name === 'debug') {
+      sim.yaw = 0; sim.yawDeg = 0;
+      sim.debug = true;
+      startAttack(0);
+      sim.clipTime = 0.1598;
+      applyAttackRoot();
+    } else if (name === 'fps') {
+      sim.paused = false;
+      startState('idle', { cut: true });
+      sim.clipTime = 0;
+    }
+
+    sim.transition = null;
+    sim.paused = name !== 'fps';
+    sim.accumulator = 0;
+    sim.yawDeg = deg(sim.yaw);
+    refreshPhaseLabel();
+    fitCanvas();
+    draw();
+  }
+
+  function initDashForCapture() {
+    var dir = localForward(sim.yaw);
+    sim.dashDir = dir;
+    sim.dashYaw = Math.atan2(dir.x, dir.y);
+    sim.dashStartX = sim.rootX;
+    sim.dashStartY = sim.rootY;
+    sim.dashCooldown = DASH_COOLDOWN;
+    sim.state = 'dash';
+    sim.clipTime = 0;
+    sim.clipDuration = DASH_DURATION;
+    sim.attackQueued = false;
+  }
+
+  // Controls
+  function isPrevented(code) {
+    return code === 'Space' || code === 'Tab' || code === 'ShiftLeft' || code === 'ShiftRight' ||
+      code === 'F1' || code === 'ArrowUp' || code === 'ArrowDown' || code === 'ArrowLeft' || code === 'ArrowRight';
+  }
+
+  window.addEventListener('keydown', function (e) {
+    if (isPrevented(e.code)) e.preventDefault();
+    sim.keys[e.code] = true;
+    if (e.repeat) return;
+
+    if (e.code === 'Space') {
+      sim.paused = !sim.paused;
+      sim.accumulator = 0;
+    } else if (e.code === 'F1') {
+      sim.debug = !sim.debug;
+    } else if (e.code === 'KeyC') {
+      setMode(sim.mode === 'arena' ? 'contact' : 'arena');
+    } else if (e.code === 'KeyR') {
+      resetSim();
+      sim.accumulator = 0;
+      draw();
+    } else if (e.code === 'KeyT') {
+      runBothFootTests();
+    } else if (e.code === 'KeyJ') {
+      handleAttackInput();
+    } else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+      tryStartDash();
+    } else if (e.code === 'BracketLeft' || e.code === 'BracketRight') {
+      var delta = e.code === 'BracketLeft' ? -1 : 1;
+      if (sim.mode === 'contact') {
+        sim.contactFocus = ((sim.contactFocus + delta) % COLS + COLS) % COLS;
+      } else {
+        var steps = Math.round(deg(sim.yaw) / 45);
+        sim.yaw = rad(((steps + delta) % 8 + 8) % 8 * 45);
+        sim.yawDeg = deg(sim.yaw);
+        sim.paused = true;
+        if (sim.state === 'run') initRunGaitAtTime(sim.clipTime);
+      }
+    }
+    draw();
+  });
+
+  window.addEventListener('keyup', function (e) {
+    sim.keys[e.code] = false;
+  });
+  window.addEventListener('blur', function () { sim.keys = {}; });
+
+  canvas.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    if (sim.mode === 'arena') {
+      handleAttackInput();
+      draw();
+    }
+  });
+
+  window.addEventListener('resize', fitCanvas);
+
+  // Deterministic public API.
+  window.RIG01 = {
+    version: VERSION,
+    ready: readyPromise,
+    setMode: setMode,
+    getMode: getMode,
+    setState: setState,
+    getState: getState,
+    setTime: setTime,
+    getTime: getTime,
+    setYaw: setYaw,
+    getYaw: function () { return deg(sim.yaw); },
+    setPaused: setPaused,
+    isPaused: isPaused,
+    step: step,
+    reset: function () { resetSim(); sim.paused = false; sim.accumulator = 0; draw(); },
+    runFootLockTest: function (seconds, yaw) {
+      var res = runFootLockTest(seconds === undefined ? 2 : seconds, yaw === undefined ? 0 : yaw);
+      sim.lastTest = res;
+      sim.footLockPass = !!res.pass;
+      draw();
+      return res;
+    },
+    getMetrics: getMetrics,
+    capturePNG: function () { draw(); return canvas.toDataURL('image/png'); },
+    getDebugInfo: getDebugInfo
+  };
+
+  // Boot.
+  resetSim();
+  fitCanvas();
+  if (CAPTURE.has('capture')) {
+    setupCapture(CAPTURE.get('capture'));
+  } else {
+    sim.paused = false;
+    refreshPhaseLabel();
+    draw();
+  }
+  document.body.dataset.ready = '1';
+  readyResolve();
+
+  var lastFrame = performance.now();
+  sim.lastFrameTime = lastFrame;
+  function frame(now) {
+    var raw = Math.max(0, (now - lastFrame) / 1000);
+    lastFrame = now;
+    var capped = Math.min(0.25, raw);
+    if (raw > 0.0001) sim.fps = sim.fps * 0.92 + (1 / raw) * 0.08;
+    if (!sim.paused) {
+      sim.accumulator += capped;
+      var guard = 0;
+      while (sim.accumulator >= FIXED_DT && guard < 40) {
+        updateSim(FIXED_DT);
+        sim.accumulator -= FIXED_DT;
+        guard++;
+      }
+      if (guard >= 40) sim.accumulator = 0;
+    }
+    sim.yawDeg = deg(sim.yaw);
+    // The contact sheet is static while paused; skip costly redraws.
+    if (!(sim.paused && sim.mode === 'contact')) draw();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
+
+

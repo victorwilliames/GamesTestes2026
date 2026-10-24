@@ -1,0 +1,49 @@
+{
+  "build": "index-rig.html",
+  "buildSha256": "44c981e5495d8323f2a36d890c44629b2b4353703866a091855a72db5d708f5f",
+  "method": "Uncapped requestAnimationFrame throughput; 1.5 s warm-up + 6 s sample; 1280x720 native buffer; Edge 155.0.4283.62 on Windows 11 / Ryzen 5 5500U / Radeon integrated.",
+  "gpuRuns": [
+    {
+      "label": "run A, host with other active browser processes",
+      "flags": ["--disable-frame-rate-limit", "--disable-gpu-vsync"],
+      "samples": 5081,
+      "seconds": 5.9995,
+      "avgFps": 846.74,
+      "worstSecondFps": 359.7,
+      "perSecondFps": [766.8, 548.3, 633.6, 359.7, 1323.0],
+      "frameMs": { "p50": 1.0, "p95": 2.1, "p99": 2.6, "max": 416.2 },
+      "drawMs": 0.392
+    },
+    {
+      "label": "run B, same build; official capture-report.json values",
+      "flags": ["--disable-frame-rate-limit", "--disable-gpu-vsync"],
+      "samples": 6576,
+      "seconds": 5.9999,
+      "avgFps": 1095.85,
+      "worstSecondFps": 750.2,
+      "perSecondFps": [947.5, 1061.5, 750.2, 1041.4, 1431.6],
+      "frameMs": { "p50": 0.8, "p95": 1.4, "p99": 1.7, "max": 138.5 },
+      "drawMs": 0.412
+    }
+  ],
+  "softwareRuns": [
+    {
+      "label": "run A, host with other active browser processes",
+      "buildSha256": "562eb9ece3d9631607e9a2579ef341acae537e67dd2ccffece9e25d7355aba4d",
+      "flags": ["--disable-frame-rate-limit", "--disable-gpu-vsync", "--disable-gpu"],
+      "avgFps": 255.44,
+      "frameMs": { "p50": 3.8, "p95": 5.7, "p99": 6.8, "max": 47.2 },
+      "drawMs": 0.381
+    },
+    {
+      "label": "run B, same code path with the final blend edit",
+      "flags": ["--disable-frame-rate-limit", "--disable-gpu-vsync", "--disable-gpu"],
+      "samples": 2218,
+      "seconds": 6.0,
+      "avgFps": 369.52,
+      "frameMs": { "p50": 2.7, "p95": 3.6, "p99": 4.0, "max": 5.0 },
+      "drawMs": 0.374
+    }
+  ],
+  "interpretation": "Both GPU runs keep the worst measured second above 200 fps; isolated host hitches remain visible. Software-rendering results vary with host load. None of these runs validates a phone in the S20 FE-or-weaker class."
+}

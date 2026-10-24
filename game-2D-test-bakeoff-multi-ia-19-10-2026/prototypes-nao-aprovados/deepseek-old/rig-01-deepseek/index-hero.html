@@ -1,0 +1,3555 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HERO-02 - Gate 2 - DeepSeek</title>
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #0d1017; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; }
+  canvas { display: block; background: #12151d; image-rendering: auto; }
+  ::selection { background: transparent; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="1280" height="720"></canvas>
+<script>
+(function () {
+  'use strict';
+
+  // =========================================================================
+  // HERO-02 - Gate 2 hero presentation on top of the validated RIG-01 rig.
+  // Canvas 2D only. Local PNG crops for the official head + procedural body/VFX.
+  // No WebGL, no libraries, no CDN, no network, no build.
+  // Coordinate convention:
+  //   +X = anatomical LEFT in rig space (screen right at yaw 0)
+  //   -X = anatomical RIGHT in rig space (screen left at yaw 0)
+  //   +Y = character forward at yaw 0 (South / toward camera)
+  //   +Z = up
+  //   yaw 0 = S, 90 = E, 180 = N, 270 = W
+  // Projection: orthographic, fixed camera PITCH 30deg.
+  // =========================================================================
+
+  var VERSION = '2.0';
+  var FIXED_DT = 1 / 120;
+  var PITCH = 30 * Math.PI / 180;
+  var SIN = Math.sin(PITCH);          // 0.5
+  var COS = Math.cos(PITCH);          // 0.8660254038
+  var SCALE = 90;                     // Gate 1 contract: 1.70 u â‰ˆ 132 px
+  var ORIGIN_X = 640;
+  var ORIGIN_Y = 470;
+
+  var ARENA_W = 1280, ARENA_H = 720;
+  var CONTACT_W = 1920, CONTACT_H = 1120;
+  var CELL_W = 240, CELL_H = 160;
+  var COLS = 8, ROWS = 7;
+
+  // Bone constants (world units). Never scaled during animation.
+  var L = {
+    foot: 0.095,
+    shin: 0.34,
+    thigh: 0.34,
+    torso: 0.42,
+    neck: 0.06,
+    headDiameter: 0.54,
+    headRadius: 0.27,
+    shoulder: 0.285,
+    upperArm: 0.26,
+    forearm: 0.24,
+    hand: 0.07,
+    blade: 0.42,
+    hipHalf: 0.09,
+    ankleZ: 0.08
+  };
+
+  var IDLE_DURATION = 2.0;
+  var RUN_DURATION = 0.8;
+  var RUN_SPEED = 2.2;
+  var STANCE_HALF = 0.17;
+  var SUPPORT_FRAC = (STANCE_HALF * 2) / (RUN_SPEED * RUN_DURATION); // 0.1932
+  var DASH_DURATION = 0.42;
+  var DASH_DISTANCE = 2.4;
+  var DASH_COOLDOWN = 0.6;
+  var ATTACKS = [
+    { id: 'attack1', windup: 0.08, active: 0.08, recovery: 0.18, root: 0.18, name: 'A1 right diagonal' },
+    { id: 'attack2', windup: 0.07, active: 0.08, recovery: 0.20, root: 0.22, name: 'A2 left reverse' },
+    { id: 'attack3', windup: 0.14, active: 0.10, recovery: 0.32, root: 0.12, name: 'A3 360 heavy' }
+  ];
+  ATTACKS.forEach(function (a) {
+    a.duration = a.windup + a.active + a.recovery;
+    a.windupEnd = a.windup / a.duration;
+    a.activeEnd = (a.windup + a.active) / a.duration;
+    a.recoveryStart = a.windup + a.active;
+  });
+
+  var canvas = document.getElementById('stage');
+  var ctx = canvas.getContext('2d', { alpha: false });
+  if (!ctx) throw new Error('Canvas 2D unavailable');
+
+  var CAPTURE = new URLSearchParams(location.search);
+
+  // =========================================================================
+  // Gate 2 assets. The official reference PNGs are never edited. The eight
+  // head crops are fixed-rect derivatives with a documented bottom-center
+  // pivot; the body, cape, props and VFX are painted in Canvas 2D.
+  // =========================================================================
+  var HEAD_ORDER = ['s', 'se', 'e', 'ne', 'n', 'nw', 'w', 'sw'];
+  var HEAD_FILE = {
+    s: 'hero-idle-s.png', se: 'hero-idle-se.png', e: 'hero-idle-e.png', ne: 'hero-idle-ne.png',
+    n: 'hero-idle-n.png', nw: 'hero-idle-nw.png', w: 'hero-idle-w.png', sw: 'hero-idle-sw.png'
+  };
+  var REF_BASE = '../../assets/references/ref-2d-hero/hero-complet-idle/';
+  var HERO_ASSETS = {
+    loaded: false, errors: [], heads: {}, refs: {},
+    headCrop: { x: 160, y: 0, w: 920, h: 645, pivotX: 467, pivotY: 645 }
+  };
+
+  function loadHeroImage(src) {
+    return new Promise(function (resolve) {
+      var img = new Image();
+      img.onload = function () { resolve(img); };
+      img.onerror = function () {
+        HERO_ASSETS.errors.push(src);
+        resolve(null);
+      };
+      img.src = src;
+    });
+  }
+
+  function loadHeroAssets() {
+    var jobs = HEAD_ORDER.map(function (dir) {
+      return loadHeroImage('derived/head-' + dir + '.png').then(function (img) {
+        HERO_ASSETS.heads[dir] = img;
+      });
+    });
+    HEAD_ORDER.forEach(function (dir) {
+      jobs.push(loadHeroImage(REF_BASE + HEAD_FILE[dir]).then(function (img) {
+        HERO_ASSETS.refs[dir] = img;
+      }));
+    });
+    return Promise.all(jobs).then(function () {
+      HERO_ASSETS.loaded = true;
+      HERO_ASSETS.errors = HERO_ASSETS.errors.filter(Boolean);
+      return HERO_ASSETS;
+    });
+  }
+
+  // =========================================================================
+  // Small helpers
+  // =========================================================================
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function smoothstep(t) { t = clamp(t, 0, 1); return t * t * (3 - 2 * t); }
+  function easeOutCubic(t) { t = clamp(t, 0, 1); return 1 - Math.pow(1 - t, 3); }
+  function easeInOut(t) { t = clamp(t, 0, 1); return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+  function normAngle(a) { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; }
+  function turnToward(cur, target, maxStep) {
+    var d = normAngle(target - cur);
+    if (Math.abs(d) <= maxStep) return target;
+    return normAngle(cur + Math.sign(d) * maxStep);
+  }
+  function deg(rad) { var d = rad * 180 / Math.PI; d %= 360; if (d < 0) d += 360; return d; }
+  function rad(degv) { return degv * Math.PI / 180; }
+  function len2(x, y) { return Math.sqrt(x * x + y * y); }
+  function len3(v) { return Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z); }
+  function add3(a, b) { return { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z }; }
+  function sub3(a, b) { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
+  function mul3(a, s) { return { x: a.x * s, y: a.y * s, z: a.z * s }; }
+  function norm3(v) { var m = len3(v); return m < 1e-9 ? { x: 0, y: 0, z: 0 } : { x: v.x / m, y: v.y / m, z: v.z / m }; }
+  function dot3(a, b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+  function cross3(a, b) { return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x }; }
+  function rotZ(v, a) {
+    var c = Math.cos(a), s = Math.sin(a);
+    return { x: v.x * c - v.y * s, y: v.x * s + v.y * c, z: v.z };
+  }
+  function mixHex(hex, target, amt) {
+    var a = parseInt(hex.slice(1), 16), b = parseInt(target.slice(1), 16);
+    var ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255;
+    var br = (b >> 16) & 255, bg = (b >> 8) & 255, bb = b & 255;
+    var r = Math.round(lerp(ar, br, amt)), g = Math.round(lerp(ag, bg, amt)), bl = Math.round(lerp(ab, bb, amt));
+    return 'rgb(' + r + ',' + g + ',' + bl + ')';
+  }
+  function rgba(hex, a) {
+    var v = parseInt(hex.slice(1), 16);
+    return 'rgba(' + ((v >> 16) & 255) + ',' + ((v >> 8) & 255) + ',' + (v & 255) + ',' + a + ')';
+  }
+
+  // =========================================================================
+  // Projection - exact contract from the brief.
+  // =========================================================================
+  function project(local, yaw, rootX, rootY, view) {
+    var cy = Math.cos(yaw), sy = Math.sin(yaw);
+    var xr = local.x * cy + local.y * sy;
+    var yr = -local.x * sy + local.y * cy;
+    var wx = rootX + xr;
+    var wy = rootY + yr;
+    var s = view.scale;
+    return {
+      x: view.originX + wx * s,
+      y: view.originY + wy * SIN * s - local.z * COS * s,
+      depth: wy
+    };
+  }
+
+  function worldToLocal(dx, dy, yaw) {
+    var cy = Math.cos(yaw), sy = Math.sin(yaw);
+    return { x: dx * cy - dy * sy, y: dx * sy + dy * cy };
+  }
+  function localForward(yaw) { return { x: Math.sin(yaw), y: Math.cos(yaw) }; }
+  function localSide(side, yaw) {
+    // side +1 is anatomical left, -1 anatomical right.
+    return { x: Math.cos(yaw) * side, y: -Math.sin(yaw) * side };
+  }
+
+  // =========================================================================
+  // Keyframe sampling. Keys are data, not branches in render.
+  // =========================================================================
+  function sampleNumber(keys, t, field, loop) {
+    if (!keys.length) return 0;
+    var time = loop ? ((t % 1) + 1) % 1 : clamp(t, 0, 1);
+    for (var i = 0; i < keys.length - 1; i++) {
+      var a = keys[i], b = keys[i + 1];
+      if (time >= a.t && time <= b.t) {
+        var span = b.t - a.t || 1;
+        var u = (time - a.t) / span;
+        if (b.ease) u = b.ease(u);
+        return lerp(a[field] || 0, b[field] || 0, u);
+      }
+    }
+    if (loop && time > keys[keys.length - 1].t) {
+      var a2 = keys[keys.length - 1], b2 = keys[0];
+      var span2 = (1 - a2.t) + b2.t || 1;
+      var u2 = (time - a2.t) / span2;
+      if (b2.ease) u2 = b2.ease(u2);
+      return lerp(a2[field] || 0, b2[field] || 0, u2);
+    }
+    return keys[keys.length - 1][field] || 0;
+  }
+
+  function sampleVector(keys, t, field, loop) {
+    var x = sampleNumber(keys.map(function (k) { return { t: k.t, v: k[field] ? k[field].x : 0, ease: k.ease }; }), t, 'v', loop);
+    var y = sampleNumber(keys.map(function (k) { return { t: k.t, v: k[field] ? k[field].y : 0, ease: k.ease }; }), t, 'v', loop);
+    var z = sampleNumber(keys.map(function (k) { return { t: k.t, v: k[field] ? k[field].z : 0, ease: k.ease }; }), t, 'v', loop);
+    return { x: x, y: y, z: z };
+  }
+
+  function sampleScalar(keys, t, getter, loop) {
+    return sampleNumber(keys.map(function (k) { return { t: k.t, v: getter(k) || 0, ease: k.ease }; }), t, 'v', loop);
+  }
+
+  // =========================================================================
+  // Extra state / placeholders are filled in the next sections.
+  // =========================================================================
+  var sim = null;
+  var view = null;
+  var readyResolve = null;
+  var readyPromise = new Promise(function (res) { readyResolve = res; });
+  var runtimeErrors = [];
+  window.addEventListener('error', function (e) {
+    runtimeErrors.push(String(e.message || e.error || 'unknown error'));
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    runtimeErrors.push('unhandled rejection: ' + String(e.reason));
+  });
+
+  // === RIG DATA ===
+  function basePose() {
+    return {
+      pelvisZ: 0.745, sway: 0, lean: 0.05, twist: 0, headX: 0, headY: 0, spin: 0,
+      handL: { x: 0.30, y: 0.025, z: -0.42 },
+      handR: { x: -0.30, y: 0.025, z: -0.42 },
+      footL: { x: 0.11, y: 0.06, z: L.ankleZ, pitch: 0 },
+      footR: { x: -0.11, y: -0.04, z: L.ankleZ, pitch: 0 }
+    };
+  }
+
+  function poseClone(p) {
+    return {
+      pelvisZ: p.pelvisZ, sway: p.sway, lean: p.lean, twist: p.twist,
+      headX: p.headX, headY: p.headY, spin: p.spin,
+      handL: { x: p.handL.x, y: p.handL.y, z: p.handL.z },
+      handR: { x: p.handR.x, y: p.handR.y, z: p.handR.z },
+      footL: { x: p.footL.x, y: p.footL.y, z: p.footL.z, pitch: p.footL.pitch },
+      footR: { x: p.footR.x, y: p.footR.y, z: p.footR.z, pitch: p.footR.pitch }
+    };
+  }
+
+  function blendPose(a, b, t) {
+    var out = poseClone(a);
+    var fields = ['pelvisZ', 'sway', 'lean', 'twist', 'headX', 'headY', 'spin'];
+    fields.forEach(function (f) { out[f] = lerp(a[f], b[f], t); });
+    ['handL', 'handR', 'footL', 'footR'].forEach(function (f) {
+      out[f].x = lerp(a[f].x, b[f].x, t);
+      out[f].y = lerp(a[f].y, b[f].y, t);
+      out[f].z = lerp(a[f].z, b[f].z, t);
+      if (f === 'footL' || f === 'footR') out[f].pitch = lerp(a[f].pitch, b[f].pitch, t);
+    });
+    return out;
+  }
+
+  function makeLoopKeys(entries) {
+    return entries.map(function (e) {
+      var k = { t: e.t };
+      Object.keys(e).forEach(function (key) { if (key !== 't') k[key] = e[key]; });
+      return k;
+    });
+  }
+
+  var CLIPS = {};
+  CLIPS.idle = {
+    duration: IDLE_DURATION, loop: true,
+    keys: makeLoopKeys([
+      { t: 0.00, pelvisZ: 0.727, sway: 0.010, lean: 0.050, headY: 0.000, handL: { x: 0.300, y: 0.025, z: -0.420 }, handR: { x: -0.300, y: 0.025, z: -0.420 } },
+      { t: 0.25, pelvisZ: 0.744, sway: 0.000, lean: 0.043, headY: 0.004, handL: { x: 0.297, y: 0.035, z: -0.432 }, handR: { x: -0.297, y: 0.035, z: -0.432 } },
+      { t: 0.50, pelvisZ: 0.754, sway: -0.010, lean: 0.040, headY: 0.006, handL: { x: 0.300, y: 0.040, z: -0.438 }, handR: { x: -0.300, y: 0.040, z: -0.438 } },
+      { t: 0.75, pelvisZ: 0.741, sway: 0.000, lean: 0.046, headY: 0.003, handL: { x: 0.298, y: 0.030, z: -0.428 }, handR: { x: -0.298, y: 0.030, z: -0.428 } },
+      { t: 1.00, pelvisZ: 0.727, sway: 0.010, lean: 0.050, headY: 0.000, handL: { x: 0.300, y: 0.025, z: -0.420 }, handR: { x: -0.300, y: 0.025, z: -0.420 } }
+    ])
+  };
+
+  CLIPS.run = {
+    duration: RUN_DURATION, loop: true,
+    keys: makeLoopKeys([
+      { t: 0.00, pelvisZ: 0.690, lean: 0.22, twist: -0.10, headY: -0.060, handL: { x: 0.27, y: -0.16, z: -0.32 }, handR: { x: -0.27, y: 0.15, z: -0.30 } },
+      { t: 0.25, pelvisZ: 0.745, lean: 0.21, twist: 0.00, headY: -0.052, handL: { x: 0.26, y: 0.00, z: -0.35 }, handR: { x: -0.26, y: 0.00, z: -0.34 } },
+      { t: 0.50, pelvisZ: 0.690, lean: 0.22, twist: 0.10, headY: -0.060, handL: { x: 0.27, y: 0.15, z: -0.30 }, handR: { x: -0.27, y: -0.16, z: -0.32 } },
+      { t: 0.75, pelvisZ: 0.745, lean: 0.21, twist: 0.00, headY: -0.052, handL: { x: 0.26, y: 0.00, z: -0.34 }, handR: { x: -0.26, y: 0.00, z: -0.35 } },
+      { t: 1.00, pelvisZ: 0.690, lean: 0.22, twist: -0.10, headY: -0.060, handL: { x: 0.27, y: -0.16, z: -0.32 }, handR: { x: -0.27, y: 0.15, z: -0.30 } }
+    ])
+  };
+
+  CLIPS.dash = {
+    duration: DASH_DURATION, loop: false,
+    keys: [
+      { t: 0.000, pelvisZ: 0.700, lean: 0.12, handL: { x: 0.28, y: -0.16, z: -0.30 }, handR: { x: -0.28, y: -0.16, z: -0.30 }, footL: { x: 0.12, y: 0.02, z: 0.08, pitch: 0 }, footR: { x: -0.12, y: -0.06, z: 0.08, pitch: 0 } },
+      { t: 0.1667, pelvisZ: 0.675, lean: 0.30, handL: { x: 0.26, y: -0.27, z: -0.24 }, handR: { x: -0.26, y: -0.27, z: -0.24 }, footL: { x: 0.12, y: 0.10, z: 0.10, pitch: 0.10 }, footR: { x: -0.13, y: -0.16, z: 0.14, pitch: 0.20 }, ease: easeOutCubic },
+      { t: 0.5238, pelvisZ: 0.735, lean: 0.52, handL: { x: 0.24, y: -0.34, z: -0.18 }, handR: { x: -0.24, y: -0.34, z: -0.18 }, footL: { x: 0.13, y: 0.24, z: 0.20, pitch: 0.35 }, footR: { x: -0.13, y: -0.30, z: 0.26, pitch: 0.45 }, ease: easeOutCubic },
+      { t: 0.800, pelvisZ: 0.720, lean: 0.20, handL: { x: 0.28, y: -0.10, z: -0.30 }, handR: { x: -0.28, y: -0.10, z: -0.30 }, footL: { x: 0.12, y: 0.10, z: 0.10, pitch: 0.08 }, footR: { x: -0.12, y: -0.10, z: 0.12, pitch: 0.10 }, ease: easeInOut },
+      { t: 1.000, pelvisZ: 0.745, lean: 0.05, handL: { x: 0.30, y: 0.025, z: -0.42 }, handR: { x: -0.30, y: 0.025, z: -0.42 }, footL: { x: 0.11, y: 0.06, z: 0.08, pitch: 0 }, footR: { x: -0.11, y: -0.04, z: 0.08, pitch: 0 } }
+    ]
+  };
+
+  CLIPS.attack1 = {
+    duration: ATTACKS[0].duration, loop: false,
+    keys: [
+      { t: 0.000, pelvisZ: 0.740, lean: 0.06, twist: -0.08, handL: { x: 0.30, y: 0.025, z: -0.42 }, handR: { x: -0.30, y: 0.025, z: -0.42 }, footL: { x: 0.11, y: 0.06, z: 0.08, pitch: 0 }, footR: { x: -0.11, y: -0.04, z: 0.08, pitch: 0 } },
+      { t: 0.235, pelvisZ: 0.715, lean: 0.10, twist: -0.42, handL: { x: 0.16, y: 0.20, z: -0.22 }, handR: { x: -0.42, y: -0.16, z: 0.16 }, footL: { x: 0.13, y: 0.13, z: 0.08, pitch: 0 }, footR: { x: -0.13, y: -0.08, z: 0.08, pitch: 0 }, ease: easeOutCubic },
+      { t: 0.470, pelvisZ: 0.742, lean: 0.18, twist: 0.25, handL: { x: 0.10, y: 0.10, z: -0.28 }, handR: { x: 0.24, y: 0.20, z: -0.05 }, footL: { x: 0.14, y: 0.14, z: 0.08, pitch: 0 }, footR: { x: -0.13, y: -0.12, z: 0.08, pitch: 0 }, ease: easeOutCubic },
+      { t: 0.720, pelvisZ: 0.740, lean: 0.09, twist: 0.10, handL: { x: 0.25, y: 0.04, z: -0.35 }, handR: { x: -0.20, y: 0.12, z: -0.28 }, footL: { x: 0.12, y: 0.10, z: 0.08, pitch: 0 }, footR: { x: -0.12, y: -0.07, z: 0.08, pitch: 0 }, ease: easeInOut },
+      { t: 1.000, pelvisZ: 0.745, lean: 0.05, twist: 0, handL: { x: 0.30, y: 0.025, z: -0.42 }, handR: { x: -0.30, y: 0.025, z: -0.42 }, footL: { x: 0.11, y: 0.06, z: 0.08, pitch: 0 }, footR: { x: -0.11, y: -0.04, z: 0.08, pitch: 0 } }
+    ]
+  };
+
+  CLIPS.attack2 = {
+    duration: ATTACKS[1].duration, loop: false,
+    keys: [
+      { t: 0.000, pelvisZ: 0.740, lean: 0.06, twist: 0.08, handL: { x: 0.30, y: 0.025, z: -0.42 }, handR: { x: -0.30, y: 0.025, z: -0.42 }, footL: { x: 0.11, y: 0.06, z: 0.08, pitch: 0 }, footR: { x: -0.11, y: -0.04, z: 0.08, pitch: 0 } },
+      { t: 0.200, pelvisZ: 0.715, lean: 0.10, twist: 0.44, handL: { x: 0.42, y: -0.16, z: 0.16 }, handR: { x: -0.16, y: 0.20, z: -0.22 }, footL: { x: 0.13, y: 0.13, z: 0.08, pitch: 0 }, footR: { x: -0.13, y: -0.08, z: 0.08, pitch: 0 }, ease: easeOutCubic },
+      { t: 0.4286, pelvisZ: 0.742, lean: 0.16, twist: -0.25, handL: { x: -0.24, y: 0.20, z: -0.05 }, handR: { x: -0.10, y: 0.10, z: -0.28 }, footL: { x: 0.14, y: 0.14, z: 0.08, pitch: 0 }, footR: { x: -0.13, y: -0.12, z: 0.08, pitch: 0 }, ease: easeOutCubic },
+      { t: 0.720, pelvisZ: 0.740, lean: 0.09, twist: -0.10, handL: { x: 0.20, y: 0.12, z: -0.28 }, handR: { x: -0.25, y: 0.04, z: -0.35 }, footL: { x: 0.12, y: 0.10, z: 0.08, pitch: 0 }, footR: { x: -0.12, y: -0.07, z: 0.08, pitch: 0 }, ease: easeInOut },
+      { t: 1.000, pelvisZ: 0.745, lean: 0.05, twist: 0, handL: { x: 0.30, y: 0.025, z: -0.42 }, handR: { x: -0.30, y: 0.025, z: -0.42 }, footL: { x: 0.11, y: 0.06, z: 0.08, pitch: 0 }, footR: { x: -0.11, y: -0.04, z: 0.08, pitch: 0 } }
+    ]
+  };
+
+  CLIPS.attack3 = {
+    duration: ATTACKS[2].duration, loop: false,
+    keys: [
+      { t: 0.000, pelvisZ: 0.740, lean: 0.06, twist: 0, spin: 0, handL: { x: 0.30, y: 0.025, z: -0.42 }, handR: { x: -0.30, y: 0.025, z: -0.42 }, footL: { x: 0.11, y: 0.06, z: 0.08, pitch: 0 }, footR: { x: -0.11, y: -0.04, z: 0.08, pitch: 0 } },
+      { t: 0.250, pelvisZ: 0.690, lean: 0.04, twist: 0, spin: 0, handL: { x: 0.20, y: -0.10, z: -0.26 }, handR: { x: -0.20, y: -0.10, z: -0.26 }, footL: { x: 0.14, y: 0.08, z: 0.08, pitch: 0 }, footR: { x: -0.14, y: -0.06, z: 0.08, pitch: 0 }, ease: easeOutCubic },
+      { t: 0.339, pelvisZ: 0.720, lean: 0.06, twist: 0, spin: 180, handL: { x: 0.55, y: 0.20, z: -0.02 }, handR: { x: -0.55, y: 0.20, z: -0.02 }, footL: { x: 0.15, y: 0.10, z: 0.08, pitch: 0 }, footR: { x: -0.15, y: -0.08, z: 0.08, pitch: 0 }, ease: easeOutCubic },
+      { t: 0.500, pelvisZ: 0.730, lean: 0.08, twist: 0, spin: 250, handL: { x: 0.58, y: 0.12, z: -0.06 }, handR: { x: -0.58, y: 0.12, z: -0.06 }, footL: { x: 0.15, y: 0.10, z: 0.08, pitch: 0 }, footR: { x: -0.15, y: -0.08, z: 0.08, pitch: 0 }, ease: easeInOut },
+      { t: 0.750, pelvisZ: 0.740, lean: 0.05, twist: 0, spin: 330, handL: { x: 0.40, y: 0.06, z: -0.24 }, handR: { x: -0.40, y: 0.06, z: -0.24 }, footL: { x: 0.13, y: 0.08, z: 0.08, pitch: 0 }, footR: { x: -0.13, y: -0.06, z: 0.08, pitch: 0 }, ease: easeInOut },
+      { t: 1.000, pelvisZ: 0.745, lean: 0.05, twist: 0, spin: 360, handL: { x: 0.30, y: 0.025, z: -0.42 }, handR: { x: -0.30, y: 0.025, z: -0.42 }, footL: { x: 0.11, y: 0.06, z: 0.08, pitch: 0 }, footR: { x: -0.11, y: -0.04, z: 0.08, pitch: 0 } }
+    ]
+  };
+
+  function sampleClip(stateName, clipTime, contactOverride) {
+    var clip = CLIPS[stateName];
+    if (!clip) clip = CLIPS.idle;
+    var t = clip.loop ? (clipTime / clip.duration) % 1 : clamp(clipTime / clip.duration, 0, 1);
+    var p = basePose();
+    var fields = ['pelvisZ', 'sway', 'lean', 'twist', 'headX', 'headY', 'spin'];
+    fields.forEach(function (f) {
+      if (clip.keys.some(function (k) { return k[f] !== undefined; })) p[f] = sampleNumber(clip.keys, t, f, clip.loop);
+    });
+    ['handL', 'handR', 'footL', 'footR'].forEach(function (f) {
+      if (clip.keys.some(function (k) { return k[f] !== undefined; })) p[f] = sampleVector(clip.keys, t, f, clip.loop);
+    });
+    var pitchL = sampleScalar(clip.keys, t, function (k) { return k.footPitchL; }, clip.loop);
+    var pitchR = sampleScalar(clip.keys, t, function (k) { return k.footPitchR; }, clip.loop);
+    p.footL.pitch = sampleScalar(clip.keys, t, function (k) { return k.footL ? k.footL.pitch : 0; }, clip.loop);
+    p.footR.pitch = sampleScalar(clip.keys, t, function (k) { return k.footR ? k.footR.pitch : 0; }, clip.loop);
+    if (!pitchL) p.footL.pitch += 0;
+    if (!pitchR) p.footR.pitch += 0;
+    if (contactOverride && stateName === 'attack3') p.spin = 0;
+    return p;
+  }
+
+  // === RIG BUILD ===
+  function solveIK2(root, target, l1, l2, pole, tag) {
+    var d = sub3(target, root);
+    var dist = len3(d);
+    var min = Math.abs(l1 - l2) + 0.0005;
+    var max = l1 + l2 - 0.0005;
+    var clamped = false;
+    if (dist < min) { dist = min; clamped = true; }
+    if (dist > max) { dist = max; clamped = true; }
+    var dir = dist > 1e-8 ? norm3(d) : { x: 0, y: 1, z: 0 };
+    if (clamped) target = add3(root, mul3(dir, dist));
+    var poleOrtho = sub3(pole, mul3(dir, dot3(pole, dir)));
+    if (len3(poleOrtho) < 1e-5) {
+      var fallback = Math.abs(dir.z) < 0.9 ? { x: 0, y: 0, z: 1 } : { x: 0, y: 1, z: 0 };
+      poleOrtho = sub3(fallback, mul3(dir, dot3(fallback, dir)));
+    }
+    poleOrtho = norm3(poleOrtho);
+    var cosA = clamp((l1 * l1 + dist * dist - l2 * l2) / (2 * l1 * dist), -1, 1);
+    var a = Math.acos(cosA);
+    var joint = add3(root, add3(mul3(dir, Math.cos(a) * l1), mul3(poleOrtho, Math.sin(a) * l1)));
+    var endDir = norm3(sub3(target, joint));
+    var end = add3(joint, mul3(endDir, l2));
+    return {
+      root: root, joint: joint, end: end, target: target, clamped: clamped,
+      reach: dist, min: min, max: max, tag: tag,
+      b1: l1, b2: l2
+    };
+  }
+
+  function buildRig(pose, opts) {
+    opts = opts || {};
+    var yaw = opts.yaw || 0;
+    var contact = !!opts.contact;
+    var sway = pose.sway;
+    var pelvis = { x: sway, y: 0, z: pose.pelvisZ };
+    var lean = pose.lean;
+    var chest = { x: pelvis.x, y: pelvis.y + Math.sin(lean) * L.torso, z: pelvis.z + Math.cos(lean) * L.torso };
+    var neck = { x: chest.x, y: chest.y + Math.sin(lean) * L.neck, z: chest.z + Math.cos(lean) * L.neck };
+    var head = { x: neck.x + pose.headX, y: neck.y + pose.headY, z: neck.z + L.headRadius + 0.005 };
+
+    var twist = pose.twist;
+    function shoulderOffset(side) { return rotZ({ x: L.shoulder * side, y: 0, z: 0.02 }, twist); }
+    var shoulderL = add3(chest, shoulderOffset(1));
+    var shoulderR = add3(chest, shoulderOffset(-1));
+
+    var hipL = add3(pelvis, { x: L.hipHalf, y: 0, z: 0 });
+    var hipR = add3(pelvis, { x: -L.hipHalf, y: 0, z: 0 });
+
+    var legPole = { x: 0, y: 1, z: 0.15 };
+    var legL = solveIK2(hipL, pose.footL, L.thigh, L.shin, legPole, 'legL');
+    var legR = solveIK2(hipR, pose.footR, L.thigh, L.shin, legPole, 'legR');
+
+    var armPoleL = rotZ({ x: 0.45, y: -1, z: -0.25 }, twist);
+    var armPoleR = rotZ({ x: -0.45, y: -1, z: -0.25 }, twist);
+    var handOffsetL = rotZ(pose.handL, twist);
+    var handOffsetR = rotZ(pose.handR, twist);
+    var wristTargetL = add3(chest, handOffsetL);
+    var wristTargetR = add3(chest, handOffsetR);
+    var armL = solveIK2(shoulderL, wristTargetL, L.upperArm, L.forearm, armPoleL, 'armL');
+    var armR = solveIK2(shoulderR, wristTargetR, L.upperArm, L.forearm, armPoleR, 'armR');
+
+    var wristL = armL.end, wristR = armR.end;
+    var handDirL = norm3(sub3(wristL, armL.joint));
+    var handDirR = norm3(sub3(wristR, armR.joint));
+    var handL = add3(wristL, mul3(handDirL, L.hand));
+    var handR = add3(wristR, mul3(handDirR, L.hand));
+
+    function makeBlade(hand, dir, side) {
+      var d = norm3(dir);
+      var outward = { x: side, y: 0, z: 0 };
+      var bow = sub3(outward, mul3(d, dot3(outward, d)));
+      if (len3(bow) < 0.1) {
+        bow = cross3(d, { x: 0, y: 0, z: 1 });
+        if (len3(bow) < 0.1) bow = { x: 0, y: 1, z: 0 };
+        bow = mul3(norm3(bow), side);
+      }
+      bow = mul3(norm3(bow), 0.075);
+      var mid = add3(hand, add3(mul3(d, L.blade * 0.48), bow));
+      var tip = add3(hand, mul3(d, L.blade));
+      return { base: hand, mid: mid, tip: tip, dir: d, side: side };
+    }
+    var bladeL = makeBlade(handL, handDirL, 1);
+    var bladeR = makeBlade(handR, handDirR, -1);
+
+    function footGeom(ankle, side, pitch) {
+      var f = norm3({ x: side * 0.12, y: 1, z: 0 });
+      var n = { x: -f.y, y: f.x, z: 0 };
+      var cp = Math.cos(pitch), sp = Math.sin(pitch);
+      var toe = {
+        x: ankle.x + f.x * L.foot * cp,
+        y: ankle.y + f.y * L.foot * cp,
+        z: ankle.z - 0.06 + L.foot * sp
+      };
+      var heel = {
+        x: ankle.x - f.x * 0.045,
+        y: ankle.y - f.y * 0.045,
+        z: ankle.z - 0.055
+      };
+      // The planted sole sits exactly on the ground plane (z = 0).
+      var baseZ = Math.max(0, ankle.z - 0.08);
+      var w = 0.088;
+      return {
+        ankle: ankle, toe: toe, heel: heel, f: f, n: n, pitch: pitch,
+        sole: [
+          { x: heel.x + n.x * w * 0.7, y: heel.y + n.y * w * 0.7, z: baseZ },
+          { x: toe.x + n.x * w, y: toe.y + n.y * w, z: baseZ },
+          { x: toe.x - n.x * w, y: toe.y - n.y * w, z: baseZ },
+          { x: heel.x - n.x * w * 0.7, y: heel.y - n.y * w * 0.7, z: baseZ }
+        ],
+        top: [
+          { x: ankle.x + n.x * 0.062, y: ankle.y + n.y * 0.062, z: ankle.z + 0.016 },
+          { x: toe.x + n.x * 0.066, y: toe.y + n.y * 0.066, z: toe.z + 0.026 },
+          { x: toe.x - n.x * 0.066, y: toe.y - n.y * 0.066, z: toe.z + 0.026 },
+          { x: ankle.x - n.x * 0.062, y: ankle.y - n.y * 0.062, z: ankle.z + 0.016 }
+        ]
+      };
+    }
+    var footL = footGeom(legL.end, 1, pose.footL.pitch);
+    var footR = footGeom(legR.end, -1, pose.footR.pitch);
+
+    var torso = [
+      { x: chest.x + shoulderL.x - chest.x, y: shoulderL.y, z: shoulderL.z + 0.015 },
+      { x: chest.x + shoulderOffset(1).x, y: chest.y + 0.015, z: chest.z + 0.03 },
+      { x: chest.x, y: chest.y + 0.045, z: chest.z + 0.04 },
+      { x: chest.x - 0.20 * Math.cos(twist), y: chest.y - 0.20 * Math.sin(twist) + 0.015, z: chest.z + 0.03 },
+      { x: pelvis.x - 0.13, y: pelvis.y + 0.015, z: pelvis.z + 0.20 },
+      { x: pelvis.x, y: pelvis.y + 0.035, z: pelvis.z + 0.17 },
+      { x: pelvis.x + 0.13, y: pelvis.y + 0.015, z: pelvis.z + 0.20 }
+    ];
+    // Simpler, stable torso silhouette (shoulder line, waist, hips).
+    torso = [
+      { x: chest.x + 0.195 * Math.cos(twist), y: chest.y - 0.195 * Math.sin(twist), z: chest.z + 0.035 },
+      { x: chest.x, y: chest.y + 0.05, z: chest.z + 0.045 },
+      { x: chest.x - 0.195 * Math.cos(twist), y: chest.y + 0.195 * Math.sin(twist), z: chest.z + 0.035 },
+      { x: pelvis.x - 0.125, y: pelvis.y + 0.02, z: pelvis.z + 0.19 },
+      { x: pelvis.x, y: pelvis.y + 0.04, z: pelvis.z + 0.12 },
+      { x: pelvis.x + 0.125, y: pelvis.y + 0.02, z: pelvis.z + 0.19 }
+    ];
+    var chestFacet = [
+      { x: chest.x + 0.155 * Math.cos(twist), y: chest.y - 0.155 * Math.sin(twist) + 0.02, z: chest.z + 0.02 },
+      { x: chest.x, y: chest.y + 0.075, z: chest.z + 0.015 },
+      { x: chest.x - 0.155 * Math.cos(twist), y: chest.y + 0.155 * Math.sin(twist) + 0.02, z: chest.z + 0.02 },
+      { x: pelvis.x, y: pelvis.y + 0.065, z: pelvis.z + 0.19 }
+    ];
+
+    var headTop = head.z + L.headRadius;
+    var height = headTop;
+    var clampList = [];
+    [legL, legR, armL, armR].forEach(function (s) { if (s.clamped) clampList.push(s.tag); });
+
+    return {
+      pose: pose, yaw: yaw, rootX: opts.rootX || 0, rootY: opts.rootY || 0, contact: contact,
+      joints: {
+        root: { x: 0, y: 0, z: 0 }, pelvis: pelvis, chest: chest, neck: neck, head: head,
+        shoulderL: shoulderL, shoulderR: shoulderR,
+        elbowL: armL.joint, elbowR: armR.joint,
+        wristL: wristL, wristR: wristR,
+        handL: handL, handR: handR,
+        hipL: hipL, hipR: hipR,
+        kneeL: legL.joint, kneeR: legR.joint,
+        ankleL: legL.end, ankleR: legR.end,
+        toeL: footL.toe, toeR: footR.toe,
+        heelL: footL.heel, heelR: footR.heel
+      },
+      legs: { L: legL, R: legR },
+      arms: { L: armL, R: armR },
+      feet: { L: footL, R: footR },
+      blades: { L: bladeL, R: bladeR },
+      torso: torso, chestFacet: chestFacet,
+      targets: { handL: wristTargetL, handR: wristTargetR, footL: pose.footL, footR: pose.footR },
+      height: height, clamps: clampList,
+      headTop: headTop
+    };
+  }
+
+  // === RENDERER ===
+  var COL = {
+    bg: '#12151d', panel: 'rgba(10,13,20,0.82)', ink: '#20232c',
+    neutral: '#c4cad4', neutralDark: '#8e96a5', head: '#d8dce3',
+    right: '#4d8dff', rightDark: '#2e5ca8', left: '#ff5a63', leftDark: '#a83940',
+    steelL: '#cfc3b6', steelR: '#c2ccda', steelDark: '#707887',
+    bronze: '#b58a52', bronzeDark: '#6f512d',
+    grid: 'rgba(110,132,166,0.20)', gridMajor: 'rgba(126,152,194,0.34)',
+    axisX: '#e0805f', axisY: '#70c27b', axisZ: '#72aee8',
+    debug: '#ffd166', debug2: '#7cf0c8', hit: '#ff9b3d'
+  };
+
+  function viewArena() {
+    return { originX: ORIGIN_X, originY: ORIGIN_Y, scale: SCALE, contact: false };
+  }
+  function cellView(col, row) {
+    return {
+      originX: col * CELL_W + CELL_W / 2,
+      originY: row * CELL_H + 128,
+      scale: 64,
+      contact: true
+    };
+  }
+
+  function shadeForDepth(color, itemDepth, centerDepth, near) {
+    var d = itemDepth - centerDepth;
+    if (d < -0.04) {
+      return mixHex(color, COL.bg, clamp((-d) * 0.55, 0.08, 0.56));
+    }
+    if (d > 0.04) {
+      return mixHex(color, '#ffffff', clamp(d * (near ? 0.20 : 0.12), 0.02, 0.18));
+    }
+    return color;
+  }
+
+  function renderRig(c, rig, v, options) {
+    options = options || {};
+    var items = [];
+    var j = rig.joints;
+    var centerDepth = project(j.pelvis, rig.yaw, rig.rootX || 0, rig.rootY || 0, v).depth;
+    var ink = v.scale > 70 ? 2.4 : 1.35;
+    var drawCount = 0;
+
+    function addItem(layer, depth, name, draw, debugPoint) {
+      items.push({ layer: layer, depth: depth, name: name, draw: draw, debugPoint: debugPoint || null });
+    }
+    function pd(p) { return project(p, rig.yaw, rig.rootX || 0, rig.rootY || 0, v); }
+    function colorAt(base, p) { return shadeForDepth(base, pd(p).depth, centerDepth, true); }
+
+    function capsule(a, b, widthUnits, base, name) {
+      var pa = pd(a), pb = pd(b);
+      var mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: (a.z + b.z) / 2 };
+      var w = Math.max(2.2, widthUnits * v.scale);
+      var fill = colorAt(base, mid);
+      addItem(20, pa.depth * 0.5 + pb.depth * 0.5, name, function (g) {
+        g.lineCap = 'round';
+        g.strokeStyle = COL.ink;
+        g.lineWidth = w + ink * 2;
+        g.beginPath(); g.moveTo(pa.x, pa.y); g.lineTo(pb.x, pb.y); g.stroke();
+        g.strokeStyle = fill;
+        g.lineWidth = w;
+        g.beginPath(); g.moveTo(pa.x, pa.y); g.lineTo(pb.x, pb.y); g.stroke();
+      }, mid);
+    }
+
+    function joint(p, radiusUnits, base, name) {
+      var pp = pd(p);
+      var r = Math.max(2.0, radiusUnits * v.scale);
+      var fill = colorAt(base, p);
+      addItem(60, pp.depth, name, function (g) {
+        g.beginPath(); g.arc(pp.x, pp.y, r + ink * 0.8, 0, Math.PI * 2);
+        g.fillStyle = COL.ink; g.fill();
+        g.beginPath(); g.arc(pp.x, pp.y, r, 0, Math.PI * 2);
+        g.fillStyle = fill; g.fill();
+      }, p);
+    }
+
+    function polygon(points, layer, base, name, strokeWidth, debugPoint) {
+      var pts = points.map(pd);
+      var depth = pts.reduce(function (s, p) { return s + p.depth; }, 0) / pts.length;
+      var fill = base ? colorAt(base, points[0]) : null;
+      addItem(layer, depth, name, function (g) {
+        g.beginPath();
+        g.moveTo(pts[0].x, pts[0].y);
+        for (var i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
+        g.closePath();
+        if (fill) { g.fillStyle = fill; g.fill(); }
+        if (strokeWidth) {
+          g.strokeStyle = COL.ink;
+          g.lineWidth = strokeWidth;
+          g.stroke();
+        }
+      }, debugPoint || points[0]);
+    }
+
+    function drawFoot(side, foot, base) {
+      var depth = pd(foot.ankle).depth;
+      var sole = foot.sole.map(pd), top = foot.top.map(pd);
+      var soleFill = colorAt(side === 1 ? COL.leftDark : COL.rightDark, foot.ankle);
+      var topFill = colorAt(base, foot.ankle);
+      addItem(10, depth, 'foot' + (side === 1 ? 'L' : 'R') + '-sole', function (g) {
+        g.beginPath(); g.moveTo(sole[0].x, sole[0].y);
+        for (var i = 1; i < 4; i++) g.lineTo(sole[i].x, sole[i].y);
+        g.closePath();
+        g.fillStyle = soleFill; g.fill();
+        g.strokeStyle = COL.ink; g.lineWidth = ink * 1.4; g.stroke();
+      }, foot.ankle);
+      addItem(11, depth - 0.001, 'foot' + (side === 1 ? 'L' : 'R') + '-top', function (g) {
+        g.beginPath(); g.moveTo(top[0].x, top[0].y);
+        for (var i = 1; i < 4; i++) g.lineTo(top[i].x, top[i].y);
+        g.closePath();
+        g.fillStyle = topFill; g.fill();
+        g.strokeStyle = COL.ink; g.lineWidth = ink; g.stroke();
+      }, foot.ankle);
+    }
+
+    // Feet (lowest, drawn early but still depth-sorted).
+    drawFoot(1, rig.feet.L, COL.left);
+    drawFoot(-1, rig.feet.R, COL.right);
+
+    // Legs.
+    capsule(j.hipL, j.kneeL, 0.105, COL.left, 'thighL');
+    capsule(j.hipR, j.kneeR, 0.105, COL.right, 'thighR');
+    capsule(j.kneeL, j.ankleL, 0.078, COL.left, 'shinL');
+    capsule(j.kneeR, j.ankleR, 0.078, COL.right, 'shinR');
+    capsule(j.ankleL, j.toeL, 0.055, COL.left, 'footboneL');
+    capsule(j.ankleR, j.toeR, 0.055, COL.right, 'footboneR');
+
+    // Pelvis / belt.
+    capsule(j.hipL, j.hipR, 0.115, COL.neutralDark, 'pelvis');
+    joint(j.pelvis, 0.038, COL.neutral, 'pelvisJoint');
+    joint(j.hipL, 0.032, COL.left, 'hipLJoint');
+    joint(j.hipR, 0.032, COL.right, 'hipRJoint');
+
+    // Torso and chest facet.
+    polygon(rig.torso, 40, COL.neutral, 'torso', ink * 1.2, j.chest);
+    polygon(rig.chestFacet, 41, COL.neutralDark, 'chestFacet', 0, j.chest);
+    capsule(j.chest, j.neck, 0.085, COL.neutral, 'neckBase');
+    joint(j.chest, 0.038, COL.neutral, 'chestJoint');
+    joint(j.neck, 0.028, COL.neutral, 'neckJoint');
+
+    // Arms: upper + forearm + hand.
+    capsule(j.shoulderL, j.elbowL, 0.076, COL.left, 'upperArmL');
+    capsule(j.shoulderR, j.elbowR, 0.076, COL.right, 'upperArmR');
+    capsule(j.elbowL, j.wristL, 0.066, COL.left, 'forearmL');
+    capsule(j.elbowR, j.wristR, 0.066, COL.right, 'forearmR');
+    capsule(j.wristL, j.handL, 0.058, COL.left, 'handL');
+    capsule(j.wristR, j.handR, 0.058, COL.right, 'handR');
+    joint(j.shoulderL, 0.036, COL.left, 'shoulderLJoint');
+    joint(j.shoulderR, 0.036, COL.right, 'shoulderRJoint');
+    joint(j.elbowL, 0.029, COL.left, 'elbowLJoint');
+    joint(j.elbowR, 0.029, COL.right, 'elbowRJoint');
+    joint(j.wristL, 0.026, COL.left, 'wristLJoint');
+    joint(j.wristR, 0.026, COL.right, 'wristRJoint');
+    joint(j.handL, 0.024, COL.left, 'handLJoint');
+    joint(j.handR, 0.024, COL.right, 'handRJoint');
+
+    // Daggers. Each is anchored to its own hand. No swapping, no mirroring views.
+    function drawBlade(blade, side) {
+      var p0 = pd(blade.base), p1 = pd(blade.mid), p2 = pd(blade.tip);
+      var baseCol = side === 1 ? COL.steelL : COL.steelR;
+      var fill = colorAt(baseCol, blade.mid);
+      var dark = colorAt(COL.steelDark, blade.base);
+      var depth = p1.depth;
+      var gripStart = pd(add3(blade.base, mul3(blade.dir, -0.085)));
+      var sx = p2.x - p0.x, sy = p2.y - p0.y;
+      var sl = Math.sqrt(sx * sx + sy * sy) || 1;
+      var nx = -sy / sl, ny = sx / sl;
+      if (side === -1) { nx = -nx; ny = -ny; }
+      addItem(70, depth - 0.002, 'dagger' + (side === 1 ? 'L' : 'R') + '-grip', function (g) {
+        g.lineCap = 'round';
+        g.strokeStyle = COL.ink; g.lineWidth = Math.max(3, 0.045 * v.scale) + ink * 1.5;
+        g.beginPath(); g.moveTo(gripStart.x, gripStart.y); g.lineTo(p0.x, p0.y); g.stroke();
+        g.strokeStyle = colorAt(COL.bronzeDark, blade.base); g.lineWidth = Math.max(2, 0.045 * v.scale);
+        g.beginPath(); g.moveTo(gripStart.x, gripStart.y); g.lineTo(p0.x, p0.y); g.stroke();
+      }, blade.base);
+      addItem(71, depth - 0.001, 'dagger' + (side === 1 ? 'L' : 'R') + '-guard', function (g) {
+        var gl = 0.055 * v.scale;
+        g.lineCap = 'round';
+        g.strokeStyle = COL.ink; g.lineWidth = Math.max(3, 0.026 * v.scale) + ink;
+        g.beginPath(); g.moveTo(p0.x + nx * gl, p0.y + ny * gl); g.lineTo(p0.x - nx * gl, p0.y - ny * gl); g.stroke();
+        g.strokeStyle = colorAt(COL.bronze, blade.base); g.lineWidth = Math.max(2, 0.026 * v.scale);
+        g.beginPath(); g.moveTo(p0.x + nx * gl, p0.y + ny * gl); g.lineTo(p0.x - nx * gl, p0.y - ny * gl); g.stroke();
+      }, blade.base);
+      addItem(72, depth, 'dagger' + (side === 1 ? 'L' : 'R') + '-blade', function (g) {
+        var N = 12;
+        var left = [], right = [];
+        for (var i = 0; i <= N; i++) {
+          var u = i / N;
+          var inv = 1 - u;
+          var cx = inv * inv * p0.x + 2 * inv * u * p1.x + u * u * p2.x;
+          var cy = inv * inv * p0.y + 2 * inv * u * p1.y + u * u * p2.y;
+          var tx = 2 * inv * (p1.x - p0.x) + 2 * u * (p2.x - p1.x);
+          var ty = 2 * inv * (p1.y - p0.y) + 2 * u * (p2.y - p1.y);
+          var tl = Math.sqrt(tx * tx + ty * ty) || 1;
+          var px = -ty / tl, py = tx / tl;
+          var hw = (0.010 + 0.032 * Math.sin(Math.PI * u)) * v.scale;
+          if (u > 0.82) hw *= (1 - u) / 0.18 * 0.85 + 0.15;
+          left.push({ x: cx + px * hw, y: cy + py * hw });
+          right.push({ x: cx - px * hw, y: cy - py * hw });
+        }
+        g.beginPath();
+        g.moveTo(left[0].x, left[0].y);
+        for (var a = 1; a < left.length; a++) g.lineTo(left[a].x, left[a].y);
+        for (var b = right.length - 1; b >= 0; b--) g.lineTo(right[b].x, right[b].y);
+        g.closePath();
+        g.fillStyle = fill; g.fill();
+        g.strokeStyle = COL.ink; g.lineWidth = ink; g.stroke();
+        // Dark facet on one half, flat two-tone steel.
+        g.beginPath();
+        g.moveTo(p0.x, p0.y);
+        for (var c = 1; c <= N; c++) {
+          var uu = c / N, ii = 1 - uu;
+          var xx = ii * ii * p0.x + 2 * ii * uu * p1.x + uu * uu * p2.x;
+          var yy = ii * ii * p0.y + 2 * ii * uu * p1.y + uu * uu * p2.y;
+          g.lineTo(xx, yy);
+        }
+        for (var d = right.length - 1; d >= 0; d -= 2) g.lineTo(right[d].x, right[d].y);
+        g.closePath();
+        g.fillStyle = dark; g.globalAlpha = 0.42; g.fill(); g.globalAlpha = 1;
+      }, blade.mid);
+    }
+    drawBlade(rig.blades.L, 1);
+    drawBlade(rig.blades.R, -1);
+
+    // Head (arc, never ellipse).
+    var hp = pd(j.head);
+    var headFill = colorAt(COL.head, j.head);
+    addItem(80, hp.depth, 'head', function (g) {
+      g.beginPath(); g.arc(hp.x, hp.y, L.headRadius * v.scale + ink, 0, Math.PI * 2);
+      g.fillStyle = COL.ink; g.fill();
+      g.beginPath(); g.arc(hp.x, hp.y, L.headRadius * v.scale, 0, Math.PI * 2);
+      g.fillStyle = headFill; g.fill();
+      // Flat hand-drawn technical facet (no face, no gradient).
+      g.beginPath();
+      g.arc(hp.x, hp.y, L.headRadius * v.scale * 0.68, Math.PI * 1.06, Math.PI * 1.72);
+      g.strokeStyle = 'rgba(255,255,255,0.22)';
+      g.lineWidth = Math.max(1.2, 0.018 * v.scale);
+      g.stroke();
+    }, j.head);
+    joint(j.head, 0.030, COL.head, 'headJoint');
+
+    items.sort(function (a, b) {
+      if (a.depth === b.depth) return a.layer - b.layer;
+      return a.depth - b.depth;
+    });
+
+    items.forEach(function (it) {
+      it.draw(c);
+      drawCount++;
+    });
+
+    return { items: items, drawCount: drawCount, centerDepth: centerDepth };
+  }
+
+  // === HERO ART RENDERER ===
+  var HC = {
+    outline: '#191313',
+    skin: '#c97b4d', skinFar: '#8f5637', skinHi: '#e5a16d',
+    wrap: '#3c2b23', wrapFar: '#2b201b', wrapHi: '#78533a',
+    leather: '#2b211d', leatherFar: '#201814', leatherHi: '#543a2d',
+    red: '#ae352b', redFar: '#701f1c', redHi: '#d3543d',
+    boot: '#3a2921', bootFar: '#2a1d18', bootHi: '#634533', sole: '#181210',
+    steel: '#cfc5b4', steelFar: '#8a8d8c', steelDark: '#666d71', gold: '#d5a24e',
+    bone: '#e9dec7', fire: '#ffb23f', fireHi: '#ffe38a', blood: '#6f1a1a'
+  };
+
+  function heroHeadDir(yaw) {
+    var d = deg(yaw);
+    return HEAD_ORDER[Math.round(d / 45) % 8];
+  }
+
+  // Paint order is intentionally authored, not blindly depth-sorted: the cape
+  // crosses from behind the torso (front views) to in front of it (back views),
+  // while skirt/belt must always sit over the thighs. Depths are still recorded
+  // for the debug sheet.
+  function renderHero(c, rig, v, options) {
+    options = options || {};
+    var state = options.state || (sim ? sim.state : 'idle');
+    var time = options.time !== undefined ? options.time : (sim ? sim.clipTime : 0);
+    var j = rig.joints;
+    var items = [];
+    var drawCount = 0;
+    var centerDepth = pd(j.pelvis).depth;
+    var ink = clamp(0.018 * v.scale, 1.2, 2.8);
+    var yaw = rig.yaw;
+    var front = Math.cos(yaw);
+    var frontVisible = front > 0.14;
+    var frontHalf = front > -0.10;
+
+    function pd(p) { return project(p, yaw, rig.rootX || 0, rig.rootY || 0, v); }
+    function add(name, depth, layer, draw, debugPoint) {
+      items.push({ name: name, depth: depth, layer: layer, draw: draw, debugPoint: debugPoint || null });
+    }
+    function poly(points, name, fill, opts) {
+      opts = opts || {};
+      var pts = points.map(pd);
+      var depth = pts.reduce(function (s, p) { return s + p.depth; }, 0) / pts.length;
+      add(name, depth, opts.layer || 30, function (g) {
+        g.beginPath();
+        g.moveTo(pts[0].x, pts[0].y);
+        for (var i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
+        g.closePath();
+        if (fill) { g.fillStyle = fill; g.fill(); }
+        if (opts.stroke !== false) {
+          g.strokeStyle = opts.stroke || HC.outline;
+          g.lineWidth = opts.width || ink;
+          g.stroke();
+        }
+      }, points[0]);
+      return { pts: pts, depth: depth };
+    }
+    function capsule(a, b, widthUnits, fill, hi, name, opts) {
+      opts = opts || {};
+      var pa = pd(a), pb = pd(b);
+      var mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: (a.z + b.z) / 2 };
+      var w = Math.max(2.2, widthUnits * v.scale);
+      var depth = (pa.depth + pb.depth) / 2;
+      add(name, depth, opts.layer || 25, function (g) {
+        g.lineCap = 'round';
+        g.lineJoin = 'round';
+        g.strokeStyle = HC.outline;
+        g.lineWidth = w + ink * 1.7;
+        g.beginPath(); g.moveTo(pa.x, pa.y); g.lineTo(pb.x, pb.y); g.stroke();
+        g.strokeStyle = fill;
+        g.lineWidth = w;
+        g.beginPath(); g.moveTo(pa.x, pa.y); g.lineTo(pb.x, pb.y); g.stroke();
+        var dx = pb.x - pa.x, dy = pb.y - pa.y;
+        var l = Math.sqrt(dx * dx + dy * dy) || 1;
+        var nx = -dy / l, ny = dx / l;
+        if (hi && w > 4) {
+          g.strokeStyle = hi;
+          g.lineWidth = Math.max(1, w * 0.17);
+          g.beginPath();
+          g.moveTo(pa.x + nx * w * 0.22, pa.y + ny * w * 0.22);
+          g.lineTo(pb.x + nx * w * 0.22, pb.y + ny * w * 0.22);
+          g.stroke();
+        }
+        if (opts.bands) {
+          g.strokeStyle = opts.bandColor || HC.wrapHi;
+          g.lineWidth = Math.max(1, w * 0.22);
+          for (var k = 0; k < opts.bands; k++) {
+            var u = 0.28 + k * 0.28;
+            var cx = lerp(pa.x, pb.x, u), cy = lerp(pa.y, pb.y, u);
+            g.beginPath();
+            g.moveTo(cx + nx * w * 0.44, cy + ny * w * 0.44);
+            g.lineTo(cx - nx * w * 0.44, cy - ny * w * 0.44);
+            g.stroke();
+          }
+        }
+      }, mid);
+    }
+    function blob(p, radiusUnits, fill, name, opts) {
+      opts = opts || {};
+      var pp = pd(p);
+      var r = Math.max(1.4, radiusUnits * v.scale);
+      add(name, pp.depth, opts.layer || 30, function (g) {
+        g.beginPath(); g.arc(pp.x, pp.y, r + ink * 0.7, 0, Math.PI * 2);
+        g.fillStyle = HC.outline; g.fill();
+        g.beginPath(); g.arc(pp.x, pp.y, r, 0, Math.PI * 2);
+        g.fillStyle = fill; g.fill();
+        if (opts.hi) {
+          g.beginPath(); g.arc(pp.x - r * 0.22, pp.y - r * 0.22, r * 0.44, 0, Math.PI * 2);
+          g.fillStyle = opts.hi; g.globalAlpha = 0.6; g.fill(); g.globalAlpha = 1;
+        }
+      }, p);
+    }
+    function pathStroke(points, name, color, widthUnits, opts) {
+      opts = opts || {};
+      var pts = points.map(pd);
+      var depth = pts.reduce(function (s, p) { return s + p.depth; }, 0) / pts.length;
+      add(name, depth, opts.layer || 35, function (g) {
+        g.lineCap = 'round';
+        g.lineJoin = 'round';
+        if (opts.outline !== false) {
+          g.strokeStyle = HC.outline;
+          g.lineWidth = widthUnits * v.scale + ink * 1.5;
+          g.beginPath(); g.moveTo(pts[0].x, pts[0].y);
+          for (var i = 1; i < pts.length; i++) g.lineTo(pts[i].x, pts[i].y);
+          g.stroke();
+        }
+        g.strokeStyle = color;
+        g.lineWidth = widthUnits * v.scale;
+        g.beginPath(); g.moveTo(pts[0].x, pts[0].y);
+        for (var j = 1; j < pts.length; j++) g.lineTo(pts[j].x, pts[j].y);
+        g.stroke();
+      }, points[0]);
+    }
+
+    var armDepthL = (pd(j.shoulderL).depth + pd(j.wristL).depth) * 0.5;
+    var armDepthR = (pd(j.shoulderR).depth + pd(j.wristR).depth) * 0.5;
+    var farArm = armDepthL <= armDepthR ? 'L' : 'R';
+    var nearArm = farArm === 'L' ? 'R' : 'L';
+    var legDepthL = (pd(j.ankleL).depth + pd(j.hipL).depth) * 0.5;
+    var legDepthR = (pd(j.ankleR).depth + pd(j.hipR).depth) * 0.5;
+    var farLeg = legDepthL <= legDepthR ? 'L' : 'R';
+    var nearLeg = farLeg === 'L' ? 'R' : 'L';
+
+    // ----- Cape / scarf ---------------------------------------------------
+    function capeShape() {
+      var topL = add3(j.chest, { x: 0.22, y: -0.045, z: 0.065 });
+      var upper = add3(j.chest, { x: 0.38, y: -0.075, z: -0.05 });
+      var tipA = add3(j.pelvis, { x: 0.56, y: -0.10, z: -0.26 });
+      var notchA = add3(j.pelvis, { x: 0.36, y: -0.075, z: -0.20 });
+      var tipB = add3(j.pelvis, { x: 0.40, y: -0.09, z: -0.36 });
+      var notchB = add3(j.pelvis, { x: 0.14, y: -0.07, z: -0.27 });
+      var tipC = add3(j.pelvis, { x: 0.18, y: -0.085, z: -0.42 });
+      var inner = add3(j.pelvis, { x: -0.05, y: -0.055, z: -0.27 });
+      var back = add3(j.chest, { x: -0.19, y: -0.045, z: -0.15 });
+      var topR = add3(j.chest, { x: -0.17, y: -0.035, z: 0.05 });
+      return [topL, upper, tipA, notchA, tipB, notchB, tipC, inner, back, topR];
+    }
+    function drawCape() {
+      // Side wing: a second asymmetric panel that catches the 45Â°/side views.
+      // It shares the left shoulder and trails farther right than the main back
+      // sheet, so the cape never becomes a flat triangle at 3/4.
+      var wing = [
+        add3(j.chest, { x: 0.300, y: -0.010, z: 0.070 }),
+        add3(j.chest, { x: 0.470, y: 0.000, z: -0.090 }),
+        add3(j.pelvis, { x: 0.635, y: 0.014, z: -0.360 }),
+        add3(j.pelvis, { x: 0.555, y: 0.010, z: -0.315 }),
+        add3(j.pelvis, { x: 0.505, y: 0.016, z: -0.375 }),
+        add3(j.pelvis, { x: 0.430, y: 0.008, z: -0.250 }),
+        add3(j.pelvis, { x: 0.365, y: 0.002, z: -0.195 }),
+        add3(j.pelvis, { x: 0.310, y: -0.010, z: -0.065 })
+      ];
+      poly(wing, 'cape-side-wing', HC.red, { stroke: HC.outline, width: ink * 1.15, layer: 7 });
+      poly([
+        add3(j.chest, { x: 0.355, y: 0.002, z: -0.025 }),
+        add3(j.pelvis, { x: 0.535, y: 0.014, z: -0.335 }),
+        add3(j.pelvis, { x: 0.435, y: 0.010, z: -0.240 }),
+        add3(j.pelvis, { x: 0.345, y: -0.005, z: -0.115 })
+      ], 'cape-wing-fold', HC.redFar, { stroke: false, layer: 8 });
+      pathStroke([
+        add3(j.chest, { x: 0.300, y: -0.011, z: 0.070 }),
+        add3(j.chest, { x: 0.470, y: -0.001, z: -0.090 }),
+        add3(j.pelvis, { x: 0.635, y: 0.013, z: -0.360 })
+      ], 'cape-wing-edge', HC.redHi, 0.012, { layer: 9, outline: false });
+      var shape = capeShape();
+      poly(shape, 'cape-main', HC.red, { stroke: HC.outline, width: ink * 1.15, layer: 8 });
+      var fold = [
+        add3(j.chest, { x: 0.14, y: -0.052, z: 0.03 }),
+        add3(j.pelvis, { x: 0.29, y: -0.075, z: -0.20 }),
+        add3(j.pelvis, { x: 0.17, y: -0.065, z: -0.34 }),
+        add3(j.pelvis, { x: 0.02, y: -0.06, z: -0.22 }),
+        add3(j.chest, { x: -0.07, y: -0.045, z: 0.00 })
+      ];
+      poly(fold, 'cape-fold', HC.redFar, { stroke: false, layer: 9 });
+      var edge = [
+        add3(j.chest, { x: 0.22, y: -0.046, z: 0.06 }),
+        add3(j.chest, { x: 0.38, y: -0.076, z: -0.05 }),
+        add3(j.pelvis, { x: 0.56, y: -0.101, z: -0.26 }),
+        add3(j.pelvis, { x: 0.36, y: -0.076, z: -0.20 }),
+        add3(j.pelvis, { x: 0.40, y: -0.091, z: -0.36 })
+      ];
+      pathStroke(edge, 'cape-edge', HC.redHi, 0.010, { layer: 10, outline: false });
+      // Two small tattered tongues keep the silhouette asymmetric.
+      poly([
+        add3(j.pelvis, { x: 0.36, y: -0.075, z: -0.20 }),
+        add3(j.pelvis, { x: 0.44, y: -0.08, z: -0.31 }),
+        add3(j.pelvis, { x: 0.27, y: -0.07, z: -0.28 })
+      ], 'cape-tatter-a', HC.red, { stroke: HC.outline, width: ink * 0.8, layer: 9 });
+      poly([
+        add3(j.pelvis, { x: 0.18, y: -0.07, z: -0.29 }),
+        add3(j.pelvis, { x: 0.24, y: -0.075, z: -0.40 }),
+        add3(j.pelvis, { x: 0.10, y: -0.065, z: -0.34 })
+      ], 'cape-tatter-b', HC.redFar, { stroke: HC.outline, width: ink * 0.8, layer: 9 });
+    }
+    function drawCowl() {
+      // Broad, asymmetric red cowl over the shoulders. It is the main red mass
+      // at gameplay scale and reads at every yaw; the cape wing supplies the
+      // long trailing silhouette behind it.
+      var mantle = [
+        add3(j.chest, { x: 0.250, y: 0.010, z: 0.075 }),
+        add3(j.chest, { x: 0.205, y: 0.090, z: 0.035 }),
+        add3(j.chest, { x: 0.075, y: 0.125, z: 0.000 }),
+        add3(j.chest, { x: 0.000, y: 0.135, z: -0.030 }),
+        add3(j.chest, { x: -0.075, y: 0.125, z: 0.000 }),
+        add3(j.chest, { x: -0.205, y: 0.090, z: 0.045 }),
+        add3(j.chest, { x: -0.245, y: 0.010, z: 0.085 }),
+        add3(j.chest, { x: -0.090, y: -0.070, z: 0.125 }),
+        add3(j.chest, { x: 0.090, y: -0.070, z: 0.125 })
+      ];
+      poly(mantle, 'red-cowl', HC.red, { stroke: HC.outline, width: ink * 1.25, layer: 41 });
+      var fold = [
+        add3(j.chest, { x: 0.165, y: 0.055, z: 0.060 }),
+        add3(j.chest, { x: 0.045, y: 0.128, z: 0.010 }),
+        add3(j.chest, { x: 0.000, y: 0.138, z: -0.020 }),
+        add3(j.chest, { x: 0.070, y: 0.100, z: -0.005 })
+      ];
+      poly(fold, 'cowl-fold', HC.redFar, { stroke: false, layer: 42 });
+      var edge = [
+        add3(j.chest, { x: 0.250, y: 0.012, z: 0.078 }),
+        add3(j.chest, { x: 0.205, y: 0.092, z: 0.038 }),
+        add3(j.chest, { x: 0.075, y: 0.127, z: 0.002 }),
+        add3(j.chest, { x: 0.000, y: 0.137, z: -0.028 })
+      ];
+      pathStroke(edge, 'cowl-edge', HC.redHi, 0.012, { layer: 43, outline: false });
+      if (frontVisible) {
+        var knot = add3(j.chest, { x: 0.185, y: 0.090, z: 0.045 });
+        blob(knot, 0.037, HC.red, 'cowl-knot', { layer: 44, hi: HC.redHi });
+        var clasp = add3(j.chest, { x: 0.205, y: 0.078, z: 0.082 });
+        blob(clasp, 0.024, HC.gold, 'cape-clasp', { layer: 45, hi: HC.bone });
+      }
+    }
+    function drawScarfTail() {
+      if (!frontVisible) return;
+      var tail = [
+        add3(j.chest, { x: 0.185, y: 0.100, z: 0.055 }),
+        add3(j.pelvis, { x: 0.235, y: 0.105, z: -0.075 }),
+        add3(j.pelvis, { x: 0.175, y: 0.110, z: -0.215 }),
+        add3(j.pelvis, { x: 0.115, y: 0.105, z: -0.120 }),
+        add3(j.pelvis, { x: 0.150, y: 0.100, z: -0.030 }),
+        add3(j.chest, { x: 0.055, y: 0.112, z: 0.030 })
+      ];
+      poly(tail, 'scarf-tail', HC.red, { stroke: HC.outline, width: ink * 1.0, layer: 45 });
+      var hi = [
+        add3(j.chest, { x: 0.185, y: 0.102, z: 0.050 }),
+        add3(j.pelvis, { x: 0.225, y: 0.108, z: -0.090 }),
+        add3(j.pelvis, { x: 0.180, y: 0.112, z: -0.195 })
+      ];
+      pathStroke(hi, 'scarf-tail-hi', HC.redHi, 0.009, { layer: 46, outline: false });
+    }
+
+    // ----- Legs / boots ---------------------------------------------------
+    function drawLeg(side, isFar) {
+      var hip = j['hip' + side], knee = j['knee' + side], ankle = j['ankle' + side];
+      var foot = rig.feet[side];
+      var skin = isFar ? HC.skinFar : HC.skin;
+      var skinHi = isFar ? HC.skinFar : HC.skinHi;
+      var boot = isFar ? HC.bootFar : HC.boot;
+      var bootHi = isFar ? HC.boot : HC.bootHi;
+      capsule(hip, knee, 0.172, skin, skinHi, 'thigh' + side, { layer: 20 });
+      capsule(knee, ankle, 0.122, boot, bootHi, 'boot' + side, { layer: 21 });
+      // Knee cuff and boot shaft highlight.
+      var cuffA = add3(knee, { x: 0, y: 0, z: 0.045 });
+      var cuffB = add3(knee, { x: 0, y: 0, z: -0.055 });
+      capsule(cuffA, cuffB, 0.148, isFar ? HC.leatherFar : HC.leather, HC.leatherHi, 'bootCuff' + side, { layer: 22 });
+      var sole = foot.sole.map(pd), top = foot.top.map(pd);
+      add('bootSole' + side, pd(ankle).depth, 12, function (g) {
+        g.beginPath(); g.moveTo(sole[0].x, sole[0].y);
+        for (var i = 1; i < 4; i++) g.lineTo(sole[i].x, sole[i].y);
+        g.closePath(); g.fillStyle = HC.sole; g.fill();
+        g.strokeStyle = HC.outline; g.lineWidth = ink * 1.1; g.stroke();
+      }, ankle);
+      add('bootTop' + side, pd(ankle).depth + 0.001, 13, function (g) {
+        g.beginPath(); g.moveTo(top[0].x, top[0].y);
+        for (var i = 1; i < 4; i++) g.lineTo(top[i].x, top[i].y);
+        g.closePath(); g.fillStyle = boot; g.fill();
+        g.strokeStyle = HC.outline; g.lineWidth = ink * 0.9; g.stroke();
+        // Toe cap: a flat lighter facet at the front third of the foot.
+        var t1 = top[1], t2 = top[2];
+        var a1 = top[0], a2 = top[3];
+        g.beginPath();
+        g.moveTo(lerp(a1.x, t1.x, 0.58), lerp(a1.y, t1.y, 0.58));
+        g.lineTo(lerp(a2.x, t2.x, 0.58), lerp(a2.y, t2.y, 0.58));
+        g.lineTo(t2.x, t2.y); g.lineTo(t1.x, t1.y); g.closePath();
+        g.fillStyle = bootHi; g.globalAlpha = 0.55; g.fill(); g.globalAlpha = 1;
+      }, ankle);
+      // Ankle wrap / tiny leather strap.
+      capsule(add3(ankle, { x: 0, y: 0, z: 0.052 }), add3(ankle, { x: 0, y: 0, z: -0.005 }), 0.132, HC.wrap, HC.wrapHi, 'ankleWrap' + side, { layer: 24, bands: 1 });
+    }
+
+    // ----- Skirt / belt / skull / chains ---------------------------------
+    function ringQuads(radius, topZ, bottomZ, jag, depthBias) {
+      var top = [], bottom = [];
+      var n = 12;
+      for (var i = 0; i < n; i++) {
+        var a = i / n * Math.PI * 2;
+        var rr = radius * (1 + 0.035 * Math.sin(a * 3 + 0.7));
+        var zz = bottomZ + (i % 2 ? jag : 0) + (Math.sin(a * 5 + 0.4) > 0.3 ? jag * 0.6 : 0);
+        top.push({ x: j.pelvis.x + Math.cos(a) * radius, y: j.pelvis.y + Math.sin(a) * radius * 0.56, z: topZ });
+        bottom.push({ x: j.pelvis.x + Math.cos(a) * rr, y: j.pelvis.y + Math.sin(a) * rr * 0.56, z: zz });
+      }
+      return { top: top, bottom: bottom, n: n };
+    }
+    function drawRing(ring, fill, name, layer, outline) {
+      var pts = [];
+      for (var i = 0; i < ring.n; i++) {
+        var ni = (i + 1) % ring.n;
+        pts.push([ring.top[i], ring.top[ni], ring.bottom[ni], ring.bottom[i]].map(pd));
+      }
+      var depth = pd(j.pelvis).depth;
+      add(name, depth, layer, function (g) {
+        g.beginPath();
+        pts.forEach(function (q) {
+          g.moveTo(q[0].x, q[0].y); g.lineTo(q[1].x, q[1].y);
+          g.lineTo(q[2].x, q[2].y); g.lineTo(q[3].x, q[3].y); g.closePath();
+        });
+        g.fillStyle = fill; g.fill();
+        if (outline !== false) {
+          var bp = ring.bottom.map(pd);
+          g.beginPath(); g.moveTo(bp[0].x, bp[0].y);
+          for (var b = 1; b < bp.length; b++) g.lineTo(bp[b].x, bp[b].y);
+          g.closePath(); g.strokeStyle = HC.outline; g.lineWidth = ink * 1.05; g.stroke();
+        }
+      }, j.pelvis);
+    }
+    function drawSkirt() {
+      var redRing = ringQuads(0.248, j.pelvis.z + 0.060, j.pelvis.z - 0.365, 0.060, 0);
+      var darkRing = ringQuads(0.212, j.pelvis.z + 0.075, j.pelvis.z - 0.285, 0.038, 0);
+      drawRing(redRing, HC.redFar, 'skirt-under', 26, true);
+      drawRing(darkRing, HC.leather, 'skirt', 27, true);
+      // Red torn side panels, asymmetrical on the cape side.
+      if (frontVisible) {
+        var sideRed = [
+          add3(j.pelvis, { x: 0.205, y: 0.075, z: 0.06 }),
+          add3(j.pelvis, { x: 0.290, y: 0.060, z: -0.03 }),
+          add3(j.pelvis, { x: 0.235, y: 0.070, z: -0.27 }),
+          add3(j.pelvis, { x: 0.160, y: 0.075, z: -0.18 }),
+          add3(j.pelvis, { x: 0.145, y: 0.080, z: -0.02 })
+        ];
+        poly(sideRed, 'skirt-red-side', HC.redFar, { stroke: HC.outline, width: ink * 0.9, layer: 28 });
+        // Front apron panel, deliberately kept only on the visible front.
+        var apron = [
+          add3(j.pelvis, { x: -0.115, y: 0.138, z: 0.07 }),
+          add3(j.pelvis, { x: 0.100, y: 0.138, z: 0.07 }),
+          add3(j.pelvis, { x: 0.090, y: 0.145, z: -0.25 }),
+          add3(j.pelvis, { x: 0.020, y: 0.146, z: -0.32 }),
+          add3(j.pelvis, { x: -0.080, y: 0.145, z: -0.24 })
+        ];
+        poly(apron, 'skirt-apron', HC.leatherFar, { stroke: HC.outline, width: ink * 1.0, layer: 29 });
+        // Stitched edge on the apron, a small costume cue at 132 px.
+        var stitch = [
+          add3(j.pelvis, { x: -0.082, y: 0.148, z: 0.055 }),
+          add3(j.pelvis, { x: -0.062, y: 0.151, z: -0.20 }),
+          add3(j.pelvis, { x: 0.060, y: 0.151, z: -0.21 }),
+          add3(j.pelvis, { x: 0.078, y: 0.148, z: 0.050 })
+        ];
+        pathStroke(stitch, 'apron-stitch', HC.leatherHi, 0.007, { layer: 30, outline: false });
+      }
+    }
+    function drawChainLink(local, radiusUnits, name, layer, angle) {
+      var q = pd(local);
+      var r = Math.max(1.2, radiusUnits * v.scale);
+      add(name, q.depth, layer, function (g) {
+        g.beginPath(); g.ellipse(q.x, q.y, r, r * 0.60, angle, 0, Math.PI * 2);
+        g.strokeStyle = HC.outline; g.lineWidth = ink * 1.1; g.stroke();
+        g.strokeStyle = HC.gold; g.lineWidth = Math.max(0.9, ink * 0.62); g.stroke();
+      }, local);
+    }
+    function drawBelt() {
+      var underBelt = ringQuads(0.174, j.pelvis.z + 0.135, j.pelvis.z + 0.035, 0, 0);
+      drawRing(underBelt, HC.leatherFar, 'belt-under', 39, true);
+      var beltRing = ringQuads(0.162, j.pelvis.z + 0.120, j.pelvis.z + 0.048, 0, 0);
+      drawRing(beltRing, HC.leatherHi, 'belt', 40, true);
+      // Studs around the belt ring (front and sides; no extra skulls).
+      for (var i = 0; i < 10; i++) {
+        var a = i / 10 * Math.PI * 2;
+        var sy = Math.sin(a);
+        if (front > 0.2 && sy < -0.15) continue;
+        if (front < -0.2 && sy > 0.15) continue;
+        var p = { x: j.pelvis.x + Math.cos(a) * 0.170, y: j.pelvis.y + Math.sin(a) * 0.170 * 0.56, z: j.pelvis.z + 0.085 };
+        var pp = pd(p);
+        add('beltStud' + i, pp.depth, 41, function (g) {
+          g.beginPath(); g.arc(pp.x, pp.y, Math.max(1.2, v.scale * 0.014), 0, Math.PI * 2);
+          g.fillStyle = HC.gold; g.fill();
+          g.strokeStyle = HC.outline; g.lineWidth = 0.8; g.stroke();
+        }, p);
+      }
+      // Belt chain swag and a hanging side chain: bronze links, no physics.
+      if (frontVisible) {
+        for (var c = 0; c < 9; c++) {
+          var u = c / 8;
+          var lx = -0.145 + u * 0.290;
+          var lz = j.pelvis.z + 0.085 - Math.sin(u * Math.PI) * 0.095;
+          drawChainLink(add3(j.pelvis, { x: lx, y: 0.155, z: lz }), 0.017, 'beltChainSwag' + c, 42, c % 2 ? 0.55 : -0.55);
+        }
+        for (var d = 0; d < 5; d++) {
+          drawChainLink(add3(j.pelvis, { x: 0.175 + d * 0.006, y: 0.135, z: j.pelvis.z + 0.055 - d * 0.045 }), 0.018, 'beltChainHang' + d, 43, d % 2 ? 1.1 : -1.1);
+        }
+      }
+      if (frontVisible) {
+        var skullPos = add3(j.pelvis, { x: 0, y: 0.168, z: j.pelvis.z + 0.085 });
+        var plate = pd(skullPos);
+        add('skull-backing', plate.depth, 43.6, function (g) {
+          g.beginPath();
+          g.ellipse(plate.x, plate.y, 0.118 * v.scale, 0.092 * v.scale, 0, 0, Math.PI * 2);
+          g.fillStyle = HC.leatherFar; g.fill();
+          g.strokeStyle = HC.outline; g.lineWidth = ink * 0.9; g.stroke();
+          g.beginPath();
+          g.ellipse(plate.x, plate.y, 0.096 * v.scale, 0.072 * v.scale, 0, 0, Math.PI * 2);
+          g.strokeStyle = 'rgba(198,160,90,0.45)'; g.lineWidth = 1; g.stroke();
+        }, skullPos);
+        drawSkull(skullPos, 0.105);
+      }
+    }
+    function drawSkull(local, size) {
+      var p = pd(local);
+      var s = Math.max(3.2, size * v.scale);
+      add('beltSkull', p.depth, 44, function (g) {
+        g.save();
+        g.translate(p.x, p.y);
+        // Cranium and jaw, flat bone tones.
+        g.beginPath();
+        g.moveTo(-s * 0.52, -s * 0.10);
+        g.quadraticCurveTo(-s * 0.48, -s * 0.60, 0, -s * 0.62);
+        g.quadraticCurveTo(s * 0.48, -s * 0.60, s * 0.52, -s * 0.10);
+        g.quadraticCurveTo(s * 0.40, s * 0.22, s * 0.20, s * 0.28);
+        g.lineTo(s * 0.20, s * 0.50);
+        g.lineTo(-s * 0.20, s * 0.50);
+        g.lineTo(-s * 0.20, s * 0.28);
+        g.quadraticCurveTo(-s * 0.40, s * 0.22, -s * 0.52, -s * 0.10);
+        g.closePath();
+        g.fillStyle = HC.bone; g.fill();
+        g.strokeStyle = HC.outline; g.lineWidth = Math.max(0.8, ink * 0.7); g.stroke();
+        // Eye sockets, nose and teeth.
+        g.fillStyle = HC.outline;
+        g.beginPath(); g.ellipse(-s * 0.22, -s * 0.14, s * 0.13, s * 0.17, -0.2, 0, Math.PI * 2); g.fill();
+        g.beginPath(); g.ellipse(s * 0.22, -s * 0.14, s * 0.13, s * 0.17, 0.2, 0, Math.PI * 2); g.fill();
+        g.beginPath(); g.moveTo(0, s * 0.02); g.lineTo(s * 0.09, s * 0.16); g.lineTo(-s * 0.09, s * 0.16); g.closePath(); g.fill();
+        g.strokeStyle = 'rgba(40,28,24,0.65)'; g.lineWidth = 0.7;
+        for (var t = -1; t <= 1; t++) {
+          g.beginPath(); g.moveTo(t * s * 0.12, s * 0.30); g.lineTo(t * s * 0.12, s * 0.46); g.stroke();
+        }
+        g.restore();
+      }, local);
+    }
+
+    // ----- Torso / chest / arms / head ------------------------------------
+    function drawTorso() {
+      var tw = rig.pose.twist;
+      var sw = 0.315;
+      var torsoWide = [
+        { x: j.chest.x + Math.cos(tw) * sw, y: j.chest.y - Math.sin(tw) * sw, z: j.chest.z + 0.040 },
+        { x: j.chest.x + Math.cos(tw) * 0.12, y: j.chest.y - Math.sin(tw) * 0.12 + 0.035, z: j.chest.z + 0.060 },
+        { x: j.chest.x, y: j.chest.y + 0.072, z: j.chest.z + 0.050 },
+        { x: j.chest.x - Math.cos(tw) * 0.12, y: j.chest.y + Math.sin(tw) * 0.12 + 0.035, z: j.chest.z + 0.060 },
+        { x: j.chest.x - Math.cos(tw) * sw, y: j.chest.y + Math.sin(tw) * sw, z: j.chest.z + 0.040 },
+        { x: j.pelvis.x - 0.155, y: j.pelvis.y + 0.025, z: j.pelvis.z + 0.185 },
+        { x: j.pelvis.x, y: j.pelvis.y + 0.055, z: j.pelvis.z + 0.130 },
+        { x: j.pelvis.x + 0.155, y: j.pelvis.y + 0.025, z: j.pelvis.z + 0.185 }
+      ];
+      poly(torsoWide, 'torso', HC.skin, { stroke: HC.outline, width: ink * 1.2, layer: 32 });
+      // Trapezius / collar shading, flat two-tone.
+      var collar = [
+        add3(j.chest, { x: 0.185, y: 0.045, z: 0.045 }),
+        add3(j.chest, { x: 0.04, y: 0.090, z: 0.075 }),
+        add3(j.chest, { x: -0.185, y: 0.045, z: 0.045 })
+      ];
+      pathStroke(collar, 'trapezius', HC.skinFar, 0.022, { layer: 33, outline: false });
+      if (frontVisible) {
+        var pecL = pd(add3(j.chest, { x: 0.185, y: 0.075, z: -0.01 }));
+        var pecM = pd(add3(j.chest, { x: 0.00, y: 0.092, z: -0.060 }));
+        var pecR = pd(add3(j.chest, { x: -0.185, y: 0.075, z: -0.01 }));
+        var pecDepth = (pecL.depth + pecM.depth + pecR.depth) / 3;
+        add('pecs', pecDepth, 34, function (g) {
+          g.strokeStyle = HC.skinFar; g.lineWidth = Math.max(0.9, v.scale * 0.016);
+          g.beginPath(); g.moveTo(pecL.x, pecL.y); g.quadraticCurveTo(pecL.x - 2, pecM.y + 1, pecM.x, pecM.y); g.stroke();
+          g.beginPath(); g.moveTo(pecR.x, pecR.y); g.quadraticCurveTo(pecR.x + 2, pecM.y + 1, pecM.x, pecM.y); g.stroke();
+          g.beginPath(); g.moveTo(pecM.x, pecM.y + 1); g.lineTo(pecM.x, pecM.y + v.scale * 0.035); g.stroke();
+        }, j.chest);
+        var absBase = pd(j.pelvis).depth;
+        add('abs', absBase, 35, function (g) {
+          g.strokeStyle = HC.skinFar; g.lineWidth = Math.max(0.8, v.scale * 0.012);
+          for (var r = 0; r < 3; r++) {
+            var z = j.chest.z - 0.055 - r * 0.058;
+            var a = pd({ x: j.chest.x - 0.070, y: j.chest.y + 0.078, z: z });
+            var b = pd({ x: j.chest.x + 0.070, y: j.chest.y + 0.078, z: z });
+            g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke();
+          }
+          var navel = pd({ x: j.chest.x, y: j.chest.y + 0.082, z: j.pelvis.z + 0.11 });
+          g.beginPath(); g.arc(navel.x, navel.y, Math.max(0.8, v.scale * 0.009), 0, Math.PI * 2);
+          g.fillStyle = HC.skinFar; g.fill();
+        }, j.pelvis);
+      }
+    }
+    function drawArm(side, isFar) {
+      var shoulder = j['shoulder' + side], elbow = j['elbow' + side], wrist = j['wrist' + side], hand = j['hand' + side];
+      var skin = isFar ? HC.skinFar : HC.skin;
+      var skinHi = isFar ? HC.skinFar : HC.skinHi;
+      var wrap = isFar ? HC.wrapFar : HC.wrap;
+      blob(shoulder, 0.108, skin, 'deltoid' + side, { layer: 29, hi: skinHi });
+      capsule(shoulder, elbow, 0.122, skin, skinHi, 'upperArm' + side, { layer: 30 });
+      blob(elbow, 0.072, skin, 'elbow' + side, { layer: 31 });
+      capsule(elbow, wrist, 0.106, wrap, isFar ? HC.wrap : HC.wrapHi, 'forearm' + side, { layer: 31, bands: 2 });
+      capsule(add3(wrist, { x: 0, y: 0, z: 0.042 }), add3(wrist, { x: 0, y: 0, z: -0.015 }), 0.126, HC.leather, HC.leatherHi, 'wristCuff' + side, { layer: 32 });
+      capsule(wrist, hand, 0.102, skin, skinHi, 'fist' + side, { layer: 33 });
+      var hp = pd(hand);
+      add('knuckles' + side, hp.depth, 34, function (g) {
+        g.fillStyle = isFar ? HC.skinFar : HC.skinHi;
+        for (var k = -1; k <= 1; k++) {
+          g.beginPath(); g.arc(hp.x + k * v.scale * 0.018, hp.y - v.scale * 0.012, Math.max(0.8, v.scale * 0.010), 0, Math.PI * 2); g.fill();
+        }
+      }, hand);
+    }
+    function drawBlade(side, isFar, hot) {
+      var blade = rig.blades[side];
+      var p0 = pd(blade.base), p1 = pd(blade.mid), p2 = pd(blade.tip);
+      var fill = isFar ? HC.steelFar : HC.steel;
+      var dark = HC.steelDark;
+      var depth = (p0.depth + p1.depth + p2.depth) / 3;
+      var gripStart = pd(add3(blade.base, mul3(blade.dir, -0.105)));
+      var dx = p2.x - p0.x, dy = p2.y - p0.y;
+      var sl = Math.sqrt(dx * dx + dy * dy) || 1;
+      var nx = -dy / sl, ny = dx / sl;
+      if (side === 'R') { nx = -nx; ny = -ny; }
+
+      // Chain links hang in screen space, so gravity reads in every yaw and the
+      // chain never rotates into the blade. Kept deliberately short.
+      add('daggerChain' + side, depth - 0.02, 69, function (g) {
+        var r = Math.max(1.1, 0.017 * v.scale);
+        for (var c = 0; c < 4; c++) {
+          var cx = gripStart.x + (c % 2 ? -1 : 1) * r * 0.38;
+          var cy = gripStart.y + r * 1.5 + c * r * 1.55;
+          g.beginPath(); g.ellipse(cx, cy, r, r * 0.64, c % 2 ? 0.65 : -0.65, 0, Math.PI * 2);
+          g.strokeStyle = HC.outline; g.lineWidth = ink * 1.1; g.stroke();
+          g.strokeStyle = HC.gold; g.lineWidth = Math.max(0.85, ink * 0.58); g.stroke();
+        }
+      }, blade.base);
+
+      add('daggerGrip' + side, depth - 0.012, 70, function (g) {
+        g.lineCap = 'round';
+        g.strokeStyle = HC.outline; g.lineWidth = Math.max(4, 0.050 * v.scale) + ink * 1.2;
+        g.beginPath(); g.moveTo(gripStart.x, gripStart.y); g.lineTo(p0.x, p0.y); g.stroke();
+        g.strokeStyle = isFar ? HC.leatherFar : HC.leather; g.lineWidth = Math.max(2.4, 0.046 * v.scale);
+        g.beginPath(); g.moveTo(gripStart.x, gripStart.y); g.lineTo(p0.x, p0.y); g.stroke();
+        // Leather wrap bands.
+        g.strokeStyle = HC.leatherHi; g.lineWidth = Math.max(0.8, ink * 0.6);
+        for (var b = 1; b <= 3; b++) {
+          var t = b / 4;
+          var bx = lerp(gripStart.x, p0.x, t), by = lerp(gripStart.y, p0.y, t);
+          g.beginPath(); g.moveTo(bx + nx * 2.5, by + ny * 2.5); g.lineTo(bx - nx * 2.5, by - ny * 2.5); g.stroke();
+        }
+        // Pommel ring.
+        g.beginPath(); g.arc(gripStart.x, gripStart.y, Math.max(1.5, 0.026 * v.scale), 0, Math.PI * 2);
+        g.strokeStyle = HC.outline; g.lineWidth = ink * 1.3; g.stroke();
+        g.strokeStyle = HC.gold; g.lineWidth = Math.max(0.9, ink * 0.75); g.stroke();
+      }, blade.base);
+
+      add('daggerGuard' + side, depth - 0.010, 71, function (g) {
+        var gl = 0.074 * v.scale;
+        g.lineCap = 'round'; g.lineJoin = 'round';
+        g.strokeStyle = HC.outline; g.lineWidth = Math.max(4, 0.030 * v.scale) + ink;
+        g.beginPath(); g.moveTo(p0.x + nx * gl, p0.y + ny * gl); g.lineTo(p0.x - nx * gl, p0.y - ny * gl); g.stroke();
+        g.strokeStyle = HC.gold; g.lineWidth = Math.max(2, 0.025 * v.scale);
+        g.beginPath(); g.moveTo(p0.x + nx * gl, p0.y + ny * gl); g.lineTo(p0.x - nx * gl, p0.y - ny * gl); g.stroke();
+        // Flared guard tips.
+        g.fillStyle = HC.gold; g.strokeStyle = HC.outline; g.lineWidth = 0.8;
+        [1, -1].forEach(function (sgn) {
+          g.beginPath(); g.arc(p0.x + nx * gl * sgn, p0.y + ny * gl * sgn, Math.max(1, 0.015 * v.scale), 0, Math.PI * 2);
+          g.fill(); g.stroke();
+        });
+      }, blade.base);
+
+      add('daggerBlade' + side, depth, 72, function (g) {
+        var N = 20, outer = [], inner = [], spine = [], centers = [];
+        for (var i = 0; i <= N; i++) {
+          var u = i / N, inv = 1 - u;
+          var cx = inv * inv * p0.x + 2 * inv * u * p1.x + u * u * p2.x;
+          var cy = inv * inv * p0.y + 2 * inv * u * p1.y + u * u * p2.y;
+          var tx = 2 * inv * (p1.x - p0.x) + 2 * u * (p2.x - p1.x);
+          var ty = 2 * inv * (p1.y - p0.y) + 2 * u * (p2.y - p1.y);
+          var tl = Math.sqrt(tx * tx + ty * ty) || 1;
+          var px = -ty / tl, py = tx / tl;
+          var hOut = (0.014 + 0.058 * Math.sin(Math.PI * Math.pow(u, 0.74))) * v.scale;
+          // Serrated back: three deliberate teeth, never random.
+          if (u > 0.38 && u < 0.46) hOut += 0.020 * v.scale;
+          if (u > 0.56 && u < 0.64) hOut += 0.014 * v.scale;
+          if (u > 0.71 && u < 0.78) hOut += 0.010 * v.scale;
+          if (u > 0.88) hOut *= (1 - u) / 0.12 * 0.75 + 0.25;
+          var hIn = (0.007 + 0.014 * Math.sin(Math.PI * u)) * v.scale;
+          centers.push({ x: cx, y: cy, u: u });
+          outer.push({ x: cx + px * hOut, y: cy + py * hOut });
+          inner.push({ x: cx - px * hIn, y: cy - py * hIn });
+          spine.push({ x: cx + px * hOut * 0.58, y: cy + py * hOut * 0.58 });
+        }
+        g.beginPath(); g.moveTo(outer[0].x, outer[0].y);
+        for (var a = 1; a < outer.length; a++) g.lineTo(outer[a].x, outer[a].y);
+        for (var b = inner.length - 1; b >= 0; b--) g.lineTo(inner[b].x, inner[b].y);
+        g.closePath(); g.fillStyle = fill; g.fill();
+        g.strokeStyle = HC.outline; g.lineWidth = ink * 1.35; g.stroke();
+        // Dark spine / fuller mass along the outer edge.
+        g.beginPath(); g.moveTo(outer[0].x, outer[0].y);
+        for (var s = 1; s < outer.length; s++) g.lineTo(outer[s].x, outer[s].y);
+        for (var t2 = spine.length - 1; t2 >= 0; t2--) g.lineTo(spine[t2].x, spine[t2].y);
+        g.closePath(); g.fillStyle = dark; g.globalAlpha = 0.62; g.fill(); g.globalAlpha = 1;
+        // Cutting edge highlight.
+        g.beginPath(); g.moveTo(inner[1].x, inner[1].y);
+        for (var e = 2; e < inner.length - 1; e++) g.lineTo(inner[e].x, inner[e].y);
+        g.strokeStyle = hot ? HC.fireHi : 'rgba(245,235,215,0.72)';
+        g.lineWidth = Math.max(0.9, ink * 0.7); g.stroke();
+        // Base collar.
+        g.beginPath(); g.arc(p0.x, p0.y, Math.max(1.8, 0.030 * v.scale), 0, Math.PI * 2);
+        g.fillStyle = HC.leatherFar; g.fill();
+        g.strokeStyle = HC.outline; g.lineWidth = ink; g.stroke();
+        if (hot) {
+          g.strokeStyle = HC.fire; g.globalAlpha = 0.55; g.lineWidth = Math.max(1.8, ink * 1.1);
+          g.beginPath(); g.moveTo(inner[2].x, inner[2].y);
+          for (var h = 3; h < inner.length - 1; h++) g.lineTo(inner[h].x, inner[h].y);
+          g.stroke(); g.globalAlpha = 1;
+        }
+      }, blade.mid);
+      if (hot) addBladeFlames(side, blade, p0, p1, p2, nx, ny);
+    }
+    function addBladeFlames(side, blade, p0, p1, p2, nx, ny) {
+      var seed = side === 'L' ? 0.4 : 1.7;
+      for (var i = 0; i < 5; i++) {
+        var u = 0.25 + i * 0.16;
+        var inv = 1 - u;
+        var cx = inv * inv * p0.x + 2 * inv * u * p1.x + u * u * p2.x;
+        var cy = inv * inv * p0.y + 2 * inv * u * p1.y + u * u * p2.y;
+        var h = (0.035 + 0.02 * Math.sin(i * 2.1 + seed)) * v.scale;
+        var sx = cx + nx * h * 0.2, sy = cy + ny * h * 0.2;
+        var tipX = cx + nx * h + 2 * Math.sin(i * 1.7 + seed + time * 8) * v.scale * 0.008;
+        var tipY = cy + ny * h - h * 0.7;
+        add('bladeFlame' + side + i, p0.depth + 2, 74, function (g) {
+          g.beginPath(); g.moveTo(sx, sy);
+          g.quadraticCurveTo(cx + nx * h * 0.4, cy + ny * h * 0.4, tipX, tipY);
+          g.quadraticCurveTo(cx - nx * h * 0.1, cy - h * 0.1, sx, sy);
+          g.closePath(); g.fillStyle = i % 2 ? HC.fireHi : HC.fire;
+          g.globalAlpha = 0.78; g.fill(); g.globalAlpha = 1;
+        }, blade.mid);
+      }
+    }
+    function drawHead() {
+      var neck = pd(j.neck), head = pd(j.head);
+      add('neckShadow', neck.depth - 0.02, 48, function (g) {
+        g.beginPath(); g.ellipse(neck.x, neck.y + v.scale * 0.02, 0.075 * v.scale, 0.030 * v.scale, 0, 0, Math.PI * 2);
+        g.fillStyle = HC.skinFar; g.fill();
+      }, j.neck);
+      var dir = heroHeadDir(yaw);
+      var img = HERO_ASSETS.heads[dir];
+      var destW = v.scale * 0.78;
+      var destH = destW * (HERO_ASSETS.headCrop.h / HERO_ASSETS.headCrop.w);
+      var px = neck.x - destW * (HERO_ASSETS.headCrop.pivotX / HERO_ASSETS.headCrop.w) + (head.x - neck.x) * 0.35;
+      var py = neck.y - destH + v.scale * 0.018;
+      if (img) {
+        add('headOfficial' + dir, neck.depth + 0.2, 60, function (g) {
+          g.drawImage(img, px, py, destW, destH);
+        }, j.head);
+      } else {
+        add('headFallback', neck.depth + 0.2, 60, function (g) {
+          g.beginPath(); g.arc(head.x, head.y, 0.26 * v.scale, 0, Math.PI * 2);
+          g.fillStyle = HC.skin; g.fill(); g.strokeStyle = HC.outline; g.lineWidth = ink; g.stroke();
+          g.beginPath();
+          g.moveTo(head.x - 0.26 * v.scale, head.y);
+          g.lineTo(head.x + 0.20 * v.scale, head.y - 0.22 * v.scale);
+          g.lineTo(head.x + 0.08 * v.scale, head.y - 0.33 * v.scale);
+          g.lineTo(head.x - 0.15 * v.scale, head.y - 0.30 * v.scale);
+          g.closePath(); g.fillStyle = '#241b18'; g.fill();
+        }, j.head);
+      }
+    }
+
+    // ----- Authored paint order ------------------------------------------
+    if (frontHalf) drawCape();
+    drawLeg(farLeg, true);
+    drawLeg(nearLeg, false);
+    if (farArm === 'L') drawArm('L', true); else drawArm('R', true);
+    if (farArm === 'L') drawBlade('L', true, false); else drawBlade('R', true, false);
+    drawSkirt();
+    drawTorso();
+    drawCowl();
+    drawBelt();
+    if (!frontHalf) drawCape();
+    if (nearArm === 'L') drawArm('L', false); else drawArm('R', false);
+    drawHead();
+    var attackIndex = -1;
+    if (/^attack/.test(state)) attackIndex = parseInt(state.slice(6), 10) - 1;
+    var atk = ATTACKS[attackIndex];
+    var hot = !!(atk && time >= atk.windup && time <= atk.windup + atk.active);
+    if (nearArm === 'L') drawBlade('L', false, hot); else drawBlade('R', false, hot);
+    if (hot) drawAttackVFX(attackIndex);
+    if (state === 'dash' && time >= 0.07 && time <= 0.34) drawDashVFX();
+
+    function drawAttackVFX(idx) {
+      var pts = [];
+      var i;
+      if (idx === 0) {
+        for (i = 0; i <= 34; i++) {
+          var u = i / 34;
+          var ang = lerp(-2.05, 1.25, u);
+          pts.push(project({ x: Math.sin(ang) * 0.70, y: Math.cos(ang) * 0.70, z: 1.24 - 0.92 * u }, yaw, rig.rootX, rig.rootY, v));
+        }
+      } else if (idx === 1) {
+        for (i = 0; i <= 34; i++) {
+          var u2 = i / 34;
+          var ang2 = lerp(2.05, -1.25, u2);
+          pts.push(project({ x: Math.sin(ang2) * 0.70, y: Math.cos(ang2) * 0.70, z: 1.24 - 0.92 * u2 }, yaw, rig.rootX, rig.rootY, v));
+        }
+      } else {
+        for (i = 0; i <= 64; i++) {
+          var a3 = i / 64 * Math.PI * 2;
+          pts.push(project({ x: Math.sin(a3) * 0.78, y: Math.cos(a3) * 0.78, z: 0.92 + 0.06 * Math.sin(a3 * 2) }, yaw, rig.rootX, rig.rootY, v));
+        }
+      }
+      add('attackVFX' + (idx + 1), pd(j.chest).depth + 5, 100, function (g) {
+        g.save();
+        g.lineCap = 'round'; g.lineJoin = 'round';
+        g.globalCompositeOperation = 'lighter';
+        function trace() {
+          g.beginPath(); g.moveTo(pts[0].x, pts[0].y);
+          for (var k = 1; k < pts.length; k++) g.lineTo(pts[k].x, pts[k].y);
+        }
+        trace(); g.strokeStyle = 'rgba(255,102,28,0.18)'; g.lineWidth = 16; g.stroke();
+        trace(); g.strokeStyle = 'rgba(255,145,42,0.55)'; g.lineWidth = 7; g.stroke();
+        trace(); g.strokeStyle = 'rgba(255,220,107,0.92)'; g.lineWidth = 2.4; g.stroke();
+        // Flat flame tongues, deterministic, only during the active frames.
+        for (var f = 0; f < 9; f++) {
+          var idx2 = Math.floor(3 + f * (pts.length - 8) / 9);
+          var p = pts[idx2];
+          var q = pts[Math.min(pts.length - 1, idx2 + 2)];
+          var dx = q.x - p.x, dy = q.y - p.y;
+          var l = Math.sqrt(dx * dx + dy * dy) || 1;
+          var nx = -dy / l, ny = dx / l;
+          var hh = (4 + (f % 3) * 2.3) * (v.scale / 90);
+          g.beginPath();
+          g.moveTo(p.x + nx * 2, p.y + ny * 2);
+          g.quadraticCurveTo(p.x + nx * hh + dx * 0.15, p.y + ny * hh + dy * 0.15, p.x + nx * hh * 1.5 - dy * 0.12, p.y + ny * hh * 1.5 + dx * 0.12);
+          g.quadraticCurveTo(p.x + nx * hh * 0.4 + dx * 0.25, p.y + ny * hh * 0.4 + dy * 0.25, p.x - nx * 2, p.y - ny * 2);
+          g.closePath(); g.fillStyle = f % 2 ? 'rgba(255,221,105,0.9)' : 'rgba(255,132,38,0.8)'; g.fill();
+        }
+        g.restore();
+      }, j.chest);
+    }
+    function drawDashVFX() {
+      var p = pd(j.pelvis);
+      add('dashTrail', p.depth - 0.1, 99, function (g) {
+        g.save();
+        g.globalCompositeOperation = 'lighter';
+        for (var i = 0; i < 3; i++) {
+          var off = (i + 1) * 0.15;
+          var a = { x: p.x - Math.sin(yaw) * off * v.scale, y: p.y + Math.cos(yaw) * off * v.scale * SIN };
+          g.beginPath(); g.ellipse(a.x, a.y, 0.13 * v.scale, 0.035 * v.scale, 0, 0, Math.PI * 2);
+          g.strokeStyle = 'rgba(255,174,64,' + (0.28 - i * 0.06) + ')';
+          g.lineWidth = 3 - i;
+          g.stroke();
+        }
+        g.restore();
+      }, j.pelvis);
+    }
+
+    items.forEach(function (it) {
+      it.draw(c);
+      drawCount++;
+    });
+    return { items: items, drawCount: drawCount, centerDepth: centerDepth };
+  }
+
+  // === RENDERER SCENE ===
+  var gridCache = null;
+  function buildGridCache(v) {
+    var corners = [
+      project({ x: -9, y: -6, z: 0 }, 0, 0, 0, v),
+      project({ x: 9, y: -6, z: 0 }, 0, 0, 0, v),
+      project({ x: 9, y: 6, z: 0 }, 0, 0, 0, v),
+      project({ x: -9, y: 6, z: 0 }, 0, 0, 0, v)
+    ];
+    var board = new Path2D();
+    board.moveTo(corners[0].x, corners[0].y);
+    for (var i = 1; i < 4; i++) board.lineTo(corners[i].x, corners[i].y);
+    board.closePath();
+
+    var minor = new Path2D(), major = new Path2D();
+    for (var x = -9; x <= 9; x++) {
+      var a = project({ x: x, y: -6, z: 0 }, 0, 0, 0, v);
+      var b = project({ x: x, y: 6, z: 0 }, 0, 0, 0, v);
+      var xp = x % 3 === 0 ? major : minor;
+      xp.moveTo(a.x, a.y); xp.lineTo(b.x, b.y);
+    }
+    for (var y = -6; y <= 6; y++) {
+      var d = project({ x: -9, y: y, z: 0 }, 0, 0, 0, v);
+      var e = project({ x: 9, y: y, z: 0 }, 0, 0, 0, v);
+      var yp = y % 3 === 0 ? major : minor;
+      yp.moveTo(d.x, d.y); yp.lineTo(e.x, e.y);
+    }
+
+    var ax0 = project({ x: -9, y: 0, z: 0 }, 0, 0, 0, v);
+    var ax1 = project({ x: 9, y: 0, z: 0 }, 0, 0, 0, v);
+    var ay0 = project({ x: 0, y: -6, z: 0 }, 0, 0, 0, v);
+    var ay1 = project({ x: 0, y: 6, z: 0 }, 0, 0, 0, v);
+    var az0 = project({ x: 6.4, y: -4.4, z: 0 }, 0, 0, 0, v);
+    var az1 = project({ x: 6.4, y: -4.4, z: 2 }, 0, 0, 0, v);
+    function axis(a, b) { var p = new Path2D(); p.moveTo(a.x, a.y); p.lineTo(b.x, b.y); return p; }
+
+    return {
+      board: board, minor: minor, major: major,
+      axisX: axis(ax0, ax1), axisY: axis(ay0, ay1), axisZ: axis(az0, az1),
+      ax1: ax1, ay1: ay1, az1: az1
+    };
+  }
+
+  function drawGrid(c, v) {
+    if (!gridCache) gridCache = buildGridCache(v);
+    c.fillStyle = '#151a24';
+    c.fill(gridCache.board);
+
+    c.lineWidth = 1;
+    c.strokeStyle = COL.grid;
+    c.stroke(gridCache.minor);
+    c.strokeStyle = COL.gridMajor;
+    c.stroke(gridCache.major);
+
+    var ax1 = gridCache.ax1, ay1 = gridCache.ay1, az1 = gridCache.az1;
+    c.lineWidth = 2;
+    c.strokeStyle = COL.axisX; c.stroke(gridCache.axisX);
+    c.strokeStyle = COL.axisY; c.stroke(gridCache.axisY);
+    c.strokeStyle = COL.axisZ; c.stroke(gridCache.axisZ);
+
+    c.font = '11px Consolas, monospace';
+    c.fillStyle = COL.axisX; c.fillText('X', ax1.x - 14, ax1.y + 4);
+    c.fillStyle = COL.axisY; c.fillText('Y', ay1.x + 5, ay1.y - 5);
+    c.fillStyle = COL.axisZ; c.fillText('Z', az1.x + 5, az1.y - 4);
+    c.fillStyle = 'rgba(150,165,190,0.55)';
+    c.fillText('1 unit grid  |  orthographic pitch 30 deg', 18, ARENA_H - 18);
+  }
+
+  function drawShadow(c, v, rootX, rootY) {
+    var p = project({ x: 0, y: 0, z: 0 }, 0, rootX, rootY, v);
+    c.beginPath();
+    c.ellipse(p.x, p.y + 1, 0.32 * v.scale, 0.32 * v.scale * SIN, 0, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(0,0,0,0.38)';
+    c.fill();
+    c.strokeStyle = 'rgba(0,0,0,0.22)';
+    c.lineWidth = 1;
+    c.stroke();
+  }
+
+  function drawHeroShadow(c, v, rootX, rootY) {
+    var p = project({ x: 0, y: 0, z: 0 }, 0, rootX, rootY, v);
+    function ellipse(rx, ry, alpha) {
+      c.beginPath();
+      c.ellipse(p.x, p.y + 1, rx * v.scale, ry * v.scale, 0, 0, Math.PI * 2);
+      c.fillStyle = 'rgba(17,24,20,' + alpha + ')';
+      c.fill();
+    }
+    ellipse(0.44, 0.17, 0.13);
+    ellipse(0.32, 0.115, 0.19);
+    ellipse(0.20, 0.072, 0.28);
+  }
+
+  // === ISLAND DIORAMA ===
+  var islandCache = null;
+  function seededRandom(seed) {
+    var s = seed >>> 0;
+    return function () {
+      s = (s * 1664525 + 1013904223) >>> 0;
+      return s / 4294967296;
+    };
+  }
+  function islandBlobPath(g, cx, cy, rx, ry, wobble, seed) {
+    var pts = [];
+    var n = 72;
+    for (var i = 0; i < n; i++) {
+      var a = i / n * Math.PI * 2;
+      var r = 1 + wobble * Math.sin(a * 3 + seed) + wobble * 0.58 * Math.sin(a * 7 - seed * 1.7);
+      pts.push({ x: cx + Math.cos(a) * rx * r, y: cy + Math.sin(a) * ry * r, a: a });
+    }
+    g.beginPath();
+    g.moveTo(pts[0].x, pts[0].y);
+    for (var k = 1; k < pts.length; k++) g.lineTo(pts[k].x, pts[k].y);
+    g.closePath();
+    return pts;
+  }
+  function drawPalm(g, x, y, h, lean, seed) {
+    var rnd = seededRandom(seed);
+    var topX = x + lean * h, topY = y - h;
+    g.save();
+    // Long soft shadow, not a stamped disc.
+    g.beginPath(); g.ellipse(x + h * 0.13, y + 5, h * 0.32, h * 0.085, -0.12, 0, Math.PI * 2);
+    g.fillStyle = 'rgba(22,35,23,0.28)'; g.fill();
+    // Curved tapered trunk, ink silhouette plus flat bark planes.
+    function trunk(width, color) {
+      g.beginPath();
+      g.moveTo(x - width * 0.55, y);
+      g.bezierCurveTo(x - width * 0.70 + lean * h * 0.10, y - h * 0.38, topX - width * 0.44, y - h * 0.80, topX, topY);
+      g.lineTo(topX + width * 0.42, topY + 2);
+      g.bezierCurveTo(topX + width * 0.20, y - h * 0.74, x + width * 1.02, y - h * 0.34, x + width * 0.55, y);
+      g.closePath(); g.fillStyle = color; g.fill();
+    }
+    trunk(22, '#211e17'); trunk(16, lean < 0 ? '#6e4c31' : '#785334');
+    g.strokeStyle = '#a77a4d'; g.lineWidth = 2.3;
+    g.beginPath(); g.moveTo(x - 5, y - 10); g.bezierCurveTo(x - 7 + lean * h * 0.12, y - h * 0.36, topX - 5, y - h * 0.73, topX - 1, topY + 8); g.stroke();
+    // Trunk rings.
+    g.strokeStyle = 'rgba(41,29,20,0.60)'; g.lineWidth = 1.5;
+    for (var t = 1; t <= 7; t++) {
+      var u = t / 8;
+      var rx = x + lean * h * u * u;
+      var ry = y - h * u;
+      g.beginPath(); g.moveTo(rx - 8, ry); g.quadraticCurveTo(rx, ry + 4, rx + 8, ry); g.stroke();
+    }
+    // Crown.
+    var crown = { x: topX + 1, y: topY + 2 };
+    g.fillStyle = '#2d241b'; g.strokeStyle = '#191710'; g.lineWidth = 1.4;
+    g.beginPath(); g.ellipse(crown.x, crown.y + 3, 11, 6, 0.1, 0, Math.PI * 2); g.fill(); g.stroke();
+
+    // Broad, filled fronds with serrated edges. The old version was a bundle
+    // of thin lines and read as a wire umbrella at gameplay scale.
+    var angles = [-2.98, -2.58, -2.14, -1.70, -1.26, -0.82, -0.36, 0.12, 0.58];
+    for (var i = 0; i < angles.length; i++) {
+      var ang = angles[i] + (rnd() - 0.5) * 0.08;
+      var len = h * (0.34 + rnd() * 0.10);
+      var ex = crown.x + Math.cos(ang) * len;
+      var ey = crown.y + Math.sin(ang) * len * 0.58 + len * 0.13;
+      var mx = crown.x + Math.cos(ang) * len * 0.54;
+      var my = crown.y + Math.sin(ang) * len * 0.34 - len * 0.08;
+      var outer = [], inner = [];
+      var baseW = (h * 0.085 + 8) * (0.85 + rnd() * 0.25);
+      for (var k = 0; k <= 12; k++) {
+        var q = k / 12, inv = 1 - q;
+        var lx = inv * inv * crown.x + 2 * inv * q * mx + q * q * ex;
+        var ly = inv * inv * crown.y + 2 * inv * q * my + q * q * ey;
+        var tx = 2 * inv * (mx - crown.x) + 2 * q * (ex - mx);
+        var ty = 2 * inv * (my - crown.y) + 2 * q * (ey - my);
+        var tl = Math.sqrt(tx * tx + ty * ty) || 1;
+        var nx = -ty / tl, ny = tx / tl;
+        var ww = baseW * Math.sin(Math.PI * Math.min(1, q * 0.96 + 0.04)) * (1 - q * 0.35);
+        if (q > 0.30 && q < 0.90) ww *= (k % 2 ? 1.0 : 0.72);
+        outer.push({ x: lx + nx * ww, y: ly + ny * ww });
+        inner.push({ x: lx - nx * ww, y: ly - ny * ww });
+      }
+      g.beginPath(); g.moveTo(outer[0].x, outer[0].y);
+      for (var o = 1; o < outer.length; o++) g.lineTo(outer[o].x, outer[o].y);
+      for (var n = inner.length - 1; n >= 0; n--) g.lineTo(inner[n].x, inner[n].y);
+      g.closePath();
+      g.fillStyle = i % 3 === 0 ? '#2b5f42' : (i % 2 ? '#347149' : '#3d7c50');
+      g.fill(); g.strokeStyle = '#182d1f'; g.lineWidth = 2.4; g.stroke();
+      // Central rib and a few visible leaflet creases.
+      g.strokeStyle = i % 2 ? '#63905a' : '#56874f'; g.lineWidth = 1.7;
+      g.beginPath(); g.moveTo(crown.x, crown.y); g.quadraticCurveTo(mx, my, ex, ey); g.stroke();
+      for (var v = 2; v <= 7; v += 2) {
+        var qq = v / 10, ii = 1 - qq;
+        var px = ii * ii * mx + 2 * ii * qq * ((mx + ex) * 0.5) + qq * qq * ex;
+        var py = ii * ii * my + 2 * ii * qq * ((my + ey) * 0.5) + qq * qq * ey;
+        g.strokeStyle = 'rgba(22,45,29,0.48)'; g.lineWidth = 1.1;
+        g.beginPath(); g.moveTo(px - 5, py + 3); g.lineTo(px + 4, py + 10); g.stroke();
+      }
+    }
+    // Coconuts.
+    g.fillStyle = '#3a271a'; g.strokeStyle = '#1c1510'; g.lineWidth = 1.2;
+    [[-8, 10, 6], [5, 12, 5], [0, 5, 4]].forEach(function (c) {
+      g.beginPath(); g.arc(crown.x + c[0], crown.y + c[1], c[2], 0, Math.PI * 2); g.fill(); g.stroke();
+    });
+    g.restore();
+  }
+
+  function drawRock(g, x, y, w, h, seed) {
+    var rnd = seededRandom(seed);
+    var pts = [];
+    for (var i = 0; i < 8; i++) {
+      var a = i / 8 * Math.PI * 2;
+      var r = 0.72 + rnd() * 0.28;
+      pts.push({ x: x + Math.cos(a) * w * r, y: y + Math.sin(a) * h * r * 0.60 });
+    }
+    // Ground shadow.
+    g.beginPath(); g.ellipse(x + w * 0.10, y + h * 0.36, w * 0.56, h * 0.24, -0.10, 0, Math.PI * 2);
+    g.fillStyle = 'rgba(21,30,23,0.30)'; g.fill();
+    // Dark base mass.
+    g.beginPath(); g.moveTo(pts[0].x, pts[0].y);
+    for (var k = 1; k < pts.length; k++) g.lineTo(pts[k].x, pts[k].y);
+    g.closePath(); g.fillStyle = '#56584d'; g.strokeStyle = '#20271f'; g.lineWidth = 3;
+    g.fill(); g.stroke();
+    // Lit top facet.
+    var top = pts.map(function (p) { return { x: p.x, y: p.y - h * 0.20 }; });
+    g.beginPath(); g.moveTo(top[0].x, top[0].y);
+    for (var t = 1; t < top.length; t++) g.lineTo(top[t].x, top[t].y);
+    g.closePath(); g.fillStyle = '#7f7c69'; g.strokeStyle = '#36392f'; g.lineWidth = 1.6; g.fill(); g.stroke();
+    // Left face.
+    g.beginPath(); g.moveTo(top[6].x, top[6].y); g.lineTo(top[7].x, top[7].y);
+    g.lineTo(pts[7].x, pts[7].y); g.lineTo(pts[6].x, pts[6].y); g.closePath();
+    g.fillStyle = '#454a40'; g.fill(); g.strokeStyle = '#2d3329'; g.lineWidth = 1.2; g.stroke();
+    // Cracks and highlights.
+    g.strokeStyle = '#9b9681'; g.lineWidth = 1.4;
+    g.beginPath(); g.moveTo(top[2].x, top[2].y); g.lineTo(top[3].x - 3, top[3].y + 3); g.lineTo(top[4].x + 2, top[4].y + 4); g.stroke();
+    g.strokeStyle = 'rgba(40,44,35,0.65)'; g.lineWidth = 1.2;
+    g.beginPath(); g.moveTo(top[5].x, top[5].y); g.lineTo(top[5].x - 6, top[5].y + h * 0.36); g.stroke();
+    // Moss and a small fern at the base.
+    g.fillStyle = 'rgba(64,101,52,0.72)';
+    g.beginPath(); g.ellipse(x - w * 0.18, y - h * 0.10, w * 0.24, h * 0.13, -0.2, 0, Math.PI * 2); g.fill();
+    g.fillStyle = 'rgba(57,91,47,0.55)';
+    g.beginPath(); g.ellipse(x + w * 0.26, y + h * 0.05, w * 0.15, h * 0.08, 0.2, 0, Math.PI * 2); g.fill();
+  }
+
+  function drawFern(g, x, y, s, seed) {
+    var rnd = seededRandom(seed);
+    g.save(); g.translate(x, y);
+    g.beginPath(); g.ellipse(6, 4, s * 0.42, s * 0.14, 0, 0, Math.PI * 2);
+    g.fillStyle = 'rgba(23,37,24,0.26)'; g.fill();
+    for (var i = 0; i < 7; i++) {
+      var a = -2.75 + i * 0.44 + (rnd() - 0.5) * 0.13;
+      var len = s * (0.78 + rnd() * 0.32);
+      var ex = Math.cos(a) * len, ey = Math.sin(a) * len * 0.55;
+      var mx = ex * 0.45, my = ey * 0.40 - len * 0.22;
+      var pts = [];
+      for (var k = 0; k <= 8; k++) {
+        var q = k / 8, inv = 1 - q;
+        var px = inv * inv * 0 + 2 * inv * q * mx + q * q * ex;
+        var py = inv * inv * 0 + 2 * inv * q * my + q * q * ey;
+        var tx = 2 * inv * mx + 2 * q * (ex - mx);
+        var ty = 2 * inv * my + 2 * q * (ey - my);
+        var tl = Math.sqrt(tx * tx + ty * ty) || 1;
+        var ww = s * 0.10 * Math.sin(Math.PI * Math.min(1, q * 0.95 + 0.05));
+        if (k % 2) ww *= 0.65;
+        pts.push({ x: px - ty / tl * ww, y: py + tx / tl * ww });
+      }
+      g.beginPath(); g.moveTo(pts[0].x, pts[0].y);
+      for (var p = 1; p < pts.length; p++) g.lineTo(pts[p].x, pts[p].y);
+      for (var r = pts.length - 1; r >= 0; r--) g.lineTo(pts[r].x - s * 0.035, pts[r].y + s * 0.025);
+      g.closePath();
+      g.fillStyle = i % 2 ? '#3e7148' : '#4f8052'; g.fill();
+      g.strokeStyle = '#1c3525'; g.lineWidth = 1.8; g.stroke();
+      g.strokeStyle = '#71965d'; g.lineWidth = 1.2;
+      g.beginPath(); g.moveTo(0, 0); g.quadraticCurveTo(mx, my, ex, ey); g.stroke();
+    }
+    g.restore();
+  }
+
+  function drawBush(g, x, y, s, seed) {
+    var rnd = seededRandom(seed);
+    g.save();
+    g.beginPath(); g.ellipse(x + 8, y + s * 0.28, s * 0.62, s * 0.20, 0, 0, Math.PI * 2);
+    g.fillStyle = 'rgba(20,35,23,0.25)'; g.fill();
+    for (var i = 0; i < 9; i++) {
+      var a = i / 9 * Math.PI * 2;
+      var r = s * (0.18 + rnd() * 0.22);
+      var px = x + Math.cos(a) * s * 0.32 * (0.7 + rnd() * 0.5);
+      var py = y + Math.sin(a) * s * 0.18 - s * 0.18 + Math.sin(i * 2.1) * s * 0.12;
+      g.beginPath(); g.arc(px, py, r, 0, Math.PI * 2);
+      g.fillStyle = i % 3 === 0 ? '#2a583c' : (i % 2 ? '#376f49' : '#447d50');
+      g.fill(); g.strokeStyle = '#1b3223'; g.lineWidth = 1.7; g.stroke();
+      g.beginPath(); g.arc(px - r * 0.2, py - r * 0.25, r * 0.40, Math.PI * 1.05, Math.PI * 1.75);
+      g.strokeStyle = 'rgba(131,166,105,0.52)'; g.lineWidth = 1.4; g.stroke();
+    }
+    if (s > 32) {
+      for (var f = 0; f < 3; f++) {
+        g.fillStyle = f % 2 ? '#d47348' : '#e0a54e';
+        g.beginPath(); g.arc(x - s * 0.25 + f * s * 0.25, y - s * 0.20 + (f % 2) * 5, 2.1, 0, Math.PI * 2); g.fill();
+      }
+    }
+    g.restore();
+  }
+
+  function drawCliff(g, x, y, s, seed) {
+    drawRock(g, x, y, s, s * 0.52, seed);
+    drawRock(g, x + s * 0.48, y - s * 0.03, s * 0.62, s * 0.36, seed + 1);
+    drawRock(g, x - s * 0.45, y + s * 0.05, s * 0.52, s * 0.30, seed + 2);
+    // Grass cap and a few hanging vines.
+    for (var i = 0; i < 4; i++) {
+      g.beginPath(); g.ellipse(x - s * 0.30 + i * s * 0.18, y - s * 0.24, s * 0.15, s * 0.07, -0.12, 0, Math.PI * 2);
+      g.fillStyle = i % 2 ? '#456f3c' : '#557e44'; g.fill();
+      g.strokeStyle = '#2a472c'; g.lineWidth = 1; g.stroke();
+    }
+    g.strokeStyle = '#315b36'; g.lineWidth = 2;
+    for (var v = 0; v < 5; v++) {
+      var vx = x - s * 0.30 + v * s * 0.16;
+      g.beginPath(); g.moveTo(vx, y - s * 0.12);
+      g.quadraticCurveTo(vx + 5, y + s * 0.12, vx - 4, y + s * 0.34); g.stroke();
+    }
+  }
+
+  function drawDock(g, x, y, seed) {
+    g.save();
+    g.translate(x, y);
+    g.rotate(0.035);
+    // Shadow and water darkening under the planks.
+    g.beginPath(); g.ellipse(78, 30, 92, 22, 0.05, 0, Math.PI * 2);
+    g.fillStyle = 'rgba(4,26,28,0.34)'; g.fill();
+    // Posts.
+    g.fillStyle = '#4b3322'; g.strokeStyle = '#231a13'; g.lineWidth = 1.5;
+    [8, 58, 108, 158].forEach(function (px) {
+      g.fillRect(px, 4, 9, 58); g.strokeRect(px, 4, 9, 58);
+      g.beginPath(); g.ellipse(px + 4.5, 62, 5, 2.4, 0, 0, Math.PI * 2); g.fill();
+    });
+    // Planks, slight irregular lengths.
+    for (var i = 0; i < 8; i++) {
+      var py = i * 8;
+      g.fillStyle = i % 2 ? '#7d5639' : '#8b6242';
+      g.strokeStyle = '#33251b'; g.lineWidth = 1.2;
+      g.beginPath(); g.moveTo(i * 2, py); g.lineTo(184, py + 2);
+      g.lineTo(180, py + 9); g.lineTo(i * 2 + 3, py + 8); g.closePath();
+      g.fill(); g.stroke();
+      g.strokeStyle = 'rgba(47,32,22,0.45)'; g.lineWidth = 0.8;
+      g.beginPath(); g.moveTo(18, py + 4); g.lineTo(160, py + 5); g.stroke();
+    }
+    g.restore();
+  }
+
+  function drawDistantIslet(g, x, y, s, seed) {
+    var rnd = seededRandom(seed);
+    g.beginPath(); g.ellipse(x, y, s * 1.4, s * 0.42, 0, 0, Math.PI * 2);
+    g.fillStyle = 'rgba(200,231,211,0.18)'; g.fill();
+    g.beginPath(); g.ellipse(x, y - 2, s, s * 0.38, 0, 0, Math.PI * 2);
+    g.fillStyle = '#8b7a55'; g.fill();
+    g.beginPath(); g.ellipse(x - 2, y - 5, s * 0.76, s * 0.28, 0, 0, Math.PI * 2);
+    g.fillStyle = '#3f6540'; g.fill();
+    g.strokeStyle = '#26452f'; g.lineWidth = 1.4;
+    g.beginPath(); g.moveTo(x + s * 0.12, y - s * 0.3); g.lineTo(x + s * 0.25, y - s * 0.8); g.stroke();
+    for (var i = 0; i < 3; i++) {
+      g.beginPath(); g.moveTo(x + s * 0.25, y - s * 0.8);
+      g.quadraticCurveTo(x + s * 0.55, y - s * 0.95 + i * 4, x + s * 0.66, y - s * 0.70 + i * 6);
+      g.strokeStyle = '#315b39'; g.lineWidth = 1.8; g.stroke();
+    }
+    if (rnd() > 0.5) {
+      g.fillStyle = 'rgba(255,255,255,0.22)';
+      g.beginPath(); g.arc(x + s * 0.5, y, 1.6, 0, Math.PI * 2); g.fill();
+    }
+  }
+  function buildIslandCache() {
+    var cv = document.createElement('canvas');
+    cv.width = ARENA_W; cv.height = ARENA_H;
+    var g = cv.getContext('2d');
+    var rnd = seededRandom(0x51A7);
+
+    // === WATER ============================================================
+    g.fillStyle = '#082f3a'; g.fillRect(0, 0, ARENA_W, ARENA_H);
+    g.fillStyle = '#0a3843'; g.fillRect(0, 90, ARENA_W, 230);
+    g.fillStyle = '#0c414b'; g.fillRect(0, 330, ARENA_W, 235);
+    g.fillStyle = '#092f39'; g.fillRect(0, 610, ARENA_W, 110);
+    // Broad current bands keep the sea from being one flat colour.
+    g.fillStyle = 'rgba(27,104,111,0.16)';
+    for (var b = 0; b < 7; b++) {
+      var by = 120 + b * 78 + rnd() * 18;
+      g.beginPath(); g.moveTo(-20, by);
+      g.bezierCurveTo(280, by - 18, 760, by + 26, 1300, by - 8);
+      g.lineTo(1300, by + 27); g.bezierCurveTo(780, by + 50, 300, by + 8, -20, by + 34);
+      g.closePath(); g.fill();
+    }
+    // Shallow lagoon rings around the island.
+    g.fillStyle = '#0e4b55'; islandBlobPath(g, 640, 515, 755, 452, 0.030, 0.25); g.fill();
+    g.fillStyle = '#145a62'; islandBlobPath(g, 640, 515, 715, 420, 0.028, 0.45); g.fill();
+    g.fillStyle = '#1a6669'; islandBlobPath(g, 640, 515, 682, 395, 0.026, 0.65); g.fill();
+    // Reef shadows and current strokes.
+    for (var w = 0; w < 240; w++) {
+      var wx = rnd() * ARENA_W, wy = rnd() * ARENA_H;
+      var wl = 9 + rnd() * 52;
+      g.strokeStyle = w % 4 === 0 ? 'rgba(105,178,164,0.30)' : (w % 3 === 0 ? 'rgba(48,128,132,0.36)' : 'rgba(28,107,116,0.34)');
+      g.lineWidth = 1 + rnd() * 1.4;
+      g.beginPath(); g.moveTo(wx, wy);
+      g.quadraticCurveTo(wx + wl * 0.45, wy - 3 - rnd() * 3, wx + wl, wy);
+      g.stroke();
+    }
+    for (var f = 0; f < 34; f++) {
+      var fx = rnd() * ARENA_W, fy = 80 + rnd() * 500;
+      g.strokeStyle = 'rgba(199,233,216,0.22)'; g.lineWidth = 1.2;
+      g.beginPath(); g.arc(fx, fy, 5 + rnd() * 12, 0.1, 1.25); g.stroke();
+    }
+    // Distant islets; deliberately small so the main island owns the frame.
+    drawDistantIslet(g, 1004, 84, 23, 5.2);
+    drawDistantIslet(g, 1214, 144, 13, 8.4);
+
+    // === ISLAND ===========================================================
+    var outer = islandBlobPath(g, 640, 515, 662, 372, 0.058, 0.8);
+    g.fillStyle = '#a17d50'; g.fill();
+    g.strokeStyle = '#241f17'; g.lineWidth = 5; g.stroke();
+    // Wet sand band.
+    islandBlobPath(g, 640, 515, 642, 355, 0.054, 0.8);
+    g.fillStyle = '#bf9b63'; g.fill();
+    // Dry beach.
+    islandBlobPath(g, 640, 514, 626, 342, 0.050, 0.8);
+    g.fillStyle = '#ddc184'; g.fill();
+    g.strokeStyle = '#8d744d'; g.lineWidth = 2; g.stroke();
+    // Foam on the outer wet edge.
+    for (var p = 0; p < outer.length; p += 2) {
+      var pp = outer[p];
+      var nx = pp.x - 640, ny = pp.y - 515;
+      var nl = Math.sqrt(nx * nx + ny * ny) || 1;
+      nx /= nl; ny /= nl;
+      g.strokeStyle = 'rgba(224,241,220,' + (0.15 + (p % 5) * 0.038) + ')';
+      g.lineWidth = 1.3 + (p % 3) * 0.7;
+      g.beginPath();
+      g.moveTo(pp.x + nx * 4, pp.y + ny * 4);
+      g.quadraticCurveTo(pp.x + nx * 13 - ny * 10, pp.y + ny * 13 + nx * 10, pp.x + nx * 24, pp.y + ny * 24);
+      g.stroke();
+    }
+    // Grass plateau, with a second lighter mass inside the outline.
+    var grass = islandBlobPath(g, 640, 505, 580, 300, 0.048, 1.6);
+    g.fillStyle = '#477640'; g.fill();
+    g.strokeStyle = '#263f28'; g.lineWidth = 4; g.stroke();
+    islandBlobPath(g, 640, 500, 548, 278, 0.044, 1.6);
+    g.fillStyle = '#527f45'; g.fill();
+
+    // === CLEARING AND PATH ================================================
+    // A worn training ground, irregular rather than a perfect ellipse.
+    var clearing = islandBlobPath(g, 640, 508, 292, 124, 0.070, 3.7);
+    g.fillStyle = '#c5a36b'; g.fill();
+    g.strokeStyle = 'rgba(103,79,48,0.42)'; g.lineWidth = 2.5; g.stroke();
+    islandBlobPath(g, 636, 502, 245, 101, 0.058, 4.2);
+    g.fillStyle = '#d3b27a'; g.fill();
+    // A pale, sandy path snakes toward the dock at the upper right.
+    g.beginPath();
+    g.moveTo(790, 488);
+    g.bezierCurveTo(875, 470, 928, 402, 982, 322);
+    g.lineTo(1012, 335);
+    g.bezierCurveTo(956, 423, 936, 500, 858, 548);
+    g.closePath(); g.fillStyle = '#c9a970'; g.fill();
+    g.strokeStyle = 'rgba(119,91,55,0.34)'; g.lineWidth = 1.8; g.stroke();
+
+    // Grass texture, clipped to the plateau. Dense enough to read as a lawn,
+    // never random noise over the hero's feet.
+    g.save();
+    islandBlobPath(g, 640, 505, 580, 300, 0.048, 1.6);
+    g.clip();
+    for (var t = 0; t < 460; t++) {
+      var gx = rnd() * ARENA_W, gy = 175 + rnd() * 520;
+      var gl = 3 + rnd() * 9;
+      g.strokeStyle = t % 4 === 0 ? '#86a85c' : (t % 5 === 0 ? '#2f5832' : '#47743c');
+      g.lineWidth = 1 + rnd() * 1.1;
+      g.beginPath(); g.moveTo(gx, gy); g.lineTo(gx + (rnd() - 0.5) * 4, gy - gl); g.stroke();
+    }
+    for (var tf = 0; tf < 58; tf++) {
+      var tx = 90 + rnd() * 1100, ty = 270 + rnd() * 440;
+      g.strokeStyle = '#99b164'; g.lineWidth = 1.1;
+      for (var b2 = -1; b2 <= 1; b2++) {
+        g.beginPath(); g.moveTo(tx, ty); g.quadraticCurveTo(tx + b2 * 4, ty - 8, tx + b2 * 6, ty - 14); g.stroke();
+      }
+    }
+    // A few darker and lighter grass patches break the flat green.
+    for (var gp = 0; gp < 10; gp++) {
+      var gpx = 170 + rnd() * 940, gpy = 290 + rnd() * 390;
+      g.fillStyle = gp % 2 ? 'rgba(45,79,42,0.22)' : 'rgba(118,150,74,0.18)';
+      g.beginPath(); g.ellipse(gpx, gpy, 35 + rnd() * 60, 16 + rnd() * 26, rnd() * 0.7, 0, Math.PI * 2); g.fill();
+    }
+    g.restore();
+
+    // Sand speckles, pebbles and shell marks on the beach.
+    g.save();
+    islandBlobPath(g, 640, 514, 626, 342, 0.050, 0.8);
+    g.clip();
+    for (var s = 0; s < 280; s++) {
+      var sx = rnd() * ARENA_W, sy = 210 + rnd() * 510;
+      g.fillStyle = s % 3 === 0 ? 'rgba(248,228,182,0.60)' : (s % 4 === 0 ? 'rgba(126,96,57,0.45)' : 'rgba(170,137,87,0.42)');
+      g.beginPath(); g.arc(sx, sy, 0.7 + rnd() * 1.8, 0, Math.PI * 2); g.fill();
+    }
+    for (var sh = 0; sh < 34; sh++) {
+      var hx = 160 + rnd() * 960, hy = 300 + rnd() * 390;
+      g.strokeStyle = 'rgba(244,226,190,0.66)'; g.lineWidth = 1.2;
+      g.beginPath(); g.arc(hx, hy, 3 + rnd() * 3, Math.PI * 0.15, Math.PI * 0.9); g.stroke();
+    }
+    g.restore();
+
+    // Dirt texture inside the clearing, including a worn centre.
+    g.save();
+    islandBlobPath(g, 640, 508, 292, 124, 0.070, 3.7);
+    g.clip();
+    for (var dt = 0; dt < 100; dt++) {
+      var dx = 370 + rnd() * 545, dy = 402 + rnd() * 215;
+      g.strokeStyle = dt % 3 ? 'rgba(146,112,67,0.28)' : 'rgba(230,203,151,0.38)';
+      g.lineWidth = 0.8 + rnd() * 1.1;
+      g.beginPath(); g.moveTo(dx, dy); g.lineTo(dx + 3 + rnd() * 12, dy + (rnd() - 0.5) * 3); g.stroke();
+    }
+    for (var peb = 0; peb < 30; peb++) {
+      var px2 = 390 + rnd() * 490, py2 = 415 + rnd() * 185;
+      g.fillStyle = peb % 2 ? '#9f885e' : '#b59a68';
+      g.beginPath(); g.ellipse(px2, py2, 1.4 + rnd() * 2.6, 1 + rnd() * 1.6, rnd() * 2, 0, Math.PI * 2); g.fill();
+    }
+    // Paired footprints along the path, small enough not to read as UI.
+    for (var fp = 0; fp < 5; fp++) {
+      var fu = fp / 4;
+      var fx2 = 815 + fu * 145;
+      var fy2 = 505 - fu * 130;
+      g.fillStyle = 'rgba(119,89,53,0.34)';
+      g.beginPath(); g.ellipse(fx2, fy2, 3.2, 1.8, -0.5, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.ellipse(fx2 + 9, fy2 - 13, 3.2, 1.8, -0.5, 0, Math.PI * 2); g.fill();
+    }
+    g.restore();
+
+    // Flat stones ring the clearing; they frame the fight without looking
+    // like a painted UI circle.
+    for (var st = 0; st < 9; st++) {
+      var sa = st / 9 * Math.PI * 2 + 0.22;
+      var sr = 0.93 + (st % 3) * 0.025;
+      var stx = 640 + Math.cos(sa) * 255 * sr;
+      var sty = 508 + Math.sin(sa) * 103 * sr;
+      if (sty < 415 || sty > 620) continue;
+      g.beginPath(); g.ellipse(stx + 3, sty + 4, 12, 4.5, 0.08, 0, Math.PI * 2);
+      g.fillStyle = 'rgba(70,58,38,0.22)'; g.fill();
+      g.beginPath(); g.ellipse(stx, sty, 10, 4, 0.08, 0, Math.PI * 2);
+      g.fillStyle = st % 2 ? '#91866d' : '#a2977b'; g.fill();
+      g.strokeStyle = '#5e5848'; g.lineWidth = 1.1; g.stroke();
+      g.beginPath(); g.ellipse(stx - 2, sty - 1.5, 6, 1.9, 0.08, Math.PI, Math.PI * 2);
+      g.strokeStyle = 'rgba(224,212,179,0.55)'; g.lineWidth = 1; g.stroke();
+    }
+
+    // === LANDMARKS ========================================================
+    // A rocky headland at the back-left gives the beach a vertical silhouette.
+    drawCliff(g, 255, 337, 132, 14.2);
+    drawFern(g, 300, 382, 30, 15.1);
+
+    // Old fallen log at the lower-left, with moss and a clean silhouette.
+    g.save();
+    g.translate(300, 626); g.rotate(-0.10);
+    g.beginPath(); g.ellipse(6, 6, 84, 19, 0, 0, Math.PI * 2);
+    g.fillStyle = 'rgba(28,38,26,0.25)'; g.fill();
+    g.beginPath(); g.moveTo(-78, -4); g.quadraticCurveTo(-40, -17, 56, -10);
+    g.lineTo(70, 8); g.quadraticCurveTo(-16, 18, -78, 10); g.closePath();
+    g.fillStyle = '#59412d'; g.strokeStyle = '#2a2118'; g.lineWidth = 3; g.fill(); g.stroke();
+    g.beginPath(); g.ellipse(68, -2, 9, 12, 0, 0, Math.PI * 2);
+    g.fillStyle = '#8a6844'; g.fill(); g.strokeStyle = '#3d2d1f'; g.lineWidth = 1.5; g.stroke();
+    g.beginPath(); g.ellipse(68, -2, 4, 6, 0, 0, Math.PI * 2);
+    g.strokeStyle = '#5e472e'; g.lineWidth = 1.2; g.stroke();
+    g.strokeStyle = 'rgba(114,86,55,0.8)'; g.lineWidth = 1.3;
+    for (var lr = 0; lr < 5; lr++) {
+      g.beginPath(); g.moveTo(-58 + lr * 22, -8); g.quadraticCurveTo(-48 + lr * 22, -2, -40 + lr * 22, 7); g.stroke();
+    }
+    g.fillStyle = 'rgba(86,117,59,0.8)';
+    g.beginPath(); g.ellipse(-18, -12, 22, 5, -0.1, 0, Math.PI * 2); g.fill();
+    g.restore();
+
+    // === DOCK =============================================================
+    drawDock(g, 990, 278, 27);
+
+    // === VEGETATION =======================================================
+    drawPalm(g, 146, 408, 205, -0.10, 11);
+    drawPalm(g, 1116, 418, 220, 0.085, 22);
+    drawPalm(g, 470, 306, 172, -0.035, 33);
+    drawPalm(g, 1004, 236, 126, 0.06, 41);
+
+    drawBush(g, 206, 512, 46, 51);
+    drawBush(g, 1134, 576, 52, 52);
+    drawBush(g, 940, 616, 39, 53);
+    drawBush(g, 762, 272, 34, 54);
+    drawBush(g, 1054, 306, 30, 55);
+    drawBush(g, 386, 292, 31, 56);
+
+    drawFern(g, 348, 628, 34, 4);
+    drawFern(g, 906, 646, 44, 8);
+    drawFern(g, 760, 264, 29, 5);
+    drawFern(g, 1046, 620, 29, 9);
+    drawFern(g, 180, 306, 30, 10);
+
+    drawRock(g, 218, 610, 78, 43, 3.1);
+    drawRock(g, 1080, 622, 96, 48, 4.7);
+    drawRock(g, 1008, 292, 48, 25, 2.2);
+    drawRock(g, 100, 330, 42, 22, 7.3);
+    drawRock(g, 560, 286, 38, 20, 6.4);
+
+    // Flower clusters, kept to the margins.
+    for (var fl = 0; fl < 26; fl++) {
+      var flx = 120 + rnd() * 1040, fly = 280 + rnd() * 390;
+      if (flx > 360 && flx < 920 && fly > 400 && fly < 620) continue;
+      g.fillStyle = fl % 4 === 0 ? '#e6b05c' : (fl % 3 === 0 ? '#d96847' : '#eadfc0');
+      g.beginPath(); g.arc(flx, fly, 1.4 + rnd() * 1.4, 0, Math.PI * 2); g.fill();
+    }
+
+    // Small starfish and shells near the front.
+    function star(g2, x, y, r, rot) {
+      g2.save(); g2.translate(x, y); g2.rotate(rot);
+      g2.beginPath();
+      for (var i = 0; i < 10; i++) {
+        var a = i / 10 * Math.PI * 2 - Math.PI / 2;
+        var rr = i % 2 ? r * 0.42 : r;
+        if (i === 0) g2.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+        else g2.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      g2.closePath(); g2.fillStyle = '#cf7049'; g2.fill();
+      g2.strokeStyle = '#7e3f2a'; g2.lineWidth = 1.2; g2.stroke(); g2.restore();
+    }
+    star(g, 508, 668, 12, -0.35);
+    star(g, 842, 690, 8, 0.8);
+    g.fillStyle = '#ecd9b6'; g.beginPath(); g.ellipse(694, 676, 5, 3, 0.4, 0, Math.PI * 2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.35)'; g.beginPath(); g.arc(920, 300, 2.4, 0, Math.PI * 2); g.fill();
+    // Dark edge framing, flat only.
+    g.fillStyle = 'rgba(6,24,26,0.18)';
+    g.fillRect(0, 0, ARENA_W, 10); g.fillRect(0, ARENA_H - 12, ARENA_W, 12);
+    g.fillStyle = 'rgba(6,24,26,0.14)';
+    g.fillRect(0, 0, 12, ARENA_H); g.fillRect(ARENA_W - 12, 0, 12, ARENA_H);
+    return cv;
+  }
+  function drawIsland(c) {
+    if (!islandCache) islandCache = buildIslandCache();
+    c.drawImage(islandCache, 0, 0);
+  }
+
+  function drawHUD(c) {
+    var x = 16, y = 16, w = 512, h = 158;
+    c.save();
+    c.fillStyle = 'rgba(10,17,18,0.86)';
+    c.fillRect(x, y, w, h);
+    c.strokeStyle = 'rgba(149,178,151,0.32)'; c.lineWidth = 1;
+    c.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    c.fillStyle = '#c94f39'; c.fillRect(x, y, 5, h);
+    c.font = 'bold 12px Consolas, monospace';
+    c.fillStyle = '#f2e9d5';
+    c.fillText('HERO-02  |  GATE 2  |  RIG + ARTE', x + 14, y + 19);
+    c.font = '10px Consolas, monospace';
+    c.fillStyle = '#99b6a2';
+    c.fillText('CABEÃ‡A = RECORTE OFICIAL 8 DIR   |   CORPO / CAPA / ARMAS = CANVAS 2D', x + 14, y + 35);
+
+    c.font = '11px Consolas, monospace';
+    c.fillStyle = '#dce6d9';
+    c.fillText('STATE ' + sim.state.toUpperCase() + '   PHASE ' + sim.phaseLabel + '   MODE ' + sim.mode.toUpperCase(), x + 14, y + 56);
+    c.fillStyle = '#b8c6b4';
+    c.fillText('yaw ' + sim.yawDeg.toFixed(0) + 'Â° (' + cardinal(sim.yawDeg) + ')   clip ' + sim.clipTime.toFixed(3) + ' / ' + sim.clipDuration.toFixed(2) + ' s', x + 14, y + 72);
+    c.fillText('root ' + sim.rootX.toFixed(2) + ', ' + sim.rootY.toFixed(2) + '   speed ' + sim.speed.toFixed(2) + ' u/s', x + 14, y + 88);
+
+    var slipText = 'not run';
+    var pass = false, hasTest = false;
+    if (sim.footTests) {
+      slipText = sim.footTests.yaw0.maxPx.toFixed(2) + ' / ' + sim.footTests.yaw90.maxPx.toFixed(2) + ' px';
+      pass = sim.footLockPass; hasTest = true;
+    } else if (sim.lastTest) {
+      slipText = sim.lastTest.maxPx.toFixed(2) + ' px';
+      pass = sim.lastTest.pass; hasTest = true;
+    }
+    c.fillStyle = hasTest ? (pass ? '#8fe3c3' : '#ffd166') : '#8fa699';
+    c.fillText('fps ' + sim.fps.toFixed(0) + '   draw ' + sim.drawMs.toFixed(2) + ' ms   foot slip 0/90 ' + slipText + (hasTest ? (pass ? '  PASS' : '  FAIL') : ''), x + 14, y + 106);
+    c.fillStyle = '#8fa699';
+    c.fillText('frames ' + sim.frameCount + '   primitive items ' + sim.drawCount + '   errors ' + runtimeErrors.length + (sim.paused ? '   [PAUSED]' : ''), x + 14, y + 122);
+    c.fillStyle = '#d7b477';
+    c.fillText('combo buffer ' + (sim.attackQueued ? 'QUEUED ' + (sim.clipTime - sim.attackQueuedAt).toFixed(2) + ' s' : '-') + '   dash cd ' + Math.max(0, sim.dashCooldown).toFixed(2) + ' s   refs ' + (HERO_ASSETS.loaded ? 'OK' : 'â€¦'), x + 14, y + 139);
+
+    var cx = 16, cy = ARENA_H - 54;
+    c.fillStyle = 'rgba(10,17,18,0.84)';
+    c.fillRect(cx, cy, 994, 38);
+    c.strokeStyle = 'rgba(149,178,151,0.28)'; c.strokeRect(cx + 0.5, cy + 0.5, 993, 37);
+    c.font = '10px Consolas, monospace';
+    c.fillStyle = '#c2d0bf';
+    c.fillText('WASD / setas mover   |   Shift dash   |   J / clique combo 3 golpes   |   Space pausa   |   F1 debug   |   G comparaÃ§Ã£o oficial', cx + 10, cy + 15);
+    c.fillStyle = '#8fa699';
+    c.fillText('C folha 8 direÃ§Ãµes   |   R reset   |   T foot-lock   |   [ ] yaw 45Â°   |   API determinÃ­stica window.RIG01', cx + 10, cy + 29);
+    c.restore();
+  }
+
+  function cardinal(degv) {
+    var dirs = ['S', 'SE', 'E', 'NE', 'N', 'NW', 'W', 'SW'];
+    return dirs[Math.round(degv / 45) % 8];
+  }
+
+  function drawHitbox(c, v, rig) {
+    if (!sim || !sim.state.match(/^attack/)) return;
+    var idx = parseInt(sim.state.slice(6), 10) - 1;
+    var a = ATTACKS[idx];
+    if (!a) return;
+    var t = sim.clipTime;
+    var active = t >= a.windup && t <= a.windup + a.active;
+    if (!active) return;
+    var u0 = (t - a.windup) / a.active;
+    c.save();
+    c.lineCap = 'round';
+    var pts = [];
+    if (idx === 0) {
+      for (var i = 0; i <= 30; i++) {
+        var u = i / 30;
+        var ang = lerp(-2.05, 1.25, u);
+        var rr = 0.70;
+        pts.push(project({ x: Math.sin(ang) * rr, y: Math.cos(ang) * rr, z: 1.24 - 0.92 * u }, rig.yaw, rig.rootX, rig.rootY, v));
+      }
+    } else if (idx === 1) {
+      for (var i2 = 0; i2 <= 30; i2++) {
+        var u2 = i2 / 30;
+        var ang2 = lerp(2.05, -1.25, u2);
+        var rr2 = 0.70;
+        pts.push(project({ x: Math.sin(ang2) * rr2, y: Math.cos(ang2) * rr2, z: 1.24 - 0.92 * u2 }, rig.yaw, rig.rootX, rig.rootY, v));
+      }
+    } else {
+      for (var i3 = 0; i3 <= 64; i3++) {
+        var ang3 = i3 / 64 * Math.PI * 2;
+        var rr3 = 0.78;
+        pts.push(project({ x: Math.sin(ang3) * rr3, y: Math.cos(ang3) * rr3, z: 0.92 + 0.06 * Math.sin(ang3 * 2) }, rig.yaw, rig.rootX, rig.rootY, v));
+      }
+    }
+    c.strokeStyle = 'rgba(255,155,61,0.22)';
+    c.lineWidth = 12;
+    c.beginPath(); c.moveTo(pts[0].x, pts[0].y);
+    for (var k = 1; k < pts.length; k++) c.lineTo(pts[k].x, pts[k].y);
+    c.stroke();
+    c.strokeStyle = COL.hit;
+    c.lineWidth = 2;
+    c.stroke();
+    var mid = pts[Math.floor(pts.length * 0.55)];
+    c.fillStyle = COL.hit;
+    c.font = '11px Consolas, monospace';
+    c.fillText('ACTIVE HITBOX ' + (idx + 1) + '  |  u=' + u0.toFixed(2), mid.x + 8, mid.y - 8);
+    c.restore();
+  }
+
+  function drawDebug(c, v, rig, renderInfo) {
+    var j = rig.joints;
+    function p(local) { return project(local, rig.yaw, rig.rootX, rig.rootY, v); }
+    var names = {
+      pelvis: j.pelvis, chest: j.chest, neck: j.neck, head: j.head,
+      shoulderL: j.shoulderL, shoulderR: j.shoulderR,
+      elbowL: j.elbowL, elbowR: j.elbowR,
+      wristL: j.wristL, wristR: j.wristR,
+      hipL: j.hipL, hipR: j.hipR, kneeL: j.kneeL, kneeR: j.kneeR,
+      ankleL: j.ankleL, ankleR: j.ankleR
+    };
+    var labelNames = {
+      pelvis: j.pelvis, chest: j.chest, head: j.head,
+      shoulderL: j.shoulderL, shoulderR: j.shoulderR,
+      elbowL: j.elbowL, elbowR: j.elbowR,
+      kneeL: j.kneeL, kneeR: j.kneeR, ankleL: j.ankleL, ankleR: j.ankleR
+    };
+    c.save();
+    c.setLineDash([4, 4]);
+    c.lineWidth = 1;
+    c.strokeStyle = 'rgba(255,255,255,0.45)';
+    [['pelvis', 'chest'], ['chest', 'neck'], ['neck', 'head'],
+      ['shoulderL', 'elbowL'], ['elbowL', 'wristL'], ['wristL', 'handL'],
+      ['shoulderR', 'elbowR'], ['elbowR', 'wristR'], ['wristR', 'handR'],
+      ['hipL', 'kneeL'], ['kneeL', 'ankleL'], ['ankleL', 'toeL'],
+      ['hipR', 'kneeR'], ['kneeR', 'ankleR'], ['ankleR', 'toeR']].forEach(function (pair) {
+      var a = names[pair[0]], b = names[pair[1]] || rig.joints[pair[1]];
+      if (!a || !b) return;
+      var pa = p(a), pb = p(b);
+      c.beginPath(); c.moveTo(pa.x, pa.y); c.lineTo(pb.x, pb.y); c.stroke();
+    });
+    c.setLineDash([]);
+
+    c.font = '9px Consolas, monospace';
+    Object.keys(labelNames).forEach(function (name) {
+      var pp = p(labelNames[name]);
+      var dx = 5, dy = -3;
+      if (name === 'pelvis') { dx = -42; dy = 10; }
+      else if (name === 'chest') { dx = 8; dy = 2; }
+      else if (name === 'head') { dx = 12; dy = -10; }
+      else if (name === 'shoulderL' || name === 'elbowL' || name === 'wristL' || name === 'kneeL' || name === 'ankleL') { dx = 6; dy = -3; }
+      else if (name === 'shoulderR' || name === 'elbowR' || name === 'wristR' || name === 'kneeR' || name === 'ankleR') { dx = -38; dy = -3; }
+      c.fillStyle = 'rgba(235,240,250,0.8)';
+      c.fillText(name, pp.x + dx, pp.y + dy);
+    });
+
+    function cross(local, color, label, size, ldx, ldy) {
+      var pp = p(local);
+      size = size || 6;
+      c.strokeStyle = color; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(pp.x - size, pp.y); c.lineTo(pp.x + size, pp.y);
+      c.moveTo(pp.x, pp.y - size); c.lineTo(pp.x, pp.y + size); c.stroke();
+      c.beginPath(); c.arc(pp.x, pp.y, 3, 0, Math.PI * 2); c.stroke();
+      if (label) { c.fillStyle = color; c.fillText(label, pp.x + (ldx || 8), pp.y + (ldy || 12)); }
+    }
+    cross(rig.targets.handL, '#7cf0c8', 'handL IK', 5, 8, 14);
+    cross(rig.targets.handR, '#7cf0c8', 'handR IK', 5, -46, 14);
+    cross(rig.targets.footL, '#ffd166', 'footL IK', 6, 8, -9);
+    cross(rig.targets.footR, '#ffd166', 'footR IK', 6, -44, -9);
+
+    // Ground anchors: world-fixed while a foot is locked, otherwise the current sole contact.
+    ['L', 'R'].forEach(function (side) {
+      var f = sim && sim.gait ? sim.gait.feet[side] : null;
+      var pp;
+      if (f && f.lockWorld) {
+        pp = project({ x: 0, y: 0, z: 0 }, 0, f.lockWorld.x, f.lockWorld.y, v);
+      } else {
+        var target = rig.targets['foot' + side];
+        pp = project({ x: target.x, y: target.y, z: 0 }, rig.yaw, rig.rootX, rig.rootY, v);
+      }
+      var locked = !!(f && f.locked && f.lockWorld);
+      c.save();
+      c.strokeStyle = locked ? '#7cf0c8' : 'rgba(124,240,200,0.55)';
+      c.fillStyle = c.strokeStyle;
+      c.lineWidth = 1.5;
+      c.setLineDash([3, 3]);
+      c.beginPath(); c.arc(pp.x, pp.y, 9, 0, Math.PI * 2); c.stroke();
+      c.setLineDash([]);
+      c.beginPath(); c.arc(pp.x, pp.y, 1.5, 0, Math.PI * 2); c.fill();
+      c.fillText('anchor' + side, pp.x + (side === 'L' ? 12 : -48), pp.y + 20);
+      c.restore();
+    });
+
+    if (rig.clamps.length) {
+      c.fillStyle = '#ff6b6b';
+      c.fillText('IK CLAMP: ' + rig.clamps.join(', '), 18, 165);
+    } else {
+      c.fillStyle = '#78e6be';
+      c.fillText('IK: all targets reachable', 18, 165);
+    }
+    c.fillStyle = '#cbd2df';
+    c.fillText('height ' + rig.height.toFixed(3) + ' u  |  pelvis depth ' + renderInfo.centerDepth.toFixed(3) + '  |  draws ' + renderInfo.drawCount, 18, 181);
+
+    var panelX = ARENA_W - 446, panelY = 16, panelW = 430, panelH = 688;
+    c.fillStyle = 'rgba(9,18,18,0.94)';
+    c.fillRect(panelX, panelY, panelW, panelH);
+    c.strokeStyle = 'rgba(151,178,156,0.32)'; c.strokeRect(panelX + 0.5, panelY + 0.5, panelW - 1, panelH - 1);
+    c.fillStyle = '#eef1f7'; c.font = 'bold 10px Consolas, monospace';
+    c.fillText('DEBUG  |  paint order (authored)  |  n=' + renderInfo.items.length, panelX + 10, panelY + 17);
+    c.fillStyle = '#8fa699'; c.font = '8px Consolas, monospace';
+    c.fillText('bones/targets on top Â· local depth recorded Â· head = official crop', panelX + 10, panelY + 29);
+    c.font = '7.5px Consolas, monospace';
+    c.fillStyle = '#9fb4a3';
+    renderInfo.items.forEach(function (it, i2) {
+      if (i2 > 68) return;
+      c.fillText((i2 + 1) + '. ' + it.name + '  d=' + it.depth.toFixed(3) + '  layer=' + it.layer, panelX + 10, panelY + 44 + i2 * 8.7);
+    });
+    c.font = '9px Consolas, monospace';
+    c.fillStyle = '#ffd166';
+    c.fillText('yaw ' + sim.yawDeg.toFixed(1) + 'Â°  |  state ' + sim.state + '  |  phase ' + sim.phaseLabel + '  |  draw ' + sim.drawMs.toFixed(2) + ' ms', panelX + 10, panelY + 675);
+    c.restore();
+  }
+
+  function drawOfficialRef(c, yaw, cx, groundY, v) {
+    var img = HERO_ASSETS.refs[heroHeadDir(yaw)];
+    c.save();
+    c.beginPath(); c.ellipse(cx, groundY + 1, 0.40 * v.scale, 0.13 * v.scale, 0, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(14,18,15,0.32)'; c.fill();
+    if (!img) {
+      c.fillStyle = '#c7a17a'; c.font = '11px Consolas, monospace';
+      c.fillText('ref PNG nÃ£o carregado', cx - 54, groundY - 40);
+      c.restore();
+      return;
+    }
+    var contentH = 1.64 * COS * v.scale;
+    var s = contentH / 1201;
+    var dw = img.width * s, dh = img.height * s;
+    var left = cx - 627 * s;
+    var top = groundY - 1231 * s;
+    c.drawImage(img, left, top, dw, dh);
+    c.restore();
+  }
+
+  function drawHeroContact(c) {
+    var W = CONTACT_W, H = CONTACT_H;
+    var headerH = 74, rowH = 326, footerH = H - headerH - rowH * 3;
+    c.fillStyle = '#0b1312'; c.fillRect(0, 0, W, H);
+    // Header.
+    c.fillStyle = '#e9e1cf'; c.font = 'bold 24px Consolas, monospace';
+    c.fillText('HERO-02  |  8 DIREÃ‡Ã•ES  |  IDLE + CORRIDA', 22, 34);
+    c.fillStyle = '#93b29c'; c.font = '11px Consolas, monospace';
+    c.fillText('mesmo rig, mesma projeÃ§Ã£o e mesmo pivÃ´ de pÃ©s  |  cabeÃ§a = recorte fixo das 8 vistas oficiais  |  corpo/capa/armas = Canvas 2D', 22, 54);
+    c.fillStyle = '#d09a57';
+    c.fillText('A linha de topo Ã© a referÃªncia original; as duas linhas seguintes sÃ£o a entrega jogÃ¡vel.', 22, 68);
+    c.fillStyle = 'rgba(151,178,156,0.35)'; c.fillRect(0, headerH - 1, W, 1);
+
+    var dirs = ['S', 'SE', 'E', 'NE', 'N', 'NW', 'W', 'SW'];
+    var rowDefs = [
+      { label: 'REFERÃŠNCIA OFICIAL', sub: 'PNG 1254 Ã— 1254 Â· sem ediÃ§Ã£o', color: '#d7b477' },
+      { label: 'RIG + CABEÃ‡A OFICIAL Â· IDLE', sub: 't = 0.350 s', color: '#8fe3c3' },
+      { label: 'RIG + CABEÃ‡A OFICIAL Â· RUN CONTACT L', sub: 't = 0.130 s', color: '#ffb46a' }
+    ];
+    var contactDraws = 0;
+    for (var row = 0; row < 3; row++) {
+      for (var col = 0; col < 8; col++) {
+        var left = col * 240, top = headerH + row * rowH;
+        var v = { originX: left + 120, originY: top + 258, scale: 76 };
+        c.save();
+        c.beginPath(); c.rect(left, top, 240, rowH); c.clip();
+        c.fillStyle = row % 2 === 0 ? '#0f1a18' : '#101c19';
+        c.fillRect(left, top, 240, rowH);
+        c.strokeStyle = 'rgba(142,172,151,0.16)'; c.lineWidth = 1;
+        c.strokeRect(left + 0.5, top + 0.5, 239, rowH - 1);
+        if (sim && sim.contactFocus === col) {
+          c.strokeStyle = '#e0a556'; c.lineWidth = 2;
+          c.strokeRect(left + 2, top + 2, 236, rowH - 4);
+        }
+        // Foot plane and pivot tick.
+        c.strokeStyle = 'rgba(177,193,167,0.24)';
+        c.beginPath(); c.moveTo(left + 18, v.originY); c.lineTo(left + 222, v.originY); c.stroke();
+        c.strokeStyle = 'rgba(177,193,167,0.30)';
+        c.beginPath(); c.moveTo(v.originX, v.originY - 3); c.lineTo(v.originX, v.originY + 3); c.stroke();
+        c.font = 'bold 10px Consolas, monospace'; c.fillStyle = rowDefs[row].color;
+        c.fillText(rowDefs[row].label, left + 10, top + 17);
+        c.font = '9px Consolas, monospace'; c.fillStyle = '#93aa9a';
+        c.fillText(col * 45 + 'Â°  ' + dirs[col] + '   ' + rowDefs[row].sub, left + 10, top + 30);
+
+        if (row === 0) {
+          drawOfficialRef(c, rad(col * 45), v.originX, v.originY, v);
+          if (col === 4) {
+            c.fillStyle = '#e0a556'; c.font = 'bold 13px Consolas, monospace';
+            c.fillText('*', left + 224, top + 17);
+          }
+        } else {
+          var pose = sampleClip(row === 1 ? 'idle' : 'run', row === 1 ? 0.35 : 0.13, true);
+          if (row === 2) {
+            var targets = runFootTargetsAtTime(0.13, rad(col * 45), 0, 0);
+            pose.footL.x = targets.L.x; pose.footL.y = targets.L.y; pose.footL.z = targets.L.z; pose.footL.pitch = targets.L.pitch;
+            pose.footR.x = targets.R.x; pose.footR.y = targets.R.y; pose.footR.z = targets.R.z; pose.footR.pitch = targets.R.pitch;
+          }
+          var rig = buildRig(pose, { yaw: rad(col * 45), rootX: 0, rootY: 0, contact: true });
+          drawHeroShadow(c, v, 0, 0);
+          contactDraws += renderHero(c, rig, v, { state: row === 1 ? 'idle' : 'run', time: row === 1 ? 0.35 : 0.13 }).drawCount;
+        }
+        c.restore();
+      }
+    }
+    sim.drawCount = contactDraws;
+    c.fillStyle = 'rgba(10,19,17,0.96)'; c.fillRect(0, headerH + rowH * 3, W, footerH);
+    c.fillStyle = 'rgba(151,178,156,0.35)'; c.fillRect(0, headerH + rowH * 3, W, 1);
+    c.font = '10px Consolas, monospace'; c.fillStyle = '#91a898';
+    c.fillText('* a vista N da referÃªncia oficial exibe uma segunda caveira nas costas; o rig preserva a canon: uma Ãºnica caveira, no centro do cinto frontal.', 22, H - 30);
+    c.fillStyle = '#d7b477';
+    c.fillText('Os PNGs em assets/references/ nÃ£o foram alterados. Os recortes de cabeÃ§a sÃ£o derivados fixos de 920 Ã— 645 px com pivÃ´ (467, 645).', 22, H - 12);
+  }
+
+  function drawGallery(c) {
+    drawIsland(c);
+    c.fillStyle = 'rgba(6,18,18,0.76)'; c.fillRect(0, 0, ARENA_W, ARENA_H);
+    c.fillStyle = '#efe7d6'; c.font = 'bold 23px Consolas, monospace';
+    c.fillText('COMPARAÃ‡ÃƒO  |  SPRITE OFICIAL  vs  RIG', 38, 48);
+    c.fillStyle = '#9eb9a4'; c.font = '11px Consolas, monospace';
+    c.fillText('mesma altura de personagem e mesmo pivÃ´ de pÃ©s  |  giro com [ ]  |  a referÃªncia nÃ£o Ã© usada como frame de corrida/ataque', 38, 68);
+    var panels = [
+      { x: 90, title: 'REFERÃŠNCIA OFICIAL', sub: heroHeadDir(sim.yaw).toUpperCase() + ' Â· PNG original', color: '#d7b477' },
+      { x: 660, title: 'RIG + CABEÃ‡A OFICIAL', sub: 'corpo/capa/armas em Canvas 2D', color: '#8fe3c3' }
+    ];
+    var pose = sampleClip('idle', 0.35, true);
+    var rig = buildRig(pose, { yaw: sim.yaw, rootX: 0, rootY: 0, contact: true });
+    var v = { originX: 0, originY: 575, scale: 112 };
+    for (var i = 0; i < 2; i++) {
+      var p = panels[i];
+      c.fillStyle = 'rgba(10,22,20,0.82)'; c.fillRect(p.x, 104, 530, 548);
+      c.strokeStyle = 'rgba(161,190,166,0.32)'; c.lineWidth = 1; c.strokeRect(p.x + 0.5, 104.5, 529, 547);
+      c.fillStyle = p.color; c.font = 'bold 12px Consolas, monospace'; c.fillText(p.title, p.x + 16, 128);
+      c.fillStyle = '#8fa99a'; c.font = '10px Consolas, monospace'; c.fillText(p.sub, p.x + 16, 143);
+      c.strokeStyle = 'rgba(177,193,167,0.26)'; c.beginPath(); c.moveTo(p.x + 26, v.originY); c.lineTo(p.x + 504, v.originY); c.stroke();
+      v.originX = p.x + 265;
+      if (i === 0) drawOfficialRef(c, sim.yaw, v.originX, v.originY, v);
+      else {
+        drawHeroShadow(c, v, 0, 0);
+        renderHero(c, rig, v, { state: 'idle', time: 0.35 });
+      }
+      c.fillStyle = '#b7c9b7'; c.font = '10px Consolas, monospace';
+      c.fillText('yaw ' + sim.yawDeg.toFixed(0) + 'Â°  |  ' + cardinal(sim.yawDeg) + '  |  altura alvo 1.64 u', p.x + 16, 630);
+    }
+    c.fillStyle = 'rgba(10,22,20,0.90)'; c.fillRect(90, 666, 1100, 36);
+    c.font = '10px Consolas, monospace'; c.fillStyle = '#c8d7c8';
+    c.fillText('G volta Ã  arena  |  [ ] gira o yaw    A referÃªncia oficial Ã© exibida apenas para comparaÃ§Ã£o; o gameplay usa o rig.', 104, 689);
+    if (Math.abs(normAngle(sim.yaw - Math.PI)) < 0.01) {
+      c.fillStyle = '#e0a556'; c.fillText('Nota N: a referÃªncia oficial mostra uma segunda caveira nas costas; o rig mantÃ©m a caveira Ãºnica frontal.', 104, 651);
+    }
+  }
+
+  function drawComboSheet(c) {
+    var W = 1920, H = 720;
+    c.fillStyle = '#0a1312'; c.fillRect(0, 0, W, H);
+    c.fillStyle = '#efe7d6'; c.font = 'bold 22px Consolas, monospace';
+    c.fillText('COMBO DE 3 GOLPES  |  A1 â†’ A2 â†’ A3', 24, 38);
+    c.fillStyle = '#9eb9a4'; c.font = '11px Consolas, monospace';
+    c.fillText('impactos amostrados nos keyframes reais  |  janela ativa com brilho infernal  |  pausa e yaw determinÃ­sticos', 24, 58);
+    var defs = [
+      { state: 'attack1', time: 0.1598, name: 'A1', sub: 'DIAGONAL DIREITA', active: '0.08 s', color: '#ffb46a' },
+      { state: 'attack2', time: 0.1500, name: 'A2', sub: 'REVERSA ESQUERDA', active: '0.08 s', color: '#ffd166' },
+      { state: 'attack3', time: 0.1900, name: 'A3', sub: '360Â° PESADO', active: '0.10 s', color: '#ff8a4c' }
+    ];
+    for (var i = 0; i < 3; i++) {
+      var x = i * 640;
+      c.fillStyle = i % 2 ? '#0c1715' : '#0b1514'; c.fillRect(x, 74, 640, 584);
+      c.strokeStyle = 'rgba(151,178,156,0.22)'; c.lineWidth = 1; c.strokeRect(x + 0.5, 74.5, 639, 583);
+      var d = defs[i];
+      var pose = sampleClip(d.state, d.time, true);
+      var rig = buildRig(pose, { yaw: 0, rootX: 0, rootY: 0, contact: true });
+      var v = { originX: x + 320, originY: 500, scale: 112 };
+      c.save();
+      c.beginPath(); c.rect(x + 1, 75, 638, 582); c.clip();
+      drawHeroShadow(c, v, 0, 0);
+      renderHero(c, rig, v, { state: d.state, time: d.time });
+      c.restore();
+      c.fillStyle = d.color; c.font = 'bold 16px Consolas, monospace';
+      c.fillText(d.name, x + 22, 104);
+      c.fillStyle = '#d8e1d2'; c.font = 'bold 11px Consolas, monospace';
+      c.fillText(d.sub, x + 22, 122);
+      c.fillStyle = '#8fa99a'; c.font = '10px Consolas, monospace';
+      c.fillText('impacto t=' + d.time.toFixed(4) + ' s   |   active ' + d.active, x + 22, 138);
+      c.fillStyle = 'rgba(143,169,154,0.32)'; c.fillRect(x + 22, 594, 596, 1);
+      c.fillStyle = '#b9cbb9'; c.font = '10px Consolas, monospace';
+      c.fillText('golpe ' + (i + 1) + ' / 3   |   impacto exato no keyframe   |   clamps ' + rig.clamps.length, x + 22, 614);
+      // Timeline with the active window highlighted.
+      var a = ATTACKS[i];
+      var timelineW = 596, t0 = x + 22, ty = 642;
+      c.fillStyle = '#1b2a25'; c.fillRect(t0, ty, timelineW, 8);
+      c.fillStyle = 'rgba(224,165,86,0.30)';
+      c.fillRect(t0 + timelineW * (a.windup / a.duration), ty, timelineW * (a.active / a.duration), 8);
+      c.fillStyle = d.color;
+      c.fillRect(t0 + timelineW * (d.time / a.duration) - 1.5, ty - 3, 3, 14);
+      c.fillStyle = '#7f9787'; c.font = '9px Consolas, monospace';
+      c.fillText('windup', t0, ty + 22);
+      c.fillText('active', t0 + timelineW * (a.windup / a.duration) + 4, ty + 22);
+      c.fillText('recovery', t0 + timelineW * (a.activeEnd), ty + 22);
+      c.fillStyle = '#d7b477'; c.font = 'bold 11px Consolas, monospace';
+      c.fillText(i === 2 ? 'ENCERRA' : 'BUFFER 250 ms â†’ ' + (i === 0 ? 'A2' : 'A3'), x + 470, 614);
+    }
+    c.fillStyle = 'rgba(10,19,17,0.96)'; c.fillRect(0, 658, W, 62);
+    c.fillStyle = 'rgba(151,178,156,0.30)'; c.fillRect(0, 658, W, 1);
+    c.font = '10px Consolas, monospace'; c.fillStyle = '#91a898';
+    c.fillText('A3 com spin overlay desativado nesta folha para comparar a pose de impacto; no gameplay o spin continua ativo. Brilho infernal sÃ³ nos frames active.', 24, 682);
+    c.fillStyle = '#d7b477';
+    c.fillText('foot-lock medido no Gate 1: 5.68e-14 px em yaw 0Â° e 90Â°  |  0 clamps nos seis estados  |  janela de combo abre no recoveryStart.', 24, 700);
+  }
+
+  function drawArena(c) {
+    drawIsland(c);
+    var v = viewArena();
+    drawHeroShadow(c, v, sim.rootX, sim.rootY);
+    var rig = currentRig();
+    var info = renderHero(c, rig, v, {});
+    sim.drawCount = info.drawCount;
+    sim.lastRig = rig;
+    sim.lastDrawInfo = info;
+    if (sim.debug) {
+      drawHitbox(c, v, rig);
+      drawDebug(c, v, rig, info);
+    }
+    drawHUD(c);
+  }
+
+  function draw() {
+    var drawStart = performance.now();
+    if (sim.mode === 'contact') {
+      drawHeroContact(ctx);
+    } else if (sim.mode === 'gallery') {
+      drawGallery(ctx);
+    } else if (sim.mode === 'combo') {
+      drawComboSheet(ctx);
+    } else {
+      drawArena(ctx);
+    }
+    sim.drawMs = sim.drawMs * 0.9 + (performance.now() - drawStart) * 0.1;
+    sim.frameCount++;
+  }
+
+  // === SIMULATION ===
+  function createSim() {
+    return {
+      mode: 'arena', paused: false, state: 'idle',
+      yaw: 0, yawDeg: 0, rootX: 0, rootY: 0,
+      clipTime: 0, clipDuration: IDLE_DURATION, phaseLabel: 'breath',
+      speed: 0, frameCount: 0, drawCount: 0, fps: 60, drawMs: 0,
+      accumulator: 0, apiCarry: 0, lastFrameTime: 0, debug: false, contactFocus: -1,
+      keys: {}, testDrive: null,
+      transition: null, prevPose: null,
+      gait: {
+        feet: {
+          L: { locked: false, lockWorld: null, local: { x: 0.11, y: 0.06, z: L.ankleZ, pitch: 0 }, phase: 0 },
+          R: { locked: false, lockWorld: null, local: { x: -0.11, y: -0.04, z: L.ankleZ, pitch: 0 }, phase: 0 }
+        }
+      },
+      dashCooldown: 0, dashDir: { x: 0, y: 1 }, dashYaw: 0, dashStartX: 0, dashStartY: 0,
+      attackIndex: 0, attackQueued: false, attackQueuedAt: 0, attackEntryYaw: 0, attackStartX: 0, attackStartY: 0,
+      slip: { maxPx: 0, sumPx: 0, samples: 0 },
+      clampedSamples: 0,
+      lastTest: null, footLockPass: false, lastRig: null, renderYaw: 0
+    };
+  }
+
+  function resetSim() {
+    var mode = sim ? sim.mode : 'arena';
+    var debug = sim ? sim.debug : false;
+    var fps = sim ? sim.fps : 60;
+    var ns = createSim();
+    ns.mode = mode;
+    ns.debug = debug;
+    ns.fps = fps;
+    sim = ns;
+    sim.yawDeg = 0;
+  }
+
+  function inputDirection() {
+    if (sim.testDrive) return { x: Math.sin(sim.testDrive.yaw), y: Math.cos(sim.testDrive.yaw) };
+    var x = 0, y = 0;
+    if (sim.keys['KeyW'] || sim.keys['ArrowUp']) y -= 1;
+    if (sim.keys['KeyS'] || sim.keys['ArrowDown']) y += 1;
+    if (sim.keys['KeyA'] || sim.keys['ArrowLeft']) x -= 1;
+    if (sim.keys['KeyD'] || sim.keys['ArrowRight']) x += 1;
+    var m = len2(x, y);
+    if (m > 0) { x /= m; y /= m; }
+    return { x: x, y: y };
+  }
+
+  function startState(name, opts) {
+    opts = opts || {};
+    var cut = !!opts.cut;
+    var blend = cut ? 0 : (opts.blend !== undefined ? opts.blend : 0.1);
+    if (blend > 0) {
+      var prev = getPoseRaw();
+      sim.transition = { pose: poseClone(prev), t: 0, duration: blend };
+    } else {
+      sim.transition = null;
+    }
+    sim.state = name;
+    sim.clipTime = 0;
+    sim.clipDuration = CLIPS[name] ? CLIPS[name].duration : IDLE_DURATION;
+    sim.apiCarry = 0;
+    sim.attackQueued = false;
+    sim.attackQueuedAt = 0;
+    sim.speed = 0;
+    if (name === 'run') initRunGaitAtTime(0);
+    if (name === 'idle') sim.phaseLabel = 'breath';
+    if (name === 'dash') sim.phaseLabel = 'windup';
+    if (name.indexOf('attack') === 0) sim.phaseLabel = 'windup';
+  }
+
+  function startAttack(index) {
+    var a = ATTACKS[index];
+    sim.transition = null;
+    sim.state = a.id;
+    sim.attackIndex = index;
+    sim.clipTime = 0;
+    sim.clipDuration = a.duration;
+    sim.apiCarry = 0;
+    sim.attackEntryYaw = sim.yaw;
+    sim.attackStartX = sim.rootX;
+    sim.attackStartY = sim.rootY;
+    sim.attackQueued = false;
+    sim.attackQueuedAt = 0;
+    sim.speed = 0;
+    sim.phaseLabel = 'windup';
+  }
+
+  function tryStartDash() {
+    if (sim.paused) return false;
+    if (sim.state === 'dash' || sim.state.indexOf('attack') === 0) return false;
+    if (sim.dashCooldown > 0) return false;
+    var dir = inputDirection();
+    if (!dir.x && !dir.y) dir = localForward(sim.yaw);
+    sim.dashDir = { x: dir.x, y: dir.y };
+    sim.dashYaw = Math.atan2(dir.x, dir.y);
+    sim.yaw = sim.dashYaw;
+    sim.dashStartX = sim.rootX;
+    sim.dashStartY = sim.rootY;
+    sim.dashCooldown = DASH_COOLDOWN;
+    sim.transition = null;
+    sim.state = 'dash';
+    sim.clipTime = 0;
+    sim.clipDuration = DASH_DURATION;
+    sim.attackQueued = false;
+    sim.phaseLabel = 'windup';
+    sim.speed = 0;
+    return true;
+  }
+
+  function handleAttackInput() {
+    if (sim.paused) return false;
+    if (sim.state === 'dash') return false;
+    if (sim.state.indexOf('attack') === 0) {
+      var a = ATTACKS[sim.attackIndex];
+      // Combo window opens exactly at recovery start; a buffered press expires 250 ms later.
+      if (sim.attackIndex < 2 && !sim.attackQueued && sim.clipTime + 1e-9 >= a.recoveryStart) {
+        sim.attackQueued = true;
+        sim.attackQueuedAt = sim.clipTime;
+      }
+      return sim.attackQueued;
+    }
+    startAttack(0);
+    return true;
+  }
+
+  function endAction() {
+    var dir = inputDirection();
+    if (dir.x || dir.y) startState('run', { blend: 0.1 });
+    else startState('idle', { blend: 0.1 });
+  }
+
+  function runPhase(side, clipTime) {
+    var offset = side === 'R' ? 0.5 : 0;
+    return (((clipTime / RUN_DURATION) + offset) % 1 + 1) % 1;
+  }
+
+  function footSideWorld(side, yaw) {
+    var sign = side === 'L' ? 1 : -1;
+    return { x: Math.cos(yaw) * 0.11 * sign, y: -Math.sin(yaw) * 0.11 * sign };
+  }
+
+  function swingFootLocal(side, phase) {
+    var sign = side === 'L' ? 1 : -1;
+    var p = clamp((phase - SUPPORT_FRAC) / (1 - SUPPORT_FRAC), 0, 1);
+    var s = smoothstep(p);
+    var lift = Math.sin(Math.PI * p);
+    return {
+      x: sign * 0.11 + sign * 0.015 * lift,
+      y: lerp(-STANCE_HALF, STANCE_HALF, s),
+      z: L.ankleZ + 0.14 * lift,
+      pitch: 0.42 * lift
+    };
+  }
+
+  function runFootTargetsAtTime(clipTime, yaw, rootX, rootY) {
+    var out = {};
+    ['L', 'R'].forEach(function (side) {
+      var phase = runPhase(side, clipTime);
+      if (phase < SUPPORT_FRAC) {
+        var f = localForward(yaw);
+        var sw = footSideWorld(side, yaw);
+        var lock = {
+          x: rootX - f.x * RUN_SPEED * phase * RUN_DURATION + f.x * STANCE_HALF + sw.x,
+          y: rootY - f.y * RUN_SPEED * phase * RUN_DURATION + f.y * STANCE_HALF + sw.y
+        };
+        var loc = worldToLocal(lock.x - rootX, lock.y - rootY, yaw);
+        out[side] = {
+          x: loc.x, y: loc.y, z: L.ankleZ, pitch: 0,
+          locked: true, lockWorld: lock, phase: phase
+        };
+      } else {
+        var local = swingFootLocal(side, phase);
+        out[side] = {
+          x: local.x, y: local.y, z: local.z, pitch: local.pitch,
+          locked: false, lockWorld: null, phase: phase
+        };
+      }
+    });
+    return out;
+  }
+
+  function initRunGaitAtTime(clipTime) {
+    var targets = runFootTargetsAtTime(clipTime, sim.yaw, sim.rootX, sim.rootY);
+    sim.gait = { feet: {} };
+    ['L', 'R'].forEach(function (side) {
+      var t = targets[side];
+      sim.gait.feet[side] = {
+        locked: t.locked, lockWorld: t.lockWorld,
+        local: { x: t.x, y: t.y, z: t.z, pitch: t.pitch },
+        phase: t.phase
+      };
+    });
+  }
+
+  function updateRunGait() {
+    ['L', 'R'].forEach(function (side) {
+      var f = sim.gait.feet[side];
+      var newPhase = runPhase(side, sim.clipTime);
+      var oldPhase = f.phase;
+      var support = newPhase < SUPPORT_FRAC;
+      var wrapped = newPhase < oldPhase - 1e-9;
+      if (support && (!f.locked || wrapped)) {
+        var fwd = localForward(sim.yaw);
+        var sw = footSideWorld(side, sim.yaw);
+        f.lockWorld = {
+          x: sim.rootX + fwd.x * STANCE_HALF + sw.x,
+          y: sim.rootY + fwd.y * STANCE_HALF + sw.y
+        };
+      }
+      if (support && f.lockWorld) {
+        var loc = worldToLocal(f.lockWorld.x - sim.rootX, f.lockWorld.y - sim.rootY, sim.yaw);
+        f.local = { x: loc.x, y: loc.y, z: L.ankleZ, pitch: 0 };
+        f.locked = true;
+      } else {
+        var swing = swingFootLocal(side, newPhase);
+        f.local = swing;
+        f.locked = false;
+        f.lockWorld = null;
+      }
+      f.phase = newPhase;
+    });
+    var l = sim.gait.feet.L.locked, r = sim.gait.feet.R.locked;
+    sim.phaseLabel = l ? 'contact L' : (r ? 'contact R' : 'flight');
+  }
+
+  function clampRootToArena() {
+    sim.rootX = clamp(sim.rootX, -5.5, 5.5);
+    sim.rootY = clamp(sim.rootY, -4.6, 4.6);
+  }
+
+  function applyAttackRoot() {
+    var a = ATTACKS[sim.attackIndex];
+    var u = smoothstep(clamp((sim.clipTime - a.windup * 0.4) / (a.duration * 0.72), 0, 1));
+    var f = localForward(sim.attackEntryYaw);
+    sim.rootX = sim.attackStartX + f.x * a.root * u;
+    sim.rootY = sim.attackStartY + f.y * a.root * u;
+    clampRootToArena();
+  }
+
+  function dashProgress(t) {
+    var windup = 0.07, burst = 0.15, recovery = 0.20;
+    if (t <= windup) return 0;
+    if (t <= windup + burst) return easeOutCubic((t - windup) / burst) * 0.82;
+    return 0.82 + easeInOut((t - windup - burst) / recovery) * 0.18;
+  }
+
+  function applyDashRoot() {
+    var p = dashProgress(sim.clipTime);
+    sim.rootX = sim.dashStartX + sim.dashDir.x * DASH_DISTANCE * p;
+    sim.rootY = sim.dashStartY + sim.dashDir.y * DASH_DISTANCE * p;
+    clampRootToArena();
+  }
+
+  function getPoseRaw() {
+    var p = sampleClip(sim.state, sim.clipTime);
+    if (sim.state === 'run') {
+      var fl = sim.gait.feet.L, fr = sim.gait.feet.R;
+      p.footL = { x: fl.local.x, y: fl.local.y, z: fl.local.z, pitch: fl.local.pitch };
+      p.footR = { x: fr.local.x, y: fr.local.y, z: fr.local.z, pitch: fr.local.pitch };
+    }
+    return p;
+  }
+
+  function getPose() {
+    var cur = getPoseRaw();
+    if (sim.transition) {
+      var u = smoothstep(clamp(sim.transition.t / sim.transition.duration, 0, 1));
+      return blendPose(sim.transition.pose, cur, u);
+    }
+    return cur;
+  }
+
+  function currentRig() {
+    var pose = getPose();
+    var renderYaw = normAngle(sim.yaw + rad(pose.spin));
+    sim.renderYaw = renderYaw;
+    return buildRig(pose, { yaw: renderYaw, rootX: sim.rootX, rootY: sim.rootY });
+  }
+
+  function measureLiveSlip() {
+    if (sim.state !== 'run') return;
+    var rig = currentRig();
+    sim.lastRig = rig;
+    if (rig.clamps.length) sim.clampedSamples++;
+    var v = viewArena();
+    ['L', 'R'].forEach(function (side) {
+      var f = sim.gait.feet[side];
+      if (!f.locked || !f.lockWorld) return;
+      var localAnkle = side === 'L' ? rig.joints.ankleL : rig.joints.ankleR;
+      var actual = project(localAnkle, rig.yaw, sim.rootX, sim.rootY, v);
+      var anchor = project({ x: 0, y: 0, z: L.ankleZ }, 0, f.lockWorld.x, f.lockWorld.y, v);
+      var dx = actual.x - anchor.x, dy = actual.y - anchor.y;
+      var d = Math.sqrt(dx * dx + dy * dy);
+      sim.slip.maxPx = Math.max(sim.slip.maxPx, d);
+      sim.slip.sumPx += d;
+      sim.slip.samples++;
+    });
+  }
+
+  function updateLocomotion(dt) {
+    var dir = inputDirection();
+    var moving = !!(dir.x || dir.y);
+    if (!moving) {
+      if (sim.state === 'run') startState('idle', { blend: 0.1 });
+      sim.clipTime += dt;
+      if (sim.state === 'idle') {
+        if (sim.clipTime >= IDLE_DURATION) sim.clipTime -= IDLE_DURATION;
+        sim.phaseLabel = 'breath';
+      }
+      sim.speed = 0;
+      return;
+    }
+
+    var targetYaw = Math.atan2(dir.x, dir.y);
+    if (sim.state !== 'run') {
+      startState('run', { blend: 0.1 });
+      initRunGaitAtTime(sim.clipTime);
+    }
+    sim.yaw = turnToward(sim.yaw, targetYaw, 14 * dt);
+    var align = Math.abs(normAngle(targetYaw - sim.yaw));
+    sim.clipTime += dt;
+    if (sim.clipTime >= RUN_DURATION) sim.clipTime -= RUN_DURATION;
+    if (align < 0.12) {
+      var f = localForward(sim.yaw);
+      sim.rootX += f.x * RUN_SPEED * dt;
+      sim.rootY += f.y * RUN_SPEED * dt;
+      clampRootToArena();
+      sim.speed = RUN_SPEED;
+    } else {
+      sim.speed = 0;
+    }
+    updateRunGait();
+  }
+
+  function updateAttack(dt) {
+    sim.clipTime += dt;
+    var a = ATTACKS[sim.attackIndex];
+    applyAttackRoot();
+    if (sim.attackQueued && sim.clipTime - sim.attackQueuedAt > 0.25 + 1e-9) {
+      sim.attackQueued = false;
+    }
+    if (sim.clipTime < a.windup) sim.phaseLabel = 'windup';
+    else if (sim.clipTime < a.windup + a.active) sim.phaseLabel = 'active';
+    else sim.phaseLabel = 'recovery';
+    if (sim.clipTime >= a.duration) {
+      if (sim.attackQueued && sim.attackIndex < 2) {
+        startAttack(sim.attackIndex + 1);
+      } else {
+        endAction();
+      }
+    }
+  }
+
+  function updateDash(dt) {
+    sim.clipTime += dt;
+    applyDashRoot();
+    if (sim.clipTime < 0.07) sim.phaseLabel = 'windup';
+    else if (sim.clipTime < 0.22) sim.phaseLabel = 'burst';
+    else sim.phaseLabel = 'recovery';
+    sim.speed = dashProgress(sim.clipTime) > 0 ? RUN_SPEED * 1.6 : 0;
+    if (sim.clipTime >= DASH_DURATION) {
+      sim.dashCooldown = DASH_COOLDOWN;
+      endAction();
+    }
+  }
+
+  function updateSim(dt) {
+    if (sim.state !== 'dash') sim.dashCooldown = Math.max(0, sim.dashCooldown - dt);
+    if (sim.transition) {
+      sim.transition.t += dt;
+      if (sim.transition.t >= sim.transition.duration) sim.transition = null;
+    }
+    if (sim.state === 'dash') updateDash(dt);
+    else if (sim.state.indexOf('attack') === 0) updateAttack(dt);
+    else updateLocomotion(dt);
+    sim.yawDeg = deg(sim.yaw);
+    if (sim.state === 'run') measureLiveSlip();
+  }
+
+  function runFootLockTest(seconds, yawDegrees) {
+    seconds = seconds === undefined ? 2 : seconds;
+    yawDegrees = yawDegrees === undefined ? 0 : yawDegrees;
+    var old = sim;
+    var test = createSim();
+    test.mode = 'arena';
+    test.paused = false;
+    test.yaw = rad(yawDegrees);
+    test.yawDeg = deg(test.yaw);
+    test.state = 'run';
+    test.clipTime = 0;
+    test.clipDuration = RUN_DURATION;
+    test.testDrive = { yaw: test.yaw };
+    test.slip = { maxPx: 0, sumPx: 0, samples: 0 };
+    test.clampedSamples = 0;
+    sim = test;
+    initRunGaitAtTime(0);
+    var steps = Math.round(seconds / FIXED_DT);
+    for (var i = 0; i < steps; i++) updateSim(FIXED_DT);
+    var res = {
+      yaw: yawDegrees,
+      seconds: seconds,
+      maxPx: test.slip.maxPx,
+      meanPx: test.slip.samples ? test.slip.sumPx / test.slip.samples : null,
+      samples: test.slip.samples,
+      clampedSamples: test.clampedSamples,
+      pass: test.slip.samples > 0 && test.slip.maxPx < 2
+    };
+    sim = old;
+    return res;
+  }
+
+  // === API / CONTROLS / INIT ===
+  function fitCanvas() {
+    var exact = CAPTURE.has('capture');
+    if (exact) {
+      canvas.style.width = canvas.width + 'px';
+      canvas.style.height = canvas.height + 'px';
+      return;
+    }
+    var s = Math.min(window.innerWidth / canvas.width, window.innerHeight / canvas.height);
+    canvas.style.width = Math.floor(canvas.width * s) + 'px';
+    canvas.style.height = Math.floor(canvas.height * s) + 'px';
+  }
+
+  function setMode(mode) {
+    var valid = { arena: true, contact: true, gallery: true, combo: true };
+    sim.mode = valid[mode] ? mode : 'arena';
+    if (sim.mode === 'contact') {
+      sim.paused = true;
+      canvas.width = CONTACT_W;
+      canvas.height = CONTACT_H;
+    } else if (sim.mode === 'combo') {
+      sim.paused = true;
+      canvas.width = 1920;
+      canvas.height = 720;
+    } else {
+      canvas.width = ARENA_W;
+      canvas.height = ARENA_H;
+      sim.paused = sim.mode === 'gallery';
+      sim.accumulator = 0;
+    }
+    fitCanvas();
+    draw();
+  }
+
+  function getMode() { return sim.mode; }
+  function getState() { return sim.state; }
+  function getTime() { return sim.clipTime; }
+  function setPaused(v) {
+    sim.paused = !!v;
+    sim.accumulator = 0;
+    draw();
+  }
+  function isPaused() { return sim.paused; }
+
+  function refreshPhaseLabel() {
+    if (sim.state === 'idle') { sim.phaseLabel = 'breath'; return; }
+    if (sim.state === 'run') {
+      var l = sim.gait.feet.L.locked, r = sim.gait.feet.R.locked;
+      sim.phaseLabel = l ? 'contact L' : (r ? 'contact R' : 'flight');
+      return;
+    }
+    if (sim.state === 'dash') {
+      sim.phaseLabel = sim.clipTime < 0.07 ? 'windup' : (sim.clipTime < 0.22 ? 'burst' : 'recovery');
+      return;
+    }
+    var idx = parseInt(sim.state.slice(6), 10) - 1;
+    var a = ATTACKS[idx];
+    if (!a) { sim.phaseLabel = '-'; return; }
+    sim.phaseLabel = sim.clipTime < a.windup ? 'windup' : (sim.clipTime < a.windup + a.active ? 'active' : 'recovery');
+  }
+
+  function setState(name) {
+    if (['idle', 'run', 'dash', 'attack1', 'attack2', 'attack3'].indexOf(name) < 0) return false;
+    sim.transition = null;
+    if (name === 'dash') {
+      var dir = inputDirection();
+      if (!dir.x && !dir.y) dir = localForward(sim.yaw);
+      sim.dashDir = { x: dir.x, y: dir.y };
+      sim.dashYaw = Math.atan2(dir.x, dir.y);
+      sim.yaw = sim.dashYaw;
+      sim.dashStartX = sim.rootX;
+      sim.dashStartY = sim.rootY;
+      sim.dashCooldown = DASH_COOLDOWN;
+      sim.state = 'dash';
+      sim.clipTime = 0;
+      sim.clipDuration = DASH_DURATION;
+      sim.apiCarry = 0;
+      sim.attackQueued = false;
+    } else if (name.indexOf('attack') === 0) {
+      startAttack(parseInt(name.slice(6), 10) - 1);
+    } else {
+      startState(name, { cut: true });
+    }
+    sim.yawDeg = deg(sim.yaw);
+    refreshPhaseLabel();
+    draw();
+    return true;
+  }
+
+  function setTime(seconds) {
+    var clip = CLIPS[sim.state] || CLIPS.idle;
+    var value = Number(seconds) || 0;
+    if (clip.loop) {
+      sim.clipTime = ((value % clip.duration) + clip.duration) % clip.duration;
+    } else {
+      sim.clipTime = clamp(value, 0, clip.duration);
+    }
+    sim.transition = null;
+    sim.apiCarry = 0;
+    if (sim.state === 'run') initRunGaitAtTime(sim.clipTime);
+    if (sim.state.indexOf('attack') === 0) applyAttackRoot();
+    if (sim.state === 'dash') applyDashRoot();
+    sim.yawDeg = deg(sim.yaw);
+    refreshPhaseLabel();
+    draw();
+  }
+
+  function setYaw(degrees) {
+    sim.yaw = rad(Number(degrees) || 0);
+    sim.yawDeg = deg(sim.yaw);
+    if (sim.state === 'run') initRunGaitAtTime(sim.clipTime);
+    draw();
+  }
+
+  function step(dt) {
+    // Accumulate the API remainder instead of rounding up to a full extra step.
+    var pending = Math.max(0, Number(dt) || 0) + (sim.apiCarry || 0);
+    sim.apiCarry = 0;
+    var guard = 0;
+    while (pending + 1e-9 >= FIXED_DT && guard < 2400) {
+      updateSim(FIXED_DT);
+      pending -= FIXED_DT;
+      guard++;
+    }
+    if (guard >= 2400) pending = 0;
+    sim.apiCarry = pending > 1e-9 ? pending : 0;
+    sim.yawDeg = deg(sim.yaw);
+    draw();
+  }
+
+  function executeAndStoreFootTest(seconds, yawDegrees) {
+    var res = runFootLockTest(seconds, yawDegrees);
+    sim.lastTest = res;
+    sim.footLockPass = !!res.pass;
+    sim.slip = {
+      maxPx: res.maxPx,
+      sumPx: res.meanPx === null ? 0 : res.meanPx * res.samples,
+      samples: res.samples
+    };
+    sim.clampedSamples = res.clampedSamples;
+    draw();
+    return res;
+  }
+
+  function runBothFootTests() {
+    var a = executeAndStoreFootTest(2, 0);
+    var b = executeAndStoreFootTest(2, 90);
+    var worst = a.maxPx >= b.maxPx ? a : b;
+    sim.footTests = { yaw0: a, yaw90: b };
+    sim.lastTest = worst;
+    sim.footLockPass = !!a.pass && !!b.pass;
+    draw();
+    return sim.footTests;
+  }
+
+  function getMetrics() {
+    var slip = sim.lastTest || {
+      maxPx: sim.slip.maxPx,
+      meanPx: sim.slip.samples ? sim.slip.sumPx / sim.slip.samples : null,
+      samples: sim.slip.samples,
+      pass: sim.footLockPass
+    };
+    return {
+      state: sim.state,
+      yaw: deg(sim.yaw),
+      clipTime: sim.clipTime,
+      clipDuration: sim.clipDuration,
+      fps: sim.fps,
+      drawMs: sim.drawMs,
+      frameCount: sim.frameCount,
+      footSlipMaxPx: slip.maxPx,
+      footSlipMeanPx: slip.meanPx,
+      footLockSamples: slip.samples,
+      footLockPass: sim.footLockPass || !!slip.pass,
+      root: { x: sim.rootX, y: sim.rootY },
+      speed: sim.speed,
+      dashCooldown: sim.dashCooldown,
+      mode: sim.mode,
+      paused: sim.paused,
+      phase: sim.phaseLabel,
+      drawCount: sim.drawCount,
+      attackQueued: sim.attackQueued,
+      attackQueuedAge: sim.attackQueued ? sim.clipTime - sim.attackQueuedAt : null,
+      clampedSamples: sim.clampedSamples,
+      footTests: sim.footTests || null,
+      errors: runtimeErrors.slice()
+    };
+  }
+
+  function getDebugInfo() {
+    var rig = currentRig();
+    var v = viewArena();
+    var joints = {};
+    Object.keys(rig.joints).forEach(function (name) {
+      var p = rig.joints[name];
+      var q = project(p, rig.yaw, sim.rootX, sim.rootY, v);
+      joints[name] = { local: p, screen: { x: q.x, y: q.y }, depth: q.depth };
+    });
+    var targets = {};
+    Object.keys(rig.targets).forEach(function (name) {
+      var p = rig.targets[name];
+      var q = project(p, rig.yaw, sim.rootX, sim.rootY, v);
+      targets[name] = { local: p, screen: { x: q.x, y: q.y }, depth: q.depth };
+    });
+    var order = sim.lastDrawInfo ? sim.lastDrawInfo.items.map(function (it, i) {
+      return { i: i, name: it.name, depth: Number(it.depth.toFixed(4)), layer: it.layer };
+    }) : [];
+    return {
+      state: sim.state,
+      mode: sim.mode,
+      yaw: deg(sim.yaw),
+      clipTime: sim.clipTime,
+      phase: sim.phaseLabel,
+      root: { x: sim.rootX, y: sim.rootY },
+      paused: sim.paused,
+      inputBuffer: {
+        queued: sim.attackQueued,
+        age: sim.attackQueued ? sim.clipTime - sim.attackQueuedAt : 0,
+        limit: 0.25
+      },
+      height: rig.height,
+      joints: joints,
+      targets: targets,
+      clamps: rig.clamps.slice(),
+      gait: {
+        feet: {
+          L: { locked: sim.gait.feet.L.locked, phase: sim.gait.feet.L.phase, lockWorld: sim.gait.feet.L.lockWorld },
+          R: { locked: sim.gait.feet.R.locked, phase: sim.gait.feet.R.phase, lockWorld: sim.gait.feet.R.lockWorld }
+        }
+      },
+      drawOrder: order,
+      drawCount: sim.drawCount,
+      errors: runtimeErrors.slice()
+    };
+  }
+
+  function setupCapture(name) {
+    resetSim();
+    sim.paused = true;
+    sim.debug = false;
+    sim.mode = 'arena';
+    canvas.width = ARENA_W;
+    canvas.height = ARENA_H;
+
+    if (name === 'contact' || name === 'gallery' || name === 'combo') {
+      sim.mode = name;
+      if (name === 'contact') { canvas.width = CONTACT_W; canvas.height = CONTACT_H; }
+      if (name === 'combo') { canvas.width = 1920; canvas.height = 720; }
+      sim.yaw = 0; sim.yawDeg = 0;
+      sim.state = 'idle'; sim.clipTime = 0.35; sim.clipDuration = IDLE_DURATION;
+      sim.paused = true;
+      sim.transition = null;
+      sim.accumulator = 0;
+      refreshPhaseLabel();
+      fitCanvas();
+      draw();
+      return;
+    }
+
+    // The movement capture uses a 45-degree view so both the face and the cape
+    // silhouette are visible; the foot-lock metrics remain the Gate 1 0/90 test.
+    var t0 = runFootLockTest(2, 0);
+    var t90 = runFootLockTest(2, 90);
+    sim.footTests = { yaw0: t0, yaw90: t90 };
+    sim.lastTest = t0;
+    sim.footLockPass = !!t0.pass && !!t90.pass;
+    sim.slip = { maxPx: t0.maxPx, sumPx: t0.meanPx * t0.samples, samples: t0.samples };
+
+    if (name === 'idle' || name === 'hero-idle') {
+      sim.yaw = 0; startState('idle', { cut: true }); sim.clipTime = 0.35;
+    } else if (name === 'run' || name === 'hero-run') {
+      sim.yaw = rad(45); sim.yawDeg = 45;
+      sim.rootX = 0.85; sim.rootY = 0.35;
+      startState('run', { cut: true });
+      sim.clipTime = 0.13;
+      sim.speed = RUN_SPEED;
+      initRunGaitAtTime(sim.clipTime);
+      refreshPhaseLabel();
+    } else if (name === 'dash' || name === 'hero-dash') {
+      sim.yaw = rad(45); sim.yawDeg = 45;
+      sim.rootX = -0.4; sim.rootY = 0.3;
+      sim.paused = false;
+      initDashForCapture();
+      sim.clipTime = 0.16;
+      applyDashRoot();
+      sim.speed = RUN_SPEED * 1.6;
+      sim.paused = true;
+    } else if (name === 'a1' || name === 'a2' || name === 'a3') {
+      var idx = name === 'a1' ? 0 : (name === 'a2' ? 1 : 2);
+      sim.yaw = 0; sim.yawDeg = 0;
+      startAttack(idx);
+      // Actual strike keys: A1 0.1598, A2 0.1500, A3 0.1900 s.
+      sim.clipTime = idx === 0 ? 0.1598 : (idx === 1 ? 0.15 : 0.19);
+      applyAttackRoot();
+    } else if (name === 'debug') {
+      sim.yaw = 0; sim.yawDeg = 0;
+      sim.rootX = 0; sim.rootY = 0.15;
+      sim.debug = true;
+      startAttack(0);
+      sim.clipTime = 0.1598;
+      applyAttackRoot();
+    } else if (name === 'fps') {
+      sim.paused = false;
+      startState('idle', { cut: true });
+      sim.clipTime = 0;
+    }
+
+    sim.transition = null;
+    sim.paused = name !== 'fps';
+    sim.accumulator = 0;
+    sim.yawDeg = deg(sim.yaw);
+    refreshPhaseLabel();
+    fitCanvas();
+    draw();
+  }
+
+  function initDashForCapture() {
+    var dir = localForward(sim.yaw);
+    sim.dashDir = dir;
+    sim.dashYaw = Math.atan2(dir.x, dir.y);
+    sim.dashStartX = sim.rootX;
+    sim.dashStartY = sim.rootY;
+    sim.dashCooldown = DASH_COOLDOWN;
+    sim.state = 'dash';
+    sim.clipTime = 0;
+    sim.clipDuration = DASH_DURATION;
+    sim.attackQueued = false;
+  }
+
+  // Controls
+  function isPrevented(code) {
+    return code === 'Space' || code === 'Tab' || code === 'ShiftLeft' || code === 'ShiftRight' ||
+      code === 'F1' || code === 'ArrowUp' || code === 'ArrowDown' || code === 'ArrowLeft' || code === 'ArrowRight';
+  }
+
+  window.addEventListener('keydown', function (e) {
+    if (isPrevented(e.code)) e.preventDefault();
+    sim.keys[e.code] = true;
+    if (e.repeat) return;
+
+    if (e.code === 'Space') {
+      sim.paused = !sim.paused;
+      sim.accumulator = 0;
+    } else if (e.code === 'F1') {
+      sim.debug = !sim.debug;
+    } else if (e.code === 'KeyC') {
+      setMode(sim.mode === 'contact' ? 'arena' : 'contact');
+    } else if (e.code === 'KeyG') {
+      setMode(sim.mode === 'gallery' ? 'arena' : 'gallery');
+    } else if (e.code === 'KeyR') {
+      resetSim();
+      sim.accumulator = 0;
+      draw();
+    } else if (e.code === 'KeyT') {
+      runBothFootTests();
+    } else if (e.code === 'KeyJ') {
+      handleAttackInput();
+    } else if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+      tryStartDash();
+    } else if (e.code === 'BracketLeft' || e.code === 'BracketRight') {
+      var delta = e.code === 'BracketLeft' ? -1 : 1;
+      if (sim.mode === 'contact') {
+        sim.contactFocus = ((sim.contactFocus + delta) % COLS + COLS) % COLS;
+      } else {
+        var steps = Math.round(deg(sim.yaw) / 45);
+        sim.yaw = rad(((steps + delta) % 8 + 8) % 8 * 45);
+        sim.yawDeg = deg(sim.yaw);
+        sim.paused = true;
+        if (sim.state === 'run') initRunGaitAtTime(sim.clipTime);
+      }
+    }
+    draw();
+  });
+
+  window.addEventListener('keyup', function (e) {
+    sim.keys[e.code] = false;
+  });
+  window.addEventListener('blur', function () { sim.keys = {}; });
+
+  canvas.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    if (sim.mode === 'arena') {
+      handleAttackInput();
+      draw();
+    }
+  });
+
+  window.addEventListener('resize', fitCanvas);
+
+  // Deterministic public API.
+  window.RIG01 = {
+    version: VERSION,
+    ready: readyPromise,
+    setMode: setMode,
+    getMode: getMode,
+    setState: setState,
+    getState: getState,
+    setTime: setTime,
+    getTime: getTime,
+    setYaw: setYaw,
+    getYaw: function () { return deg(sim.yaw); },
+    setPaused: setPaused,
+    isPaused: isPaused,
+    step: step,
+    reset: function () { resetSim(); sim.paused = false; sim.accumulator = 0; draw(); },
+    runFootLockTest: function (seconds, yaw) {
+      var res = runFootLockTest(seconds === undefined ? 2 : seconds, yaw === undefined ? 0 : yaw);
+      sim.lastTest = res;
+      sim.footLockPass = !!res.pass;
+      draw();
+      return res;
+    },
+    getMetrics: getMetrics,
+    capturePNG: function () {
+      draw();
+      try { return canvas.toDataURL('image/png'); }
+      catch (err) {
+        runtimeErrors.push('capturePNG: ' + err.message);
+        return null;
+      }
+    },
+    getAssetInfo: function () {
+      return {
+        loaded: HERO_ASSETS.loaded,
+        errors: HERO_ASSETS.errors.slice(),
+        headCrop: HERO_ASSETS.headCrop,
+        heads: HEAD_ORDER.filter(function (d) { return !!HERO_ASSETS.heads[d]; }),
+        refs: HEAD_ORDER.filter(function (d) { return !!HERO_ASSETS.refs[d]; })
+      };
+    },
+    getDebugInfo: getDebugInfo
+  };
+
+  // Boot. The deterministic API resolves only after every local reference and
+  // head crop has settled; a failed asset falls back to a painted placeholder.
+  resetSim();
+  fitCanvas();
+  document.body.dataset.ready = '0';
+  if (CAPTURE.has('capture')) {
+    setupCapture(CAPTURE.get('capture'));
+  } else {
+    sim.paused = false;
+    refreshPhaseLabel();
+    draw();
+  }
+  loadHeroAssets().then(function () {
+    document.body.dataset.ready = '1';
+    readyResolve();
+    draw();
+  });
+
+  var lastFrame = performance.now();
+  sim.lastFrameTime = lastFrame;
+  function frame(now) {
+    var raw = Math.max(0, (now - lastFrame) / 1000);
+    lastFrame = now;
+    var capped = Math.min(0.25, raw);
+    if (raw > 0.0001) sim.fps = sim.fps * 0.92 + (1 / raw) * 0.08;
+    if (!sim.paused) {
+      sim.accumulator += capped;
+      var guard = 0;
+      while (sim.accumulator >= FIXED_DT && guard < 40) {
+        updateSim(FIXED_DT);
+        sim.accumulator -= FIXED_DT;
+        guard++;
+      }
+      if (guard >= 40) sim.accumulator = 0;
+    }
+    sim.yawDeg = deg(sim.yaw);
+    // The contact sheet is static while paused; skip costly redraws.
+    if (!(sim.paused && sim.mode === 'contact')) draw();
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
+
+
+

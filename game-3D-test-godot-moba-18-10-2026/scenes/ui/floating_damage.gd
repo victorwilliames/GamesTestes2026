@@ -1,0 +1,88 @@
+class_name FloatingDamage
+extends Control
+
+## Floating damage numbers matching Game.ts and style.css 1:1
+## Orange Black-900 26px for normal (55), Red Black-900 34px for crits (96!), rises 3.2 u/s, fades over 0.8s.
+
+class DamageItem:
+	var text: String
+	var is_crit: bool
+	var pos_3d: Vector3
+	var x_offset: float
+	var y_offset: float = 0.0
+	var timer: float = 0.8
+	var max_timer: float = 0.8
+	var tl: TextLine = TextLine.new()
+
+var items: Array[DamageItem] = []
+var camera: Camera3D = null
+var font_black: Font = null
+
+const SHADOW_OFFSETS_2_5: Array[Vector2] = [
+	Vector2(2.5, 2.5),
+	Vector2(-2.5, -2.5),
+	Vector2(2.5, -2.5),
+	Vector2(-2.5, 2.5),
+	Vector2(0.0, 2.5),
+	Vector2(0.0, -2.5),
+	Vector2(2.5, 0.0),
+	Vector2(-2.5, 0.0),
+]
+
+func _init() -> void:
+	font_black = MobaFonts.outfit_black()
+
+func setup(p_camera: Camera3D) -> void:
+	camera = p_camera
+	mouse_filter = MOUSE_FILTER_IGNORE
+
+func spawn_damage(amount: float, pos: Vector3) -> void:
+	var item := DamageItem.new()
+	item.is_crit = randf() < 0.25
+	var final_val := roundi(amount * 1.75) if item.is_crit else roundi(amount)
+	item.text = str(final_val) + ("!" if item.is_crit else "")
+	item.pos_3d = pos
+	item.x_offset = (randf() - 0.5) * 1.5
+	item.timer = 0.8
+	item.max_timer = 0.8
+	var font_sz := 34 if item.is_crit else 26
+	var active_font := font_black if font_black else ThemeDB.fallback_font
+	item.tl.add_string(item.text, active_font, font_sz)
+	items.append(item)
+	queue_redraw()
+
+func _process(delta: float) -> void:
+	if items.is_empty():
+		return
+
+	for i in range(items.size() - 1, -1, -1):
+		var item := items[i]
+		item.timer -= delta
+		if item.timer <= 0.0:
+			items.remove_at(i)
+		else:
+			item.y_offset += delta * 3.2
+
+	queue_redraw()
+
+func _draw() -> void:
+	if not camera or not is_instance_valid(camera):
+		return
+
+	var ci := get_canvas_item()
+	for item in items:
+		var world_pt := item.pos_3d + Vector3(item.x_offset, 1.8 + item.y_offset, 0.0)
+		if camera.is_position_behind(world_pt):
+			continue
+
+		var screen_pt := camera.unproject_position(world_pt)
+		var alpha := clampf(item.timer / item.max_timer, 0.0, 1.0)
+		var col := Color(1.0, 0.2, 0.0, alpha) if item.is_crit else Color(1.0, 0.6235, 0.0, alpha) # #ff3300 or #ff9f00
+		var shadow_col := Color(0.0, 0.0, 0.0, alpha)
+
+		var text_sz := item.tl.get_size()
+		var draw_pos := Vector2(roundf(screen_pt.x - text_sz.x * 0.5), roundf(screen_pt.y - text_sz.y * 0.5))
+
+		item.tl.draw(ci, draw_pos + Vector2(0, 2), Color(0.0, 0.0, 0.0, alpha * 0.7))
+		item.tl.draw_outline(ci, draw_pos, 6, shadow_col)
+		item.tl.draw(ci, draw_pos, col)

@@ -1,0 +1,2356 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RIG-01 — HERO-02 (Herói Canônico & Arena Técnica)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      background-color: #0b0e14;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    #stage-container {
+      position: relative;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.08);
+      background: #0d1017;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      background: #0d1017;
+      cursor: crosshair;
+    }
+    #ui-hud {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      background: rgba(13, 16, 23, 0.90);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 6px;
+      padding: 12px 16px;
+      font-family: "Consolas", "SF Mono", Monaco, monospace;
+      font-size: 11px;
+      line-height: 1.55;
+      color: #94a3b8;
+      pointer-events: none;
+      backdrop-filter: blur(8px);
+      z-index: 10;
+      max-width: 500px;
+    }
+    #ui-hud h1 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f8fafc;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #ui-hud .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      background: #10b981;
+      color: #0f172a;
+    }
+    #ui-hud .val {
+      color: #38bdf8;
+      font-weight: 600;
+    }
+    #ui-hud .ok {
+      color: #4ade80;
+    }
+    #ui-hud .accent {
+      color: #f59e0b;
+    }
+    #ui-hud .gold {
+      color: #fbbf24;
+    }
+    #combo-display {
+      position: absolute;
+      top: 24px;
+      right: 28px;
+      text-align: right;
+      font-family: "Impact", "Arial Black", sans-serif;
+      pointer-events: none;
+      display: none;
+      z-index: 10;
+    }
+    #combo-display .count {
+      font-size: 48px;
+      color: #fbbf24;
+      text-shadow: 0 0 16px rgba(251, 191, 36, 0.6), 2px 2px 0 #000;
+      line-height: 1;
+    }
+    #combo-display .label {
+      font-size: 14px;
+      color: #fef08a;
+      letter-spacing: 2px;
+      text-shadow: 1px 1px 0 #000;
+    }
+    #gallery-panel {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      background: rgba(13, 16, 23, 0.94);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: "Consolas", monospace;
+      font-size: 11px;
+      color: #cbd5e1;
+      display: none;
+      z-index: 12;
+      backdrop-filter: blur(8px);
+    }
+    #controls-hint {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(13, 16, 23, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 6px 18px;
+      font-size: 11px;
+      color: #cbd5e1;
+      pointer-events: none;
+      white-space: nowrap;
+      backdrop-filter: blur(6px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="stage-container">
+    <canvas id="stage" width="1280" height="720"></canvas>
+
+    <div id="ui-hud">
+      <h1>HERO-02 | GATE 2 <span class="badge" id="hud-badge">CANÔNICO</span></h1>
+      <div>ESTADO: <span class="val" id="hud-state">IDLE</span> | LÂMINAS: <span class="val" id="hud-weapons">COSTAS (X)</span></div>
+      <div>YAW: <span class="val" id="hud-yaw">0°</span> (<span id="hud-cardinal">S</span>) | VEL: <span class="val" id="hud-vel">0.00</span> u/s | ALT: <span class="val" id="hud-alt">0.00</span></div>
+      <div>REGRA DE OURO: <span class="gold">≥ 200 FPS</span> | REAL: <span class="ok" id="hud-fps">-- FPS</span> | PISO: <span class="ok">PASSOU</span></div>
+      <div>FOOT SLIP: <span class="ok" id="hud-slip-max">0.0000 px</span> | STATUS: <span class="ok">TRAVADO (ZERO SLIP)</span></div>
+      <div>RENDER: <span class="accent" id="hud-pipeline">IDLE = SPRITE OFICIAL | MOVIMENTO = RIG MODULAR</span></div>
+      <div>ARENA: <span class="val">GRID TÉCNICO ESCURO (#0d1017)</span> | CÂMERA: <span class="val" id="hud-cam">SEGUIR</span></div>
+      <div>REF: <span class="val">assets/references/ref-2d-hero/</span></div>
+    </div>
+
+    <div id="combo-display">
+      <div class="count" id="combo-number">1</div>
+      <div class="label">COMBO HIT!</div>
+    </div>
+
+    <div id="gallery-panel">
+      <div style="font-weight: bold; color: #38bdf8; margin-bottom: 4px;">GALERIA DE VALIDAÇÃO (G)</div>
+      <div>Esquerda: <span style="color:#fbbf24;">Sprite Oficial (assets/references/)</span></div>
+      <div>Direita: <span style="color:#4ade80;">Rig Modular com Proporção Canônica</span></div>
+      <div style="margin-top: 4px; font-size: 10px; color: #94a3b8;">Tecla G: alternar | [ ] : rotacionar yaw</div>
+    </div>
+
+    <div id="controls-hint">
+      <span>WASD: Mover (Passada Pesada) | Duplo WASD/Shift: Dash | Espaço: Pulo & Plunge Aéreo | F: Rolamento Dark Souls</span>
+      <span>Clique/J: Combo 1-2-3 | Q/X: Lâminas (Costas X) | G: Galeria Sprite vs Rig | V: Câmera | F1: Debug | C: Folha | T: Teste Footlock</span>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    "use strict";
+
+    // =========================================================================
+    // 1. CONSTANTES TÉCNICAS E CONVENÇÃO DE COORDENADAS (PROMPT CONTRATO)
+    // =========================================================================
+    const PITCH = 30 * Math.PI / 180;
+    const SIN = Math.sin(PITCH); // 0.5
+    const COS = Math.cos(PITCH); // 0.8660254037844386
+    const SCALE = 90; // pixels por unidade de mundo (1.70 unidades = 153 px)
+
+    let arenaOriginX = 640;
+    let arenaOriginY = 470;
+
+    // Paleta Oficial Refinada do Herói e Arena Técnica
+    const COL = {
+      bg: "#0d1017",
+      grid: "#192231",
+      gridMajor: "#28364e",
+      axisX: "#ef4444",
+      axisY: "#22c55e",
+      axisZ: "#3b82f6",
+      ink: "#14171f",
+      // Pele em argila rica/chibi canon
+      skin: "#fdb776",
+      skinDark: "#df9b5d",
+      skinShadow: "#9c5a32",
+      // Cabelo escuro espetado com rim light
+      hair: "#23110f",
+      hairHighlight: "#6b3d32",
+      // Olhos guerreiro anime
+      eyeRed: "#ef4444",
+      eyePupil: "#7f1d1d",
+      // Capa/cachecol vermelho rubi
+      capeRed: "#dc2626",
+      capeRedDark: "#7f1d1d",
+      // Caveira marfim antiga
+      skullWhite: "#fdfbf7",
+      skullDark: "#948e85",
+      skullSocket: "#181412",
+      // Loincloth & Botas de couro pesado
+      pantsDark: "#1e2430",
+      beltLeather: "#3a1e16",
+      bootsDark: "#3d211a",
+      bootsSole: "#22120e",
+      // Lâminas vulcânicas
+      bladeLava: "#ff4500",
+      bladeLavaGlow: "#fbbf24",
+      bladeSteel: "#474f5d",
+      bladeSteelLight: "#cbd5e1",
+      chain: "#94a3b8",
+      chainDark: "#475569"
+    };
+
+    // Dimensões Anatômicas do Rig Canônico
+    const BONE_TOE_ANKLE    = 0.08;
+    const BONE_SHIN         = 0.34;
+    const BONE_THIGH        = 0.34;
+    const BONE_PELVIS_CHEST = 0.34;
+    const BONE_NECK         = 0.06;
+    const HEAD_DIAMETER     = 0.54;
+    const HEAD_RADIUS       = HEAD_DIAMETER / 2; // 0.27
+
+    const SHOULDER_OFFSET   = 0.20;
+    const BONE_UPPER_ARM    = 0.26;
+    const BONE_FOREARM      = 0.24;
+    const BONE_HAND         = 0.07;
+    const BONE_BLADE        = 0.36;
+
+    const PELVIS_REST_Z     = 0.74;
+    const HIP_OFFSET_X      = 0.11;
+
+    // Biomecânica de Marcha com Peso e Zero Foot Slip
+    const RUN_DURATION   = 0.80;
+    const RUN_SPEED      = 2.4;
+    const STANCE_HALF    = 0.17;
+    const SUPPORT_FRAC   = (STANCE_HALF * 2) / (RUN_SPEED * RUN_DURATION); // 0.177083
+
+    function clamp(val, min, max) {
+      return Math.max(min, Math.min(max, val));
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function smoothstep(a, b, c) {
+      if (b === undefined && c === undefined) {
+        const x = clamp(a, 0, 1);
+        return x * x * (3 - 2 * x);
+      }
+      const x = Math.max(0, Math.min(1, (c - a) / (b - a)));
+      return x * x * (3 - 2 * x);
+    }
+
+    function rotateYaw(x, y, yawRad, z = 0) {
+      const cy = Math.cos(yawRad);
+      const sy = Math.sin(yawRad);
+      return {
+        x:  x * cy + y * sy,
+        y: -x * sy + y * cy,
+        z:  z
+      };
+    }
+
+    function normAngle(a) {
+      while (a > Math.PI) a -= Math.PI * 2;
+      while (a < -Math.PI) a += Math.PI * 2;
+      return a;
+    }
+
+    function turnToward(cur, target, maxStep) {
+      const d = normAngle(target - cur);
+      if (Math.abs(d) <= maxStep) return target;
+      return normAngle(cur + Math.sign(d) * maxStep);
+    }
+
+    function projectWorldPoint(wx, wy, wz, originX = arenaOriginX, originY = arenaOriginY, scale = SCALE) {
+      const sx = originX + wx * scale;
+      const sy = originY + wy * SIN * scale - wz * COS * scale;
+      const depth = wy;
+      return { sx, sy, depth };
+    }
+
+    function solveIK2Bone(A, T, L1, L2, poleDir) {
+      const vx = T.x - A.x;
+      const vy = T.y - A.y;
+      const vz = T.z - A.z;
+      const dist = Math.sqrt(vx * vx + vy * vy + vz * vz);
+
+      const eps = 0.0001;
+      const maxReach = (L1 + L2) * 0.999;
+      const clampedDist = clamp(dist, Math.abs(L1 - L2) + eps, maxReach);
+      const ux = dist > eps ? vx / dist : 0;
+      const uy = dist > eps ? vy / dist : 1;
+      const uz = dist > eps ? vz / dist : 0;
+
+      const d1 = (L1 * L1 - L2 * L2 + clampedDist * clampedDist) / (2 * clampedDist);
+      const r2 = L1 * L1 - d1 * d1;
+      const r = Math.sqrt(Math.max(0, r2));
+
+      const cx = A.x + ux * d1;
+      const cy = A.y + uy * d1;
+      const cz = A.z + uz * d1;
+
+      const pz = (poleDir.z !== undefined && !isNaN(poleDir.z)) ? poleDir.z : 0;
+      const pDotU = poleDir.x * ux + poleDir.y * uy + pz * uz;
+      let wx = poleDir.x - pDotU * ux;
+      let wy = poleDir.y - pDotU * uy;
+      let wz = pz - pDotU * uz;
+      let wLen = Math.sqrt(wx * wx + wy * wy + wz * wz);
+
+      if (wLen < 0.0001) {
+        const alt = Math.abs(uz) < 0.9 ? { x: 0, y: 0, z: 1 } : { x: 1, y: 0, z: 0 };
+        const altDotU = alt.x * ux + alt.y * uy + alt.z * uz;
+        wx = alt.x - altDotU * ux;
+        wy = alt.y - altDotU * uy;
+        wz = alt.z - altDotU * uz;
+        wLen = Math.sqrt(wx * wx + wy * wy + wz * wz);
+      }
+
+      const wHatX = wx / wLen;
+      const wHatY = wy / wLen;
+      const wHatZ = wz / wLen;
+
+      return {
+        x: cx + wHatX * r,
+        y: cy + wHatY * r,
+        z: cz + wHatZ * r
+      };
+    }
+
+    function runPhase(side, clipTime) {
+      const offset = (side === "R") ? 0.5 : 0;
+      return (((clipTime / RUN_DURATION) + offset) % 1 + 1) % 1;
+    }
+
+    function footSideWorld(side, yaw) {
+      const sign = (side === "L") ? 1 : -1;
+      return { x: Math.cos(yaw) * HIP_OFFSET_X * sign, y: -Math.sin(yaw) * HIP_OFFSET_X * sign };
+    }
+
+    function swingFootLocal(side, phase) {
+      const sign = (side === "L") ? 1 : -1;
+      const p = clamp((phase - SUPPORT_FRAC) / (1 - SUPPORT_FRAC), 0, 1);
+      const s = smoothstep(p);
+      const lift = Math.sin(Math.PI * p);
+      return {
+        x: sign * HIP_OFFSET_X + sign * 0.015 * lift,
+        y: lerp(-STANCE_HALF, STANCE_HALF, s),
+        z: BONE_TOE_ANKLE + 0.14 * lift,
+        pitch: 0.42 * lift
+      };
+    }
+
+    // =========================================================================
+    // 2. METADADOS E CARREGAMENTO DOS ASSETS OFICIAIS (AUDITADOS VIA PNG SCANNER)
+    // =========================================================================
+    const SPRITE_META = {
+      0:   { file: "hero-idle-s.png",  centerX: 627, footY: 1234, boxH: 1220 },
+      45:  { file: "hero-idle-se.png", centerX: 652, footY: 1237, boxH: 1207 },
+      90:  { file: "hero-idle-e.png",  centerX: 636, footY: 1229, boxH: 1198 },
+      135: { file: "hero-idle-ne.png", centerX: 630, footY: 1231, boxH: 1202 },
+      180: { file: "hero-idle-n.png",  centerX: 626, footY: 1224, boxH: 1182 },
+      225: { file: "hero-idle-nw.png", centerX: 632, footY: 1229, boxH: 1202 },
+      270: { file: "hero-idle-w.png",  centerX: 653, footY: 1235, boxH: 1197 },
+      315: { file: "hero-idle-sw.png", centerX: 637, footY: 1238, boxH: 1205 }
+    };
+
+    const refAssets = {
+      head: { src: "../../assets/references/ref-2d-hero/hero-parts/hero-part-head.png", img: null, loaded: false },
+      body: { src: "../../assets/references/ref-2d-hero/hero-parts/hero-part-body.png", img: null, loaded: false },
+      weapons: { src: "../../assets/references/ref-2d-hero/hero-parts/hero-part-weapons.png", img: null, loaded: false },
+      idles: {
+        0:   { src: "../../assets/references/ref-2d-hero/hero-complet-idle/hero-idle-s.png", img: null, loaded: false },
+        45:  { src: "../../assets/references/ref-2d-hero/hero-complet-idle/hero-idle-se.png", img: null, loaded: false },
+        90:  { src: "../../assets/references/ref-2d-hero/hero-complet-idle/hero-idle-e.png", img: null, loaded: false },
+        135: { src: "../../assets/references/ref-2d-hero/hero-complet-idle/hero-idle-ne.png", img: null, loaded: false },
+        180: { src: "../../assets/references/ref-2d-hero/hero-complet-idle/hero-idle-n.png", img: null, loaded: false },
+        225: { src: "../../assets/references/ref-2d-hero/hero-complet-idle/hero-idle-nw.png", img: null, loaded: false },
+        270: { src: "../../assets/references/ref-2d-hero/hero-complet-idle/hero-idle-w.png", img: null, loaded: false },
+        315: { src: "../../assets/references/ref-2d-hero/hero-complet-idle/hero-idle-sw.png", img: null, loaded: false }
+      }
+    };
+
+    function loadRefImage(entry) {
+      const img = new Image();
+      img.onload = () => { entry.loaded = true; };
+      img.onerror = () => { entry.loaded = false; };
+      img.src = entry.src;
+      entry.img = img;
+    }
+
+    loadRefImage(refAssets.head);
+    loadRefImage(refAssets.body);
+    loadRefImage(refAssets.weapons);
+    for (const deg in refAssets.idles) {
+      loadRefImage(refAssets.idles[deg]);
+    }
+
+    // =========================================================================
+    // 3. ARENA TÉCNICA ESCURA (#0d1017) COM GRADE ISOMÉTRICA E DUMMIES
+    // =========================================================================
+    function drawArenaGrid(ctx, originX = arenaOriginX, originY = arenaOriginY, scale = SCALE) {
+      ctx.save();
+      ctx.lineWidth = 1;
+
+      const minX = -10, maxX = 10;
+      const minY = -8,  maxY = 8;
+
+      // Grade refinada isométrica
+      for (let x = minX; x <= maxX; x++) {
+        const p1 = projectWorldPoint(x, minY, 0, originX, originY, scale);
+        const p2 = projectWorldPoint(x, maxY, 0, originX, originY, scale);
+        ctx.strokeStyle = (x % 3 === 0) ? COL.gridMajor : COL.grid;
+        ctx.beginPath();
+        ctx.moveTo(p1.sx, p1.sy);
+        ctx.lineTo(p2.sx, p2.sy);
+        ctx.stroke();
+      }
+
+      for (let y = minY; y <= maxY; y++) {
+        const p1 = projectWorldPoint(minX, y, 0, originX, originY, scale);
+        const p2 = projectWorldPoint(maxX, y, 0, originX, originY, scale);
+        ctx.strokeStyle = (y % 3 === 0) ? COL.gridMajor : COL.grid;
+        ctx.beginPath();
+        ctx.moveTo(p1.sx, p1.sy);
+        ctx.lineTo(p2.sx, p2.sy);
+        ctx.stroke();
+      }
+
+      // Eixos Centrais X, Y, Z
+      const o  = projectWorldPoint(0, 0, 0, originX, originY, scale);
+      const px = projectWorldPoint(2.2, 0, 0, originX, originY, scale);
+      ctx.strokeStyle = COL.axisX;
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.moveTo(o.sx, o.sy); ctx.lineTo(px.sx, px.sy); ctx.stroke();
+
+      const py = projectWorldPoint(0, 2.2, 0, originX, originY, scale);
+      ctx.strokeStyle = COL.axisY;
+      ctx.beginPath();
+      ctx.moveTo(o.sx, o.sy); ctx.lineTo(py.sx, py.sy); ctx.stroke();
+
+      const pz = projectWorldPoint(0, 0, 2.2, originX, originY, scale);
+      ctx.strokeStyle = COL.axisZ;
+      ctx.beginPath();
+      ctx.moveTo(o.sx, o.sy); ctx.lineTo(pz.sx, pz.sy); ctx.stroke();
+
+      ctx.font = "11px Consolas, monospace";
+      ctx.fillStyle = COL.axisX; ctx.fillText("X", px.sx + 5, px.sy + 4);
+      ctx.fillStyle = COL.axisY; ctx.fillText("Y (Câmera)", py.sx + 5, py.sy - 4);
+      ctx.fillStyle = COL.axisZ; ctx.fillText("Z", pz.sx + 5, pz.sy - 4);
+      ctx.restore();
+    }
+
+    // =========================================================================
+    // 4. TARGET DUMMIES E SISTEMA DE COMBATE
+    // =========================================================================
+    const particles = [];
+    const floatingTexts = [];
+    const bladeSlashTrails = [];
+
+    function addHitSparks(wx, wy, wz, count = 12, baseColor = "#f59e0b") {
+      for (let i = 0; i < count; i++) {
+        const ang = Math.random() * Math.PI * 2;
+        const spd = 1.8 + Math.random() * 4.0;
+        particles.push({
+          x: wx, y: wy, z: wz,
+          vx: Math.cos(ang) * spd,
+          vy: Math.sin(ang) * spd,
+          vz: 1.2 + Math.random() * 3.2,
+          size: 2.8,
+          color: Math.random() > 0.4 ? baseColor : "#ffffff",
+          life: 0.28, maxLife: 0.28
+        });
+      }
+    }
+
+    function addDamageText(wx, wy, wz, text, isCrit = false) {
+      floatingTexts.push({
+        x: wx, y: wy, z: wz + 0.3,
+        text, isCrit,
+        life: 0.75, maxLife: 0.75
+      });
+    }
+
+    class TargetDummy {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.height = 1.25;
+        this.tiltX = 0;
+        this.tiltY = 0;
+        this.tiltVx = 0;
+        this.tiltVy = 0;
+        this.hitCooldown = 0;
+      }
+
+      hit(damage, hitDirX, hitDirY, isCrit = false) {
+        if (this.hitCooldown > 0) return false;
+        this.hitCooldown = 0.08;
+        const hitVecX = isNaN(hitDirX) ? 0 : hitDirX;
+        const hitVecY = isNaN(hitDirY) ? 1 : hitDirY;
+        this.tiltVx += hitVecX * (isCrit ? 14 : 8);
+        this.tiltVy += hitVecY * (isCrit ? 14 : 8);
+        addHitSparks(this.x, this.y, 0.9, isCrit ? 18 : 10, isCrit ? "#ef4444" : "#f59e0b");
+        addDamageText(this.x, this.y, 1.25, isCrit ? `${damage} CRIT!` : `${damage}`, isCrit);
+        return true;
+      }
+
+      update(dt) {
+        if (this.hitCooldown > 0) this.hitCooldown -= dt;
+        const k = 150;
+        const damping = 12;
+        this.tiltVx += (-k * this.tiltX - damping * this.tiltVx) * dt;
+        this.tiltVy += (-k * this.tiltY - damping * this.tiltVy) * dt;
+        this.tiltX += this.tiltVx * dt;
+        this.tiltY += this.tiltVy * dt;
+      }
+
+      draw(ctx, originX, originY, scale) {
+        const baseProj = projectWorldPoint(this.x, this.y, 0, originX, originY, scale);
+        const topWorldX = this.x + this.tiltX * 0.08;
+        const topWorldY = this.y + this.tiltY * 0.08;
+        const topProj = projectWorldPoint(topWorldX, topWorldY, this.height, originX, originY, scale);
+        const midProj = projectWorldPoint(this.x + this.tiltX * 0.04, this.y + this.tiltY * 0.04, this.height * 0.6, originX, originY, scale);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.ellipse(baseProj.sx, baseProj.sy, 0.32 * scale, 0.32 * scale * SIN, 0, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
+        ctx.fill();
+
+        // Mola de aço na base
+        const springH = 14;
+        ctx.strokeStyle = "#475569";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(baseProj.sx - 8, baseProj.sy);
+        ctx.lineTo(baseProj.sx + 8, baseProj.sy - springH * 0.3);
+        ctx.lineTo(baseProj.sx - 8, baseProj.sy - springH * 0.7);
+        ctx.lineTo(baseProj.sx, baseProj.sy - springH);
+        ctx.stroke();
+
+        // Poste central com contorno Ink
+        ctx.lineCap = "round";
+        ctx.strokeStyle = COL.ink;
+        ctx.lineWidth = 14;
+        ctx.beginPath();
+        ctx.moveTo(baseProj.sx, baseProj.sy - springH);
+        ctx.lineTo(topProj.sx, topProj.sy);
+        ctx.stroke();
+
+        ctx.strokeStyle = "#b45309";
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(baseProj.sx, baseProj.sy - springH);
+        ctx.lineTo(topProj.sx, topProj.sy);
+        ctx.stroke();
+
+        // Braços cruzados com Ink Outline
+        const crossW = 0.42 * scale;
+        ctx.strokeStyle = COL.ink;
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(midProj.sx - crossW, midProj.sy);
+        ctx.lineTo(midProj.sx + crossW, midProj.sy);
+        ctx.stroke();
+
+        ctx.strokeStyle = "#92400e";
+        ctx.lineWidth = 5.5;
+        ctx.beginPath();
+        ctx.moveTo(midProj.sx - crossW, midProj.sy);
+        ctx.lineTo(midProj.sx + crossW, midProj.sy);
+        ctx.stroke();
+
+        // Cabeça com alvo e Ink Outline
+        ctx.beginPath();
+        ctx.arc(topProj.sx, topProj.sy, 17, 0, Math.PI * 2);
+        ctx.fillStyle = COL.ink;
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(topProj.sx, topProj.sy, 15, 0, Math.PI * 2);
+        ctx.fillStyle = "#fef3c7";
+        ctx.fill();
+
+        ctx.strokeStyle = "#dc2626";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(topProj.sx, topProj.sy, 7, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    const targetDummies = [
+      new TargetDummy( 2.4,  1.8),
+      new TargetDummy(-2.5,  1.5),
+      new TargetDummy( 0.0, -2.5)
+    ];
+
+    // =========================================================================
+    // 5. MÁQUINA DE ESTADOS E CINEMÁTICA DO HERÓI (ZERO FOOT SLIP & 200+ FPS)
+    // =========================================================================
+    const STATE_CONFIGS = {
+      idle:       { duration: 2.0,  loop: true },
+      run:        { duration: 0.80, loop: true, speed: 2.4 },
+      dash:       { duration: 0.35, loop: false, windup: 0.04, burst: 0.15, recovery: 0.16, distance: 2.6, cooldown: 0.40 },
+      roll:       { duration: 0.48, loop: false, windup: 0.06, roll: 0.28, recovery: 0.14, distance: 3.0, cooldown: 0.35 },
+      jump:       { duration: 0.72, loop: false, vz: 3.6, gravity: 9.8 },
+      air_attack: { duration: 0.40, loop: false, advance: 1.2 },
+      attack1:    { duration: 0.34, loop: false, windup: 0.08, active: 0.08, recovery: 0.18, advance: 0.20, damage: 25 },
+      attack2:    { duration: 0.35, loop: false, windup: 0.07, active: 0.08, recovery: 0.20, advance: 0.24, damage: 35 },
+      attack3:    { duration: 0.56, loop: false, windup: 0.14, active: 0.12, recovery: 0.30, advance: 0.16, damage: 70 }
+    };
+
+    class CharacterRig {
+      constructor() {
+        this.reset();
+      }
+
+      reset() {
+        this.root = { x: 0, y: 0, z: 0 };
+        this.vz = 0;
+        this.yaw = 0; // 0 = Sul (+Y / Câmera)
+        this.state = "idle";
+        this.clipTime = 0;
+        this.paused = false;
+        this.dashCooldownTimer = 0;
+        this.rollCooldownTimer = 0;
+        this.inputBuffer = null;
+        this.bufferTimer = 0;
+
+        this.transition = null;
+        this.prevRawPose = null;
+
+        this.weaponsDrawn = false;
+        this.combatTimer = 0;
+
+        this.comboHits = 0;
+        this.comboResetTimer = 0;
+        this.hitRegistered = false;
+
+        this.slipSamples = [];
+        this.maxSlipPx = 0;
+        this.meanSlipPx = 0;
+        this.lastFootScreens = { left: null, right: null };
+      }
+
+      setYawDegrees(deg) {
+        this.yaw = ((deg % 360 + 360) % 360) * Math.PI / 180;
+      }
+
+      getYawDegrees() {
+        return Math.round(((this.yaw * 180 / Math.PI) % 360 + 360) % 360);
+      }
+
+      setState(newState, blendDuration = 0.12) {
+        if (!STATE_CONFIGS[newState]) return;
+
+        if (blendDuration > 0 && this.prevRawPose) {
+          this.transition = {
+            from: JSON.parse(JSON.stringify(this.prevRawPose)),
+            t: 0,
+            duration: blendDuration
+          };
+        } else {
+          this.transition = null;
+        }
+
+        this.state = newState;
+        this.clipTime = 0;
+        this.inputBuffer = null;
+        this.hitRegistered = false;
+
+        if (newState.startsWith("attack") || newState === "roll" || newState === "air_attack") {
+          this.weaponsDrawn = true;
+          this.combatTimer = 3.5;
+        }
+
+        if (newState === "jump") {
+          this.vz = STATE_CONFIGS.jump.vz;
+        }
+      }
+
+      toggleWeapons() {
+        this.weaponsDrawn = !this.weaponsDrawn;
+        this.combatTimer = this.weaponsDrawn ? 3.5 : 0;
+      }
+
+      triggerComboHit(damage, isCrit = false) {
+        this.comboHits++;
+        this.comboResetTimer = 2.2;
+        const comboEl = document.getElementById("combo-display");
+        const comboNum = document.getElementById("combo-number");
+        if (comboEl && comboNum) {
+          comboEl.style.display = "block";
+          comboNum.textContent = this.comboHits;
+          comboEl.style.transform = "scale(1.25)";
+          setTimeout(() => { comboEl.style.transform = "scale(1.0)"; }, 80);
+        }
+
+        const hitDist = 1.35;
+        const hitX = this.root.x - Math.sin(this.yaw) * hitDist;
+        const hitY = this.root.y + Math.cos(this.yaw) * hitDist;
+
+        for (const dummy of targetDummies) {
+          const dx = dummy.x - hitX;
+          const dy = dummy.y - hitY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 1.15) {
+            dummy.hit(damage, -Math.sin(this.yaw), Math.cos(this.yaw), isCrit);
+          }
+        }
+      }
+
+      update(dt, input, attackQueued = false, dashQueued = false, rollQueued = false, jumpQueued = false) {
+        if (this.paused) return;
+
+        if (this.dashCooldownTimer > 0) this.dashCooldownTimer -= dt;
+        if (this.rollCooldownTimer > 0) this.rollCooldownTimer -= dt;
+        if (this.bufferTimer > 0) {
+          this.bufferTimer -= dt;
+          if (this.bufferTimer <= 0) this.inputBuffer = null;
+        }
+
+        if (this.combatTimer > 0) {
+          this.combatTimer -= dt;
+          if (this.combatTimer <= 0 && this.state === "idle") {
+            this.weaponsDrawn = false;
+          }
+        }
+
+        if (this.comboResetTimer > 0) {
+          this.comboResetTimer -= dt;
+          if (this.comboResetTimer <= 0) {
+            this.comboHits = 0;
+            const comboEl = document.getElementById("combo-display");
+            if (comboEl) comboEl.style.display = "none";
+          }
+        }
+
+        if (this.transition) {
+          this.transition.t += dt;
+          if (this.transition.t >= this.transition.duration) {
+            this.transition = null;
+          }
+        }
+
+        // Lógica de Gravidade e Pulo
+        if (this.state === "jump" || this.state === "air_attack" || this.root.z > 0) {
+          this.vz -= STATE_CONFIGS.jump.gravity * dt;
+          this.root.z += this.vz * dt;
+
+          if (this.root.z <= 0) {
+            this.root.z = 0;
+            this.vz = 0;
+            if (this.state === "jump" || this.state === "air_attack") {
+              this.setState("idle", 0.08);
+              addHitSparks(this.root.x, this.root.y, 0, 10, "#94a3b8");
+            }
+          }
+        }
+
+        if (jumpQueued && this.root.z === 0 && this.state !== "roll") {
+          this.setState("jump", 0.06);
+          return;
+        }
+
+        if (this.state === "jump" && attackQueued) {
+          this.setState("air_attack", 0.04);
+          this.vz = -4.5;
+          return;
+        }
+
+        if (rollQueued && this.rollCooldownTimer <= 0 && this.root.z === 0) {
+          this.setState("roll", 0.05);
+          this.rollCooldownTimer = STATE_CONFIGS.roll.cooldown;
+          return;
+        }
+
+        if (dashQueued && this.dashCooldownTimer <= 0 && this.root.z === 0 && this.state !== "roll") {
+          this.setState("dash", 0.04);
+          this.dashCooldownTimer = STATE_CONFIGS.dash.cooldown;
+          return;
+        }
+
+        if (attackQueued) {
+          this.inputBuffer = "attack";
+          this.bufferTimer = 0.28;
+        }
+
+        const cfg = STATE_CONFIGS[this.state];
+        this.clipTime += dt;
+
+        // Máquina de Estados de Ataque e Combos
+        if (this.state === "attack1") {
+          if (!this.hitRegistered && this.clipTime >= cfg.windup) {
+            this.triggerComboHit(cfg.damage, false);
+            this.hitRegistered = true;
+          }
+          if (this.clipTime >= cfg.duration) {
+            if (this.inputBuffer === "attack") {
+              this.setState("attack2", 0.06);
+            } else {
+              this.setState("idle", 0.15);
+            }
+          }
+          return;
+        }
+
+        if (this.state === "attack2") {
+          if (!this.hitRegistered && this.clipTime >= cfg.windup) {
+            this.triggerComboHit(cfg.damage, false);
+            this.hitRegistered = true;
+          }
+          if (this.clipTime >= cfg.duration) {
+            if (this.inputBuffer === "attack") {
+              this.setState("attack3", 0.06);
+            } else {
+              this.setState("idle", 0.15);
+            }
+          }
+          return;
+        }
+
+        if (this.state === "attack3") {
+          if (!this.hitRegistered && this.clipTime >= cfg.windup) {
+            this.triggerComboHit(cfg.damage, true);
+            this.hitRegistered = true;
+          }
+          if (this.clipTime >= cfg.duration) {
+            this.setState("idle", 0.18);
+          }
+          return;
+        }
+
+        if (this.state === "roll") {
+          const p = clamp(this.clipTime / cfg.duration, 0, 1);
+          const rollSpd = (cfg.distance / cfg.roll);
+          if (this.clipTime >= cfg.windup && this.clipTime < (cfg.windup + cfg.roll)) {
+            const move = rotateYaw(0, rollSpd * dt, this.yaw);
+            this.root.x += move.x;
+            this.root.y += move.y;
+          }
+          if (p >= 1) {
+            if (input && input.active) this.setState("run", 0.08);
+            else this.setState("idle", 0.12);
+          }
+          return;
+        }
+
+        if (this.state === "dash") {
+          const p = clamp(this.clipTime / cfg.duration, 0, 1);
+          const burstSpd = (cfg.distance / cfg.burst);
+          if (this.clipTime >= cfg.windup && this.clipTime < (cfg.windup + cfg.burst)) {
+            const move = rotateYaw(0, burstSpd * dt, this.yaw);
+            this.root.x += move.x;
+            this.root.y += move.y;
+          }
+          if (p >= 1) {
+            if (input && input.active) this.setState("run", 0.08);
+            else this.setState("idle", 0.10);
+          }
+          return;
+        }
+
+        if (this.state === "air_attack") {
+          const advSpd = cfg.advance / cfg.duration;
+          const move = rotateYaw(0, advSpd * dt, this.yaw);
+          this.root.x += move.x;
+          this.root.y += move.y;
+          return;
+        }
+
+        if (this.inputBuffer === "attack" && this.root.z === 0) {
+          this.setState("attack1", 0.05);
+          return;
+        }
+
+        if (input && input.active && this.root.z === 0) {
+          this.yaw = turnToward(this.yaw, input.angle, 14 * dt);
+          if (this.state !== "run") {
+            this.setState("run", 0.08);
+          }
+          const dist = RUN_SPEED * dt;
+          const move = rotateYaw(0, dist, this.yaw);
+          this.root.x += move.x;
+          this.root.y += move.y;
+        } else if (this.root.z === 0) {
+          if (this.state === "run") {
+            this.setState("idle", 0.12);
+          }
+        }
+      }
+
+      localToWorld(lx, ly, lz) {
+        const ry = rotateYaw(lx, ly, this.yaw, lz);
+        return {
+          x: this.root.x + ry.x,
+          y: this.root.y + ry.y,
+          z: this.root.z + ry.z
+        };
+      }
+
+      computePose(originX = arenaOriginX, originY = arenaOriginY, scale = SCALE, recordSlip = false) {
+        let pelvisLocal = { x: 0, y: 0, z: PELVIS_REST_Z };
+        let torsoPitch = 0;
+        let torsoYaw = 0;
+        let headY = 0;
+
+        let leftFootTargetWorld = { x: 0, y: 0, z: 0 };
+        let rightFootTargetWorld = { x: 0, y: 0, z: 0 };
+        let leftFootPitch = 0;
+        let rightFootPitch = 0;
+
+        let leftStance = false;
+        let rightStance = false;
+
+        let rightHandTargetTorso = { x:  0.22, y:  0.18, z: 0.18 };
+        let leftHandTargetTorso  = { x: -0.22, y:  0.18, z: 0.18 };
+
+        let activeHitbox = null;
+
+        // Animação IDLE
+        if (this.state === "idle") {
+          const breath = Math.sin(this.clipTime * Math.PI * 2 / 2.0);
+          pelvisLocal.z = PELVIS_REST_Z + 0.012 * breath;
+          torsoPitch = 0.025 * breath;
+          headY = 0.008 * breath;
+
+          const sideL = footSideWorld("L", this.yaw);
+          const sideR = footSideWorld("R", this.yaw);
+
+          leftFootTargetWorld = {
+            x: this.root.x + sideL.x,
+            y: this.root.y + sideL.y,
+            z: BONE_TOE_ANKLE
+          };
+          rightFootTargetWorld = {
+            x: this.root.x + sideR.x,
+            y: this.root.y + sideR.y,
+            z: BONE_TOE_ANKLE
+          };
+
+          leftStance = true;
+          rightStance = true;
+
+          if (this.weaponsDrawn) {
+            rightHandTargetTorso = { x:  0.26, y:  0.22, z: 0.16 };
+            leftHandTargetTorso  = { x: -0.26, y:  0.22, z: 0.16 };
+          } else {
+            rightHandTargetTorso = { x:  0.15, y: -0.06, z: 0.08 };
+            leftHandTargetTorso  = { x: -0.15, y: -0.06, z: 0.08 };
+          }
+        }
+
+        // Animação CORRIDA (Passada Pesada com Zero Foot Slip)
+        else if (this.state === "run") {
+          const normT = (this.clipTime % RUN_DURATION) / RUN_DURATION;
+
+          // Compressão de joelho nos impactos (afunda para 0.690 no contato, sobe para 0.745 no impulso)
+          pelvisLocal.z = 0.7175 - 0.0275 * Math.cos(normT * Math.PI * 4);
+          torsoPitch = 0.215 + 0.005 * Math.cos(normT * Math.PI * 4);
+          torsoYaw = -0.10 * Math.cos(normT * Math.PI * 2);
+          headY = -0.056 + 0.004 * Math.cos(normT * Math.PI * 4);
+
+          // Cinemática determinística de contato do pé (Foot Lock absoluto: 0 slip)
+          const phiL = runPhase("L", this.clipTime);
+          const phiR = runPhase("R", this.clipTime);
+
+          if (phiL < SUPPORT_FRAC) {
+            leftStance = true;
+            const f = rotateYaw(0, 1, this.yaw);
+            const sw = footSideWorld("L", this.yaw);
+            leftFootTargetWorld = {
+              x: this.root.x - f.x * RUN_SPEED * phiL * RUN_DURATION + f.x * STANCE_HALF + sw.x,
+              y: this.root.y - f.y * RUN_SPEED * phiL * RUN_DURATION + f.y * STANCE_HALF + sw.y,
+              z: BONE_TOE_ANKLE
+            };
+            leftFootPitch = 0;
+          } else {
+            leftStance = false;
+            const loc = swingFootLocal("L", phiL);
+            leftFootTargetWorld = this.localToWorld(loc.x, loc.y, loc.z);
+            leftFootPitch = loc.pitch;
+          }
+
+          if (phiR < SUPPORT_FRAC) {
+            rightStance = true;
+            const f = rotateYaw(0, 1, this.yaw);
+            const sw = footSideWorld("R", this.yaw);
+            rightFootTargetWorld = {
+              x: this.root.x - f.x * RUN_SPEED * phiR * RUN_DURATION + f.x * STANCE_HALF + sw.x,
+              y: this.root.y - f.y * RUN_SPEED * phiR * RUN_DURATION + f.y * STANCE_HALF + sw.y,
+              z: BONE_TOE_ANKLE
+            };
+            rightFootPitch = 0;
+          } else {
+            rightStance = false;
+            const loc = swingFootLocal("R", phiR);
+            rightFootTargetWorld = this.localToWorld(loc.x, loc.y, loc.z);
+            rightFootPitch = loc.pitch;
+          }
+
+          const armSwing = Math.sin(normT * Math.PI * 2);
+          if (!this.weaponsDrawn) {
+            rightHandTargetTorso = { x: -0.27, y:  0.15 * armSwing, z: -0.31 - 0.02 * armSwing };
+            leftHandTargetTorso  = { x:  0.27, y: -0.15 * armSwing, z: -0.31 + 0.02 * armSwing };
+          } else {
+            rightHandTargetTorso = { x: -0.30, y:  0.18 * armSwing - 0.08, z: -0.16 };
+            leftHandTargetTorso  = { x:  0.30, y: -0.18 * armSwing - 0.08, z: -0.16 };
+          }
+        }
+
+        // Animação DASH
+        else if (this.state === "dash") {
+          const p = clamp(this.clipTime / STATE_CONFIGS.dash.duration, 0, 1);
+          pelvisLocal.z = PELVIS_REST_Z - 0.16 * Math.sin(p * Math.PI);
+          torsoPitch = 0.38;
+          headY = 0.05;
+
+          const sideL = footSideWorld("L", this.yaw);
+          const sideR = footSideWorld("R", this.yaw);
+          leftFootTargetWorld = { x: this.root.x + sideL.x, y: this.root.y + sideL.y, z: BONE_TOE_ANKLE + 0.10 * Math.sin(p * Math.PI) };
+          rightFootTargetWorld = { x: this.root.x + sideR.x, y: this.root.y + sideR.y, z: BONE_TOE_ANKLE };
+
+          rightHandTargetTorso = { x:  0.24, y: -0.32, z: 0.08 };
+          leftHandTargetTorso  = { x: -0.24, y:  0.30, z: 0.22 };
+        }
+
+        // Animação DARK SOULS ROLL (Giro 360)
+        else if (this.state === "roll") {
+          const p = clamp(this.clipTime / STATE_CONFIGS.roll.duration, 0, 1);
+          const rollAngle = p * Math.PI * 2;
+          pelvisLocal.z = PELVIS_REST_Z * (0.45 + 0.55 * Math.cos(rollAngle));
+          torsoPitch = rollAngle;
+
+          const tuck = 0.22 * Math.sin(p * Math.PI);
+          const sideL = footSideWorld("L", this.yaw);
+          const sideR = footSideWorld("R", this.yaw);
+          leftFootTargetWorld = { x: this.root.x + sideL.x, y: this.root.y + sideL.y, z: BONE_TOE_ANKLE + tuck };
+          rightFootTargetWorld = { x: this.root.x + sideR.x, y: this.root.y + sideR.y, z: BONE_TOE_ANKLE + tuck };
+
+          rightHandTargetTorso = { x:  0.18, y: 0.12, z: 0.10 };
+          leftHandTargetTorso  = { x: -0.18, y: 0.12, z: 0.10 };
+        }
+
+        // Animação PULO
+        else if (this.state === "jump") {
+          pelvisLocal.z = PELVIS_REST_Z;
+          torsoPitch = -0.10;
+          const tuck = clamp(this.root.z * 0.35, 0, 0.25);
+          const sideL = footSideWorld("L", this.yaw);
+          const sideR = footSideWorld("R", this.yaw);
+          leftFootTargetWorld = { x: this.root.x + sideL.x, y: this.root.y + sideL.y, z: this.root.z + BONE_TOE_ANKLE - tuck };
+          rightFootTargetWorld = { x: this.root.x + sideR.x, y: this.root.y + sideR.y, z: this.root.z + BONE_TOE_ANKLE - tuck * 0.7 };
+          rightHandTargetTorso = { x:  0.30, y:  0.15, z: 0.40 };
+          leftHandTargetTorso  = { x: -0.30, y:  0.15, z: 0.40 };
+        }
+
+        // Animação AIR ATTACK / PLUNGE
+        else if (this.state === "air_attack") {
+          pelvisLocal.z = PELVIS_REST_Z;
+          torsoPitch = 0.45;
+          const sideL = footSideWorld("L", this.yaw);
+          const sideR = footSideWorld("R", this.yaw);
+          leftFootTargetWorld = { x: this.root.x + sideL.x, y: this.root.y + sideL.y, z: this.root.z + BONE_TOE_ANKLE };
+          rightFootTargetWorld = { x: this.root.x + sideR.x, y: this.root.y + sideR.y, z: this.root.z + BONE_TOE_ANKLE };
+          rightHandTargetTorso = { x:  0.18, y: 0.35, z: -0.10 };
+          leftHandTargetTorso  = { x: -0.18, y: 0.35, z: -0.10 };
+        }
+
+        // Animações de COMBOS 1-2-3
+        else if (this.state === "attack1") {
+          const p = clamp(this.clipTime / STATE_CONFIGS.attack1.duration, 0, 1);
+          pelvisLocal.z = PELVIS_REST_Z - 0.04;
+          torsoPitch = 0.12;
+          torsoYaw = lerp(-0.45, 0.55, smoothstep(p));
+
+          const sideL = footSideWorld("L", this.yaw);
+          const sideR = footSideWorld("R", this.yaw);
+          leftFootTargetWorld = { x: this.root.x + sideL.x, y: this.root.y + sideL.y, z: BONE_TOE_ANKLE };
+          rightFootTargetWorld = { x: this.root.x + sideR.x, y: this.root.y + sideR.y, z: BONE_TOE_ANKLE };
+
+          const slashProgress = smoothstep(p);
+          rightHandTargetTorso = {
+            x: lerp(-0.10, 0.48, slashProgress),
+            y: lerp( 0.42, 0.18, slashProgress),
+            z: lerp( 0.28, 0.08, slashProgress)
+          };
+          leftHandTargetTorso = { x: -0.25, y: -0.10, z: 0.15 };
+
+          if (this.clipTime >= 0.08 && this.clipTime <= 0.16) {
+            activeHitbox = { type: "arc", angle: this.yaw, span: 1.5, radius: 1.35, color: "#f59e0b" };
+          }
+        }
+        else if (this.state === "attack2") {
+          const p = clamp(this.clipTime / STATE_CONFIGS.attack2.duration, 0, 1);
+          pelvisLocal.z = PELVIS_REST_Z - 0.04;
+          torsoPitch = 0.14;
+          torsoYaw = lerp(0.55, -0.65, smoothstep(p));
+
+          const sideL = footSideWorld("L", this.yaw);
+          const sideR = footSideWorld("R", this.yaw);
+          leftFootTargetWorld = { x: this.root.x + sideL.x, y: this.root.y + sideL.y, z: BONE_TOE_ANKLE };
+          rightFootTargetWorld = { x: this.root.x + sideR.x, y: this.root.y + sideR.y, z: BONE_TOE_ANKLE };
+
+          const slashProgress = smoothstep(p);
+          leftHandTargetTorso = {
+            x: lerp( 0.10, -0.52, slashProgress),
+            y: lerp( 0.44,  0.16, slashProgress),
+            z: lerp( 0.30,  0.06, slashProgress)
+          };
+          rightHandTargetTorso = { x: 0.25, y: -0.10, z: 0.15 };
+
+          if (this.clipTime >= 0.07 && this.clipTime <= 0.15) {
+            activeHitbox = { type: "arc", angle: this.yaw, span: 1.6, radius: 1.40, color: "#38bdf8" };
+          }
+        }
+        else if (this.state === "attack3") {
+          const p = clamp(this.clipTime / STATE_CONFIGS.attack3.duration, 0, 1);
+          pelvisLocal.z = PELVIS_REST_Z - 0.06;
+          torsoPitch = 0.18;
+          torsoYaw = p * Math.PI * 2 * 1.5;
+
+          const sideL = footSideWorld("L", this.yaw);
+          const sideR = footSideWorld("R", this.yaw);
+          leftFootTargetWorld = { x: this.root.x + sideL.x, y: this.root.y + sideL.y, z: BONE_TOE_ANKLE };
+          rightFootTargetWorld = { x: this.root.x + sideR.x, y: this.root.y + sideR.y, z: BONE_TOE_ANKLE };
+
+          const spinRadius = 0.48;
+          rightHandTargetTorso = { x:  spinRadius * Math.cos(torsoYaw), y: spinRadius * Math.sin(torsoYaw), z: 0.18 };
+          leftHandTargetTorso  = { x: -spinRadius * Math.cos(torsoYaw), y:-spinRadius * Math.sin(torsoYaw), z: 0.18 };
+
+          if (this.clipTime >= 0.14 && this.clipTime <= 0.32) {
+            activeHitbox = { type: "circle360", radius: 1.65, color: "#ef4444" };
+          }
+        }
+
+        // Interpolação de Transição Suave (Blending)
+        if (this.transition) {
+          const tNorm = clamp(this.transition.t / this.transition.duration, 0, 1);
+          const s = smoothstep(tNorm);
+          const from = this.transition.from;
+
+          pelvisLocal.x = lerp(from.pelvisLocal.x, pelvisLocal.x, s);
+          pelvisLocal.y = lerp(from.pelvisLocal.y, pelvisLocal.y, s);
+          pelvisLocal.z = lerp(from.pelvisLocal.z, pelvisLocal.z, s);
+
+          torsoPitch = lerp(from.torsoPitch, torsoPitch, s);
+          torsoYaw   = lerp(from.torsoYaw, torsoYaw, s);
+          headY      = lerp(from.headY, headY, s);
+
+          rightHandTargetTorso.x = lerp(from.rightHandTargetTorso.x, rightHandTargetTorso.x, s);
+          rightHandTargetTorso.y = lerp(from.rightHandTargetTorso.y, rightHandTargetTorso.y, s);
+          rightHandTargetTorso.z = lerp(from.rightHandTargetTorso.z, rightHandTargetTorso.z, s);
+
+          leftHandTargetTorso.x = lerp(from.leftHandTargetTorso.x, leftHandTargetTorso.x, s);
+          leftHandTargetTorso.y = lerp(from.leftHandTargetTorso.y, leftHandTargetTorso.y, s);
+          leftHandTargetTorso.z = lerp(from.leftHandTargetTorso.z, leftHandTargetTorso.z, s);
+        }
+
+        // Resolução dos Ossos no Espaço de Mundo
+        const pelvisWorld = this.localToWorld(pelvisLocal.x, pelvisLocal.y, pelvisLocal.z);
+
+        const totalYaw = this.yaw + torsoYaw;
+        function torsoToLocal(tx, ty, tz) {
+          const rz = rotateYaw(tx, ty, torsoYaw, tz);
+          const cy = Math.cos(torsoPitch), sy = Math.sin(torsoPitch);
+          const pY = rz.y * cy - rz.z * sy;
+          const pZ = rz.y * sy + rz.z * cy;
+          return {
+            x: pelvisLocal.x + rz.x,
+            y: pelvisLocal.y + pY,
+            z: pelvisLocal.z + pZ
+          };
+        }
+
+        const chestWorld = this.localToWorld(...Object.values(torsoToLocal(0, 0, BONE_PELVIS_CHEST)));
+        const neckWorld  = this.localToWorld(...Object.values(torsoToLocal(0, 0, BONE_PELVIS_CHEST + BONE_NECK)));
+        const headCenterWorld = this.localToWorld(...Object.values(torsoToLocal(0, headY, BONE_PELVIS_CHEST + BONE_NECK + HEAD_RADIUS)));
+
+        const hipLeftWorld  = this.localToWorld(pelvisLocal.x + HIP_OFFSET_X, pelvisLocal.y, pelvisLocal.z);
+        const hipRightWorld = this.localToWorld(pelvisLocal.x - HIP_OFFSET_X, pelvisLocal.y, pelvisLocal.z);
+
+        const kneePoleL = { x: -Math.sin(this.yaw), y: Math.cos(this.yaw), z: 0 };
+        const kneePoleR = { x: -Math.sin(this.yaw), y: Math.cos(this.yaw), z: 0 };
+
+        const kneeLeftWorld  = solveIK2Bone(hipLeftWorld,  leftFootTargetWorld,  BONE_THIGH, BONE_SHIN, kneePoleL);
+        const kneeRightWorld = solveIK2Bone(hipRightWorld, rightFootTargetWorld, BONE_THIGH, BONE_SHIN, kneePoleR);
+
+        // Membros Superiores
+        const shoulderLeftWorld  = this.localToWorld(...Object.values(torsoToLocal( SHOULDER_OFFSET, 0, BONE_PELVIS_CHEST)));
+        const shoulderRightWorld = this.localToWorld(...Object.values(torsoToLocal(-SHOULDER_OFFSET, 0, BONE_PELVIS_CHEST)));
+
+        const handLeftWorld  = this.localToWorld(...Object.values(torsoToLocal(leftHandTargetTorso.x,  leftHandTargetTorso.y,  leftHandTargetTorso.z)));
+        const handRightWorld = this.localToWorld(...Object.values(torsoToLocal(rightHandTargetTorso.x, rightHandTargetTorso.y, rightHandTargetTorso.z)));
+
+        const elbowPoleL = { x: Math.sin(this.yaw), y: -Math.cos(this.yaw), z: -0.5 };
+        const elbowPoleR = { x: Math.sin(this.yaw), y: -Math.cos(this.yaw), z: -0.5 };
+
+        const elbowLeftWorld  = solveIK2Bone(shoulderLeftWorld,  handLeftWorld,  BONE_UPPER_ARM, BONE_FOREARM, elbowPoleL);
+        const elbowRightWorld = solveIK2Bone(shoulderRightWorld, handRightWorld, BONE_UPPER_ARM, BONE_FOREARM, elbowPoleR);
+
+        // Auditoria Determinística de Foot Slip
+        if (recordSlip) {
+          const lScr = projectWorldPoint(leftFootTargetWorld.x, leftFootTargetWorld.y, leftFootTargetWorld.z, originX, originY, scale);
+          const rScr = projectWorldPoint(rightFootTargetWorld.x, rightFootTargetWorld.y, rightFootTargetWorld.z, originX, originY, scale);
+
+          if (leftStance && this.lastFootScreens.left) {
+            const dx = lScr.sx - this.lastFootScreens.left.sx;
+            const dy = lScr.sy - this.lastFootScreens.left.sy;
+            const slip = Math.sqrt(dx * dx + dy * dy);
+            this.slipSamples.push(slip);
+            if (slip > this.maxSlipPx) this.maxSlipPx = slip;
+          }
+          if (rightStance && this.lastFootScreens.right) {
+            const dx = rScr.sx - this.lastFootScreens.right.sx;
+            const dy = rScr.sy - this.lastFootScreens.right.sy;
+            const slip = Math.sqrt(dx * dx + dy * dy);
+            this.slipSamples.push(slip);
+            if (slip > this.maxSlipPx) this.maxSlipPx = slip;
+          }
+
+          if (this.slipSamples.length > 0) {
+            const sum = this.slipSamples.reduce((a, b) => a + b, 0);
+            this.meanSlipPx = sum / this.slipSamples.length;
+          }
+
+          this.lastFootScreens.left  = leftStance ? lScr : null;
+          this.lastFootScreens.right = rightStance ? rScr : null;
+        }
+
+        // Geometria 3D dos Pés
+        function buildFootGeom(ankleWorld, pitchRad, yaw) {
+          const toeWorld = {
+            x: ankleWorld.x - Math.sin(yaw) * 0.16,
+            y: ankleWorld.y + Math.cos(yaw) * 0.16,
+            z: ankleWorld.z
+          };
+          const heelWorld = {
+            x: ankleWorld.x + Math.sin(yaw) * 0.07,
+            y: ankleWorld.y - Math.cos(yaw) * 0.07,
+            z: ankleWorld.z
+          };
+          const hw = 0.052;
+          const leftNorm = { x: Math.cos(yaw) * hw, y: -Math.sin(yaw) * hw };
+          return {
+            sole: [
+              { x: heelWorld.x - leftNorm.x, y: heelWorld.y - leftNorm.y, z: 0 },
+              { x: heelWorld.x + leftNorm.x, y: heelWorld.y + leftNorm.y, z: 0 },
+              { x: toeWorld.x + leftNorm.x,  y: toeWorld.y + leftNorm.y,  z: 0 },
+              { x: toeWorld.x - leftNorm.x,  y: toeWorld.y - leftNorm.y,  z: 0 }
+            ],
+            top: [
+              { x: heelWorld.x - leftNorm.x, y: heelWorld.y - leftNorm.y, z: BONE_TOE_ANKLE },
+              { x: heelWorld.x + leftNorm.x, y: heelWorld.y + leftNorm.y, z: BONE_TOE_ANKLE },
+              { x: toeWorld.x + leftNorm.x,  y: toeWorld.y + leftNorm.y,  z: BONE_TOE_ANKLE * 0.65 },
+              { x: toeWorld.x - leftNorm.x,  y: toeWorld.y - leftNorm.y,  z: BONE_TOE_ANKLE * 0.65 }
+            ]
+          };
+        }
+
+        const footGeomL = buildFootGeom(leftFootTargetWorld, leftFootPitch, this.yaw);
+        const footGeomR = buildFootGeom(rightFootTargetWorld, rightFootPitch, this.yaw);
+
+        // Tronco Canônico
+        const tw = 0.18;
+        const torsoPts = [
+          this.localToWorld(...Object.values(torsoToLocal(-tw * 0.85, 0, 0.02))),
+          this.localToWorld(...Object.values(torsoToLocal( tw * 0.85, 0, 0.02))),
+          this.localToWorld(...Object.values(torsoToLocal( tw * 1.15, 0, BONE_PELVIS_CHEST * 0.95))),
+          this.localToWorld(...Object.values(torsoToLocal(-tw * 1.15, 0, BONE_PELVIS_CHEST * 0.95)))
+        ];
+
+        const chestFacetPts = [
+          this.localToWorld(...Object.values(torsoToLocal(-tw * 0.95, 0.04, BONE_PELVIS_CHEST * 0.40))),
+          this.localToWorld(...Object.values(torsoToLocal( tw * 0.95, 0.04, BONE_PELVIS_CHEST * 0.40))),
+          this.localToWorld(...Object.values(torsoToLocal( tw * 1.05, 0.05, BONE_PELVIS_CHEST * 0.92))),
+          this.localToWorld(...Object.values(torsoToLocal(-tw * 1.05, 0.05, BONE_PELVIS_CHEST * 0.92)))
+        ];
+
+        // Lâminas nas Costas em "X" (Estilo God of War / Kratos)
+        const sheathedDaggers = {
+          right: {
+            grip: this.localToWorld(...Object.values(torsoToLocal(-0.16, -0.09, BONE_PELVIS_CHEST + 0.12))),
+            base: this.localToWorld(...Object.values(torsoToLocal(-0.14, -0.09, BONE_PELVIS_CHEST + 0.05))),
+            tip:  this.localToWorld(...Object.values(torsoToLocal( 0.15, -0.09, 0.04))),
+            side: -1
+          },
+          left: {
+            grip: this.localToWorld(...Object.values(torsoToLocal( 0.16, -0.09, BONE_PELVIS_CHEST + 0.12))),
+            base: this.localToWorld(...Object.values(torsoToLocal( 0.14, -0.09, BONE_PELVIS_CHEST + 0.05))),
+            tip:  this.localToWorld(...Object.values(torsoToLocal(-0.15, -0.09, 0.04))),
+            side: 1
+          }
+        };
+
+        const skullWorld = this.localToWorld(...Object.values(torsoToLocal(0, 0.10, 0.09)));
+        const capeRoot   = this.localToWorld(...Object.values(torsoToLocal(0.08, -0.05, BONE_PELVIS_CHEST + 0.02)));
+        const capeMid    = this.localToWorld(...Object.values(torsoToLocal(0.16, -0.16, 0.14)));
+        const capeTip    = this.localToWorld(...Object.values(torsoToLocal(0.22, -0.25, -0.04)));
+
+        this.prevRawPose = {
+          pelvisLocal: { ...pelvisLocal },
+          torsoPitch,
+          torsoYaw,
+          headY,
+          leftFootTargetWorld: { ...leftFootTargetWorld },
+          rightFootTargetWorld: { ...rightFootTargetWorld },
+          leftFootPitch,
+          rightFootPitch,
+          rightHandTargetTorso: { ...rightHandTargetTorso },
+          leftHandTargetTorso: { ...leftHandTargetTorso }
+        };
+
+        return {
+          root: this.root,
+          yaw: this.yaw,
+          torsoYaw,
+          joints: {
+            pelvis: pelvisWorld,
+            chest: chestWorld,
+            neck: neckWorld,
+            headCenter: headCenterWorld,
+            hipL: hipLeftWorld,
+            kneeL: kneeLeftWorld,
+            ankleL: leftFootTargetWorld,
+            hipR: hipRightWorld,
+            kneeR: kneeRightWorld,
+            ankleR: rightFootTargetWorld,
+            shoulderL: shoulderLeftWorld,
+            elbowL: elbowLeftWorld,
+            wristL: handLeftWorld,
+            shoulderR: shoulderRightWorld,
+            elbowR: elbowRightWorld,
+            wristR: handRightWorld
+          },
+          targets: {
+            footL: leftFootTargetWorld,
+            footR: rightFootTargetWorld,
+            handL: handLeftWorld,
+            handR: handRightWorld
+          },
+          torsoPts,
+          chestFacetPts,
+          feetGeom: { L: footGeomL, R: footGeomR },
+          sheathedDaggers,
+          skullWorld,
+          cape: { root: capeRoot, mid: capeMid, tip: capeTip },
+          weaponsDrawn: this.weaponsDrawn,
+          activeHitbox,
+          leftStance,
+          rightStance
+        };
+      }
+    }
+
+    // =========================================================================
+    // 6. RENDERIZADOR DO HERÓI (SPRITE OFICIAL NO IDLE / RIG MODULAR NO MOVIMENTO)
+    // =========================================================================
+    function renderHero(ctx, rig, pose, originX, originY, scale = SCALE, showDebug = false, isContact = false) {
+      const joints = pose.joints;
+      const jProj = {};
+
+      for (const [key, pt] of Object.entries(joints)) {
+        jProj[key] = projectWorldPoint(pt.x, pt.y, pt.z, originX, originY, scale);
+      }
+
+      // Sombra Dinâmica
+      const rootProj = projectWorldPoint(rig.root.x, rig.root.y, rig.root.z, originX, originY, scale);
+      const heightFactor = clamp(1.0 - (rig.root.z / 1.6), 0.25, 1.0);
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(rootProj.sx, rootProj.sy, 0.42 * scale * heightFactor, 0.42 * scale * SIN * heightFactor, 0, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(0, 0, 0, ${0.48 * heightFactor})`;
+      ctx.fill();
+      ctx.restore();
+
+      const deg = rig.getYawDegrees();
+      const nearest45 = (Math.round(deg / 45) * 45) % 360;
+      const refEntry = refAssets.idles[nearest45];
+      const meta = SPRITE_META[nearest45];
+
+      // -----------------------------------------------------------------------
+      // CAMADA IDLE: SPRITE OFICIAL 100% CANÔNICO (CORRESPONDENTE AO ANEXO)
+      // -----------------------------------------------------------------------
+      if (rig.state === "idle" && refEntry && refEntry.loaded && refEntry.img && !showDebug && !isContact) {
+        // Escala milimétrica ancorada no pé do rig (Zero foot slip)
+        const targetCharHeight = 1.70 * scale * 0.98; // ~150 px
+        const s = targetCharHeight / meta.boxH;
+        const drawW = refEntry.img.width * s;
+        const drawH = refEntry.img.height * s;
+
+        // Respiração suave sincronizada com o rig
+        const breath = Math.sin(rig.clipTime * Math.PI * 2 / 2.0) * (scale * 0.012);
+        const sway   = Math.cos(rig.clipTime * Math.PI * 2 / 4.0) * (scale * 0.005);
+
+        const destX = rootProj.sx - meta.centerX * s + sway;
+        const destY = rootProj.sy - meta.footY * s + breath;
+
+        ctx.drawImage(refEntry.img, destX, destY, drawW, drawH);
+        return;
+      }
+
+      // -----------------------------------------------------------------------
+      // CAMADA DE MOVIMENTO & COMBATE: RIG MODULAR COM ARTE E PROPORÇÕES CANÔNICAS
+      // -----------------------------------------------------------------------
+      const inkWidth = scale > 70 ? 2.4 : 1.5;
+      const items = [];
+      function addItem(layer, depth, drawFn) {
+        items.push({ layer, depth, draw: drawFn });
+      }
+
+      // 1. Pés e Botas 3D de Couro Pesado
+      function drawFoot(sideStr, foot) {
+        const soleProj = foot.sole.map(p => projectWorldPoint(p.x, p.y, p.z, originX, originY, scale));
+        const topProj  = foot.top.map(p => projectWorldPoint(p.x, p.y, p.z, originX, originY, scale));
+        const depth = jProj[sideStr === "L" ? "ankleL" : "ankleR"].depth;
+
+        addItem(10, depth, (g) => {
+          // Sola de borracha/couro escuro
+          g.beginPath();
+          g.moveTo(soleProj[0].sx, soleProj[0].sy);
+          for (let i = 1; i < 4; i++) g.lineTo(soleProj[i].sx, soleProj[i].sy);
+          g.closePath();
+          g.fillStyle = COL.bootsSole;
+          g.fill();
+          g.strokeStyle = COL.ink;
+          g.lineWidth = inkWidth * 1.2;
+          g.stroke();
+
+          // Corpo da bota
+          g.beginPath();
+          g.moveTo(topProj[0].sx, topProj[0].sy);
+          for (let i = 1; i < 4; i++) g.lineTo(topProj[i].sx, topProj[i].sy);
+          g.closePath();
+          g.fillStyle = COL.bootsDark;
+          g.fill();
+          g.strokeStyle = COL.ink;
+          g.lineWidth = inkWidth;
+          g.stroke();
+        });
+      }
+      drawFoot("L", pose.feetGeom.L);
+      drawFoot("R", pose.feetGeom.R);
+
+      // 2. Pernas (Loincloth e Grevas)
+      function drawBone(pA, pB, radius, color, layer, name) {
+        const midDepth = (pA.depth + pB.depth) / 2;
+        const w = radius * scale;
+
+        addItem(layer, midDepth, (g) => {
+          g.lineCap = "round";
+          g.strokeStyle = COL.ink;
+          g.lineWidth = w + inkWidth * 2;
+          g.beginPath();
+          g.moveTo(pA.sx, pA.sy);
+          g.lineTo(pB.sx, pB.sy);
+          g.stroke();
+
+          g.strokeStyle = color;
+          g.lineWidth = w;
+          g.beginPath();
+          g.moveTo(pA.sx, pA.sy);
+          g.lineTo(pB.sx, pB.sy);
+          g.stroke();
+        });
+      }
+
+      function drawJoint(p, radius, color, layer) {
+        const r = radius * scale;
+        addItem(layer, p.depth, (g) => {
+          g.beginPath();
+          g.arc(p.sx, p.sy, r + inkWidth, 0, Math.PI * 2);
+          g.fillStyle = COL.ink;
+          g.fill();
+
+          g.beginPath();
+          g.arc(p.sx, p.sy, r, 0, Math.PI * 2);
+          g.fillStyle = color;
+          g.fill();
+        });
+      }
+
+      // Pernas
+      drawBone(jProj.hipL, jProj.kneeL, 0.11, COL.pantsDark, 20, "thighL");
+      drawBone(jProj.hipR, jProj.kneeR, 0.11, COL.pantsDark, 20, "thighR");
+      drawBone(jProj.kneeL, jProj.ankleL, 0.088, COL.bootsDark, 21, "shinL");
+      drawBone(jProj.kneeR, jProj.ankleR, 0.088, COL.bootsDark, 21, "shinR");
+
+      drawJoint(jProj.kneeL, 0.040, COL.bootsDark, 22);
+      drawJoint(jProj.kneeR, 0.040, COL.bootsDark, 22);
+
+      // Pelve & Cinto de Couro
+      drawBone(jProj.hipL, jProj.hipR, 0.125, COL.beltLeather, 30, "pelvis");
+
+      // Caveira Única no Centro Frontal do Cinto
+      const skullProj = projectWorldPoint(pose.skullWorld.x, pose.skullWorld.y, pose.skullWorld.z, originX, originY, scale);
+      const isFacingSouth = Math.cos(rig.yaw) >= -0.25;
+      if (isFacingSouth) {
+        addItem(32, skullProj.depth + 0.02, (g) => {
+          const sr = 7.0;
+          // Contorno Ink
+          g.beginPath();
+          g.arc(skullProj.sx, skullProj.sy, sr + inkWidth, 0, Math.PI * 2);
+          g.fillStyle = COL.ink;
+          g.fill();
+
+          // Cabeça de marfim
+          g.beginPath();
+          g.arc(skullProj.sx, skullProj.sy, sr, 0, Math.PI * 2);
+          g.fillStyle = COL.skullWhite;
+          g.fill();
+
+          // Mandíbula
+          g.beginPath();
+          g.rect(skullProj.sx - 3.2, skullProj.sy + 3.2, 6.4, 4.2);
+          g.fillStyle = COL.skullDark;
+          g.fill();
+
+          // Órbitas oculares
+          g.fillStyle = COL.skullSocket;
+          g.beginPath();
+          g.arc(skullProj.sx - 2.8, skullProj.sy - 1.2, 1.8, 0, Math.PI * 2);
+          g.arc(skullProj.sx + 2.8, skullProj.sy - 1.2, 1.8, 0, Math.PI * 2);
+          g.fill();
+        });
+      }
+
+      // Tronco e Peitoral Sem Camisa (Pele de Argila Definida)
+      const torsoScr  = pose.torsoPts.map(p => projectWorldPoint(p.x, p.y, p.z, originX, originY, scale));
+      const facetScr  = pose.chestFacetPts.map(p => projectWorldPoint(p.x, p.y, p.z, originX, originY, scale));
+      const torsoDepth = jProj.chest.depth;
+
+      addItem(35, torsoDepth, (g) => {
+        g.beginPath();
+        g.moveTo(torsoScr[0].sx, torsoScr[0].sy);
+        for (let i = 1; i < torsoScr.length; i++) g.lineTo(torsoScr[i].sx, torsoScr[i].sy);
+        g.closePath();
+        g.fillStyle = COL.skin;
+        g.fill();
+        g.strokeStyle = COL.ink;
+        g.lineWidth = inkWidth * 1.4;
+        g.stroke();
+
+        // Faceta Peitoral
+        g.beginPath();
+        g.moveTo(facetScr[0].sx, facetScr[0].sy);
+        for (let i = 1; i < facetScr.length; i++) g.lineTo(facetScr[i].sx, facetScr[i].sy);
+        g.closePath();
+        g.fillStyle = COL.skinDark;
+        g.fill();
+      });
+
+      // Capa/Cachecol Vermelho Assimétrico
+      const cRoot = projectWorldPoint(pose.cape.root.x, pose.cape.root.y, pose.cape.root.z, originX, originY, scale);
+      const cMid  = projectWorldPoint(pose.cape.mid.x,  pose.cape.mid.y,  pose.cape.mid.z,  originX, originY, scale);
+      const cTip  = projectWorldPoint(pose.cape.tip.x,  pose.cape.tip.y,  pose.cape.tip.z,  originX, originY, scale);
+
+      addItem(38, cMid.depth - 0.01, (g) => {
+        g.beginPath();
+        g.moveTo(cRoot.sx - 9, cRoot.sy);
+        g.bezierCurveTo(cMid.sx - 14, cMid.sy, cTip.sx - 8, cTip.sy - 4, cTip.sx, cTip.sy);
+        g.bezierCurveTo(cTip.sx + 10, cTip.sy + 4, cMid.sx + 12, cMid.sy + 4, cRoot.sx + 9, cRoot.sy);
+        g.closePath();
+        g.fillStyle = COL.capeRed;
+        g.fill();
+        g.strokeStyle = COL.ink;
+        g.lineWidth = inkWidth;
+        g.stroke();
+
+        // Dobra escura de relevo
+        g.beginPath();
+        g.moveTo(cRoot.sx, cRoot.sy);
+        g.quadraticCurveTo(cMid.sx - 4, cMid.sy, cTip.sx, cTip.sy);
+        g.strokeStyle = COL.capeRedDark;
+        g.lineWidth = 2.8;
+        g.stroke();
+      });
+
+      // Braços Musculosos com Faixas nos Punhos
+      drawBone(jProj.shoulderL, jProj.elbowL, 0.082, COL.skin, 40, "upperArmL");
+      drawBone(jProj.shoulderR, jProj.elbowR, 0.082, COL.skin, 40, "upperArmR");
+      drawBone(jProj.elbowL, jProj.wristL, 0.072, "#e2e8f0", 41, "forearmL"); // Faixas
+      drawBone(jProj.elbowR, jProj.wristR, 0.072, "#e2e8f0", 41, "forearmR"); // Faixas
+
+      drawJoint(jProj.shoulderL, 0.040, COL.skin, 42);
+      drawJoint(jProj.shoulderR, 0.040, COL.skin, 42);
+      drawJoint(jProj.elbowL, 0.032, COL.skin, 42);
+      drawJoint(jProj.elbowR, 0.032, COL.skin, 42);
+      drawJoint(jProj.wristL, 0.030, "#cbd5e1", 42);
+      drawJoint(jProj.wristR, 0.030, "#cbd5e1", 42);
+
+      // 3. Adagas Vulcânicas Bézier e Correntes Dinâmicas
+      function drawVolcanicBlade(handProj, targetProj, side, isSheathed = false) {
+        const p0 = handProj;
+        const p2 = targetProj;
+        const sx = p2.sx - p0.sx;
+        const sy = p2.sy - p0.sy;
+        const len = Math.sqrt(sx * sx + sy * sy) || 1;
+        const nx = -sy / len, ny = sx / len;
+        const bowAmp = 0.15 * scale * (side === 1 ? 1 : -1);
+        const p1 = {
+          sx: (p0.sx + p2.sx) * 0.5 + nx * bowAmp,
+          sy: (p0.sy + p2.sy) * 0.5 + ny * bowAmp
+        };
+
+        const depth = p0.depth;
+        addItem(isSheathed ? 28 : 50, depth, (g) => {
+          // Corrente solta no punho
+          if (!isSheathed) {
+            g.strokeStyle = COL.chain;
+            g.lineWidth = 2.0;
+            g.beginPath();
+            g.moveTo(p0.sx, p0.sy);
+            g.quadraticCurveTo(p0.sx - nx * 16, p0.sy - ny * 16 + 12, p0.sx - sx * 0.22, p0.sy - sy * 0.22);
+            g.stroke();
+          }
+
+          // Lâmina curva (Two-Tone com Brilho Vulcânico na Aresta)
+          const N = 12;
+          const left = [], right = [];
+          for (let i = 0; i <= N; i++) {
+            const u = i / N;
+            const inv = 1 - u;
+            const cx = inv * inv * p0.sx + 2 * inv * u * p1.sx + u * u * p2.sx;
+            const cy = inv * inv * p0.sy + 2 * inv * u * p1.sy + u * u * p2.sy;
+            const tx = 2 * inv * (p1.sx - p0.sx) + 2 * u * (p2.sx - p1.sx);
+            const ty = 2 * inv * (p1.sy - p0.sy) + 2 * u * (p2.sy - p1.sy);
+            const tl = Math.sqrt(tx * tx + ty * ty) || 1;
+            const px = -ty / tl, py = tx / tl;
+            let hw = (0.012 + 0.036 * Math.sin(Math.PI * u)) * scale;
+            if (u > 0.82) hw *= ((1 - u) / 0.18) * 0.85 + 0.15;
+            left.push({ sx: cx + px * hw, sy: cy + py * hw });
+            right.push({ sx: cx - px * hw, sy: cy - py * hw });
+          }
+
+          // Corpo de aço escuro
+          g.beginPath();
+          g.moveTo(left[0].sx, left[0].sy);
+          for (let a = 1; a < left.length; a++) g.lineTo(left[a].sx, left[a].sy);
+          for (let b = right.length - 1; b >= 0; b--) g.lineTo(right[b].sx, right[b].sy);
+          g.closePath();
+          g.fillStyle = COL.bladeSteel;
+          g.fill();
+          g.strokeStyle = COL.ink;
+          g.lineWidth = inkWidth;
+          g.stroke();
+
+          // Aresta com lava e brasas vulcânicas (Glow Vulcânico Canônico)
+          g.beginPath();
+          g.moveTo(left[0].sx, left[0].sy);
+          for (let a = 1; a < left.length; a++) g.lineTo(left[a].sx, left[a].sy);
+          g.strokeStyle = COL.bladeLava;
+          g.lineWidth = 2.4;
+          g.stroke();
+
+          g.strokeStyle = COL.bladeLavaGlow;
+          g.lineWidth = 1.2;
+          g.stroke();
+
+          // Guarda de Bronze
+          const gl = 0.054 * scale;
+          g.lineCap = "round";
+          g.strokeStyle = COL.ink;
+          g.lineWidth = 4.2;
+          g.beginPath();
+          g.moveTo(p0.sx + nx * gl, p0.sy + ny * gl);
+          g.lineTo(p0.sx - nx * gl, p0.sy - ny * gl);
+          g.stroke();
+
+          g.strokeStyle = "#b45309";
+          g.lineWidth = 2.6;
+          g.beginPath();
+          g.moveTo(p0.sx + nx * gl, p0.sy + ny * gl);
+          g.lineTo(p0.sx - nx * gl, p0.sy - ny * gl);
+          g.stroke();
+        });
+      }
+
+      if (pose.weaponsDrawn) {
+        const bladeExtL = rotateYaw(0.34, 0.16, rig.yaw, -0.05);
+        const bladeExtR = rotateYaw(-0.34, 0.16, rig.yaw, -0.05);
+        const tipLWorld = { x: joints.wristL.x + bladeExtL.x, y: joints.wristL.y + bladeExtL.y, z: joints.wristL.z + bladeExtL.z };
+        const tipRWorld = { x: joints.wristR.x + bladeExtR.x, y: joints.wristR.y + bladeExtR.y, z: joints.wristR.z + bladeExtR.z };
+        const tipProjL = projectWorldPoint(tipLWorld.x, tipLWorld.y, tipLWorld.z, originX, originY, scale);
+        const tipProjR = projectWorldPoint(tipRWorld.x, tipRWorld.y, tipRWorld.z, originX, originY, scale);
+
+        drawVolcanicBlade(jProj.wristL, tipProjL, 1, false);
+        drawVolcanicBlade(jProj.wristR, tipProjR, -1, false);
+      } else {
+        const sd = pose.sheathedDaggers;
+        const gR = projectWorldPoint(sd.right.grip.x, sd.right.grip.y, sd.right.grip.z, originX, originY, scale);
+        const tR = projectWorldPoint(sd.right.tip.x,  sd.right.tip.y,  sd.right.tip.z,  originX, originY, scale);
+        const gL = projectWorldPoint(sd.left.grip.x,  sd.left.grip.y,  sd.left.grip.z,  originX, originY, scale);
+        const tL = projectWorldPoint(sd.left.tip.x,   sd.left.tip.y,   sd.left.tip.z,   originX, originY, scale);
+
+        drawVolcanicBlade(gR, tR, -1, true);
+        drawVolcanicBlade(gL, tL,  1, true);
+      }
+
+      // 4. Cabeça Canônica Chibi (Render Direcional dos Assets Oficiais)
+      const hp = jProj.headCenter;
+      addItem(60, hp.depth, (g) => {
+        // Se o asset de idle da direção estiver carregado, desenha o recorte da cabeça
+        if (refEntry && refEntry.loaded && refEntry.img) {
+          const targetW = HEAD_DIAMETER * scale * 2.15;
+          const targetH = targetW * (485 / 1134);
+          g.drawImage(refEntry.img, 60, 15, 1134, 485, hp.sx - targetW * 0.5, hp.sy - targetH * 0.72, targetW, targetH);
+          return;
+        }
+
+        if (refAssets.head && refAssets.head.loaded && refAssets.head.img) {
+          const targetW = HEAD_DIAMETER * scale * 2.10;
+          const targetH = targetW;
+          g.drawImage(refAssets.head.img, hp.sx - targetW * 0.5, hp.sy - targetH * 0.62, targetW, targetH);
+          return;
+        }
+
+        // Fallback procedural de emergência se a imagem ainda não carregou
+        const headR = HEAD_RADIUS * scale;
+        g.fillStyle = COL.hair;
+        g.beginPath();
+        g.arc(hp.sx, hp.sy - 4, headR * 1.15, 0, Math.PI * 2);
+        g.fill();
+
+        g.beginPath();
+        g.arc(hp.sx, hp.sy + 2, headR * 0.88, 0, Math.PI * 2);
+        g.fillStyle = COL.skin;
+        g.fill();
+      });
+
+      // Ordenação Depth & Renderização
+      items.sort((a, b) => {
+        if (Math.abs(a.depth - b.depth) < 0.001) return a.layer - b.layer;
+        return a.depth - b.depth;
+      });
+
+      for (const item of items) {
+        item.draw(ctx);
+      }
+
+      // Hitboxes e Debug Overlay
+      if (showDebug) {
+        ctx.save();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = "#ffd166";
+        for (const [k, p] of Object.entries(jProj)) {
+          ctx.beginPath();
+          ctx.arc(p.sx, p.sy, 3.5, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.fillStyle = "#ffd166";
+          ctx.font = "9px Consolas";
+          ctx.fillText(k, p.sx + 5, p.sy - 3);
+        }
+        ctx.restore();
+      }
+    }
+
+    // =========================================================================
+    // 7. GALERIA DE VALIDAÇÃO (TECLA G: SPRITE OFICIAL VS RIG MODULAR)
+    // =========================================================================
+    function drawGalleryValidation(ctx, rig) {
+      ctx.fillStyle = "#0d1017";
+      ctx.fillRect(0, 0, 1280, 720);
+
+      // Divisória Central
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(640, 0);
+      ctx.lineTo(640, 720);
+      ctx.stroke();
+
+      // Linha de Chão / Pivô
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.3)";
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(0, 520);
+      ctx.lineTo(1280, 520);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      const yawDeg = rig.getYawDegrees();
+      const nearest45 = (Math.round(yawDeg / 45) * 45) % 360;
+      const refEntry = refAssets.idles[nearest45];
+
+      // Lado Esquerdo: Sprite Oficial de Referência
+      ctx.font = "bold 13px Consolas";
+      ctx.fillStyle = "#fbbf24";
+      ctx.fillText(`REFERÊNCIA OFICIAL (${nearest45}° ${getCardinalDirection(nearest45)})`, 60, 40);
+      ctx.font = "11px Consolas";
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillText(refEntry ? refEntry.src : "N/A", 60, 60);
+
+      if (refEntry && refEntry.loaded && refEntry.img) {
+        const metaE = SPRITE_META[nearest45];
+        const targetCharHeight = 1.70 * SCALE * 0.98;
+        const s = targetCharHeight / metaE.boxH;
+        const dw = refEntry.img.width * s;
+        const dh = refEntry.img.height * s;
+        ctx.drawImage(refEntry.img, 320 - metaE.centerX * s, 520 - metaE.footY * s, dw, dh);
+      } else {
+        ctx.fillStyle = "#ef4444";
+        ctx.fillText("Carregando asset PNG local...", 220, 360);
+      }
+
+      // Lado Direito: Rig com Proporção Canônica
+      ctx.font = "bold 13px Consolas";
+      ctx.fillStyle = "#4ade80";
+      ctx.fillText(`RIG MODULAR (YAW: ${yawDeg}° — AUTO DEPTH & IK)`, 700, 40);
+      ctx.font = "11px Consolas";
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillText("Projeção 3/4 PITCH=30° | SCALE=90 | 100% Canvas 2D Procedural", 700, 60);
+
+      const pose = rig.computePose(960, 520, SCALE, false);
+      renderHero(ctx, rig, pose, 960, 520, SCALE, false, true);
+    }
+
+    // =========================================================================
+    // 8. FOLHA TÉCNICA DE CONTATO 1920x1120 (8 DIRECÕES X 7 ESTADOS)
+    // =========================================================================
+    function drawContactSheet(ctx, rig) {
+      ctx.fillStyle = "#0d1017";
+      ctx.fillRect(0, 0, 1920, 1120);
+
+      const dirs = [
+        { deg: 0,   label: "S (0°)" },
+        { deg: 45,  label: "SE (45°)" },
+        { deg: 90,  label: "E (90°)" },
+        { deg: 135, label: "NE (135°)" },
+        { deg: 180, label: "N (180°)" },
+        { deg: 225, label: "NW (225°)" },
+        { deg: 270, label: "W (270°)" },
+        { deg: 315, label: "SW (315°)" }
+      ];
+
+      const states = [
+        { state: "idle",       t: 0.5,  weapons: false, label: "IDLE (SPRITE OFICIAL 8-DIR)" },
+        { state: "idle",       t: 0.5,  weapons: true,  label: "IDLE COMBATE (RIG)" },
+        { state: "run",        t: 0.20, weapons: false, label: "RUN (PASSADA PESADA)" },
+        { state: "dash",       t: 0.12, weapons: false, label: "HOP DASH" },
+        { state: "attack1",    t: 0.14, weapons: true,  label: "COMBO A1 (CORTE)" },
+        { state: "attack2",    t: 0.14, weapons: true,  label: "COMBO A2 (REVERSO)" },
+        { state: "attack3",    t: 0.22, weapons: true,  label: "COMBO A3 (360 CRIT)" }
+      ];
+
+      const cellW = 1920 / 8;
+      const cellH = 1120 / 7;
+
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= 1920; x += cellW) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 1120); ctx.stroke();
+      }
+      for (let y = 0; y <= 1120; y += cellH) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1920, y); ctx.stroke();
+      }
+
+      const tempRig = new CharacterRig();
+
+      for (let r = 0; r < states.length; r++) {
+        const sInfo = states[r];
+        for (let c = 0; c < dirs.length; c++) {
+          const dInfo = dirs[c];
+          const ox = c * cellW + cellW * 0.5;
+          const oy = r * cellH + cellH * 0.82;
+
+          tempRig.reset();
+          tempRig.setYawDegrees(dInfo.deg);
+          tempRig.setState(sInfo.state, 0);
+          tempRig.weaponsDrawn = sInfo.weapons;
+          tempRig.clipTime = sInfo.t;
+
+          if (r === 0) {
+            // Linha 0: Sprite Oficial em todas as 8 direções
+            const refE = refAssets.idles[dInfo.deg];
+            const metaE = SPRITE_META[dInfo.deg];
+            if (refE && refE.loaded && refE.img) {
+              const targetCharHeight = 1.70 * 68 * 0.98;
+              const s = targetCharHeight / metaE.boxH;
+              const dw = refE.img.width * s;
+              const dh = refE.img.height * s;
+              ctx.drawImage(refE.img, ox - metaE.centerX * s, oy - metaE.footY * s, dw, dh);
+            }
+          } else {
+            const pose = tempRig.computePose(ox, oy, 68, false);
+            renderHero(ctx, tempRig, pose, ox, oy, 68, false, true);
+          }
+
+          if (r === 0) {
+            ctx.fillStyle = "#38bdf8";
+            ctx.font = "bold 11px Consolas";
+            ctx.fillText(dInfo.label, c * cellW + 10, 18);
+          }
+        }
+        ctx.fillStyle = "#fbbf24";
+        ctx.font = "10px Consolas";
+        ctx.fillText(sInfo.label, 8, r * cellH + 16);
+      }
+    }
+
+    // =========================================================================
+    // 9. LOOP PRINCIPAL, TECLADO E CÂMERA DINÂMICA
+    // =========================================================================
+    const canvas = document.getElementById("stage");
+    const ctx = canvas.getContext("2d", { alpha: false });
+
+    let currentMode = "arena"; // "arena", "gallery", "contact"
+    let debugMode = false;
+    let cameraFollow = true;
+
+    const hudState = document.getElementById("hud-state");
+    const hudWeapons = document.getElementById("hud-weapons");
+    const hudYaw = document.getElementById("hud-yaw");
+    const hudCard = document.getElementById("hud-cardinal");
+    const hudVel = document.getElementById("hud-vel");
+    const hudAlt = document.getElementById("hud-alt");
+    const hudFps = document.getElementById("hud-fps");
+    const hudSlipM = document.getElementById("hud-slip-max");
+    const hudCam = document.getElementById("hud-cam");
+    const galleryPanel = document.getElementById("gallery-panel");
+
+    const rig = new CharacterRig();
+
+    const keys = {};
+    let attackQueued = false;
+    let dashQueued = false;
+    let rollQueued = false;
+    let jumpQueued = false;
+
+    const lastKeyTime = {};
+    window.addEventListener("keydown", (e) => {
+      const now = performance.now();
+      const code = e.code;
+
+      if (!keys[code]) {
+        if (code === "KeyW" || code === "KeyA" || code === "KeyS" || code === "KeyD") {
+          if (lastKeyTime[code] && (now - lastKeyTime[code] < 260)) {
+            dashQueued = true;
+          }
+          lastKeyTime[code] = now;
+        }
+      }
+      keys[code] = true;
+
+      if (e.code === "Space") {
+        jumpQueued = true;
+        e.preventDefault();
+      } else if (e.code === "KeyC") {
+        setAppMode(currentMode === "arena" ? "contact" : "arena");
+      } else if (e.code === "KeyG") {
+        setAppMode(currentMode === "gallery" ? "arena" : "gallery");
+      } else if (e.code === "KeyV") {
+        cameraFollow = !cameraFollow;
+        hudCam.textContent = cameraFollow ? "SEGUIR" : "FIXA";
+      } else if (e.code === "F1") {
+        debugMode = !debugMode;
+      } else if (e.code === "KeyR") {
+        rig.reset();
+      } else if (e.code === "KeyT") {
+        runInteractiveFootLockTest();
+      } else if (e.code === "KeyQ" || e.code === "KeyX") {
+        rig.toggleWeapons();
+      } else if (e.code === "KeyF") {
+        rollQueued = true;
+      } else if (e.code === "BracketLeft") {
+        rig.setYawDegrees(rig.getYawDegrees() - 45);
+      } else if (e.code === "BracketRight") {
+        rig.setYawDegrees(rig.getYawDegrees() + 45);
+      } else if (e.code === "KeyJ") {
+        attackQueued = true;
+      } else if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
+        dashQueued = true;
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      keys[e.code] = false;
+    });
+
+    canvas.addEventListener("mousedown", (e) => {
+      if (e.button === 0) {
+        attackQueued = true;
+      }
+    });
+
+    function setAppMode(mode) {
+      currentMode = mode;
+      if (mode === "contact") {
+        canvas.width = 1920;
+        canvas.height = 1120;
+        document.getElementById("ui-hud").style.display = "none";
+        document.getElementById("combo-display").style.display = "none";
+        galleryPanel.style.display = "none";
+      } else if (mode === "gallery") {
+        canvas.width = 1280;
+        canvas.height = 720;
+        document.getElementById("ui-hud").style.display = "none";
+        document.getElementById("combo-display").style.display = "none";
+        galleryPanel.style.display = "block";
+      } else {
+        canvas.width = 1280;
+        canvas.height = 720;
+        document.getElementById("ui-hud").style.display = "block";
+        galleryPanel.style.display = "none";
+      }
+    }
+
+    function getCardinalDirection(deg) {
+      const normalized = ((deg % 360) + 360) % 360;
+      if (normalized >= 337.5 || normalized < 22.5) return "S";
+      if (normalized < 67.5) return "SE";
+      if (normalized < 112.5) return "E";
+      if (normalized < 157.5) return "NE";
+      if (normalized < 202.5) return "N";
+      if (normalized < 247.5) return "NW";
+      if (normalized < 292.5) return "W";
+      return "SW";
+    }
+
+    function processInput() {
+      let dx = 0;
+      let dy = 0;
+
+      if (keys["KeyW"] || keys["ArrowUp"])    dy -= 1;
+      if (keys["KeyS"] || keys["ArrowDown"])  dy += 1;
+      if (keys["KeyA"] || keys["ArrowLeft"])  dx -= 1;
+      if (keys["KeyD"] || keys["ArrowRight"]) dx += 1;
+
+      const active = (dx !== 0 || dy !== 0);
+      let angle = rig.yaw;
+      if (active) {
+        angle = Math.atan2(dx, dy);
+      }
+
+      return { active, angle };
+    }
+
+    const FIXED_STEP = 1 / 120;
+    let accumulator = 0;
+    let lastTime = performance.now();
+    let frameCount = 0;
+    let fps = 60;
+    let lastFpsUpdate = performance.now();
+
+    let camTargetX = 640;
+    let camTargetY = 470;
+
+    function renderImmediate() {
+      if (currentMode === "arena") {
+        // 1. Limpa com fundo escuro técnico (#0d1017)
+        ctx.fillStyle = COL.bg;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // 2. Grade Isométrica com Eixos Centrais
+        drawArenaGrid(ctx, arenaOriginX, arenaOriginY, SCALE);
+
+        // 3. Dummies de Treino
+        for (const dummy of targetDummies) {
+          dummy.draw(ctx, arenaOriginX, arenaOriginY, SCALE);
+        }
+
+        // 4. Herói Canônico (Sprite Oficial no Idle / Rig Modular no Movimento)
+        const pose = rig.computePose(arenaOriginX, arenaOriginY, SCALE, true);
+        renderHero(ctx, rig, pose, arenaOriginX, arenaOriginY, SCALE, debugMode, false);
+
+        // 5. Partículas
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          const proj = projectWorldPoint(p.x, p.y, p.z, arenaOriginX, arenaOriginY, SCALE);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(proj.sx, proj.sy, p.size * (p.life / p.maxLife), 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // 6. Números Flutuantes de Dano
+        for (let i = floatingTexts.length - 1; i >= 0; i--) {
+          const ft = floatingTexts[i];
+          const proj = projectWorldPoint(ft.x, ft.y, ft.z, arenaOriginX, arenaOriginY, SCALE);
+          ctx.font = ft.isCrit ? "bold 16px Impact, sans-serif" : "bold 13px Consolas, monospace";
+          ctx.fillStyle = ft.isCrit ? "#ef4444" : "#fef08a";
+          ctx.fillText(ft.text, proj.sx - 10, proj.sy);
+        }
+      } else if (currentMode === "gallery") {
+        drawGalleryValidation(ctx, rig);
+      } else {
+        drawContactSheet(ctx, rig);
+      }
+    }
+
+    function frame(now) {
+      const dtReal = (now - lastTime) / 1000;
+      lastTime = now;
+
+      frameCount++;
+      if (now - lastFpsUpdate >= 500) {
+        fps = Math.round((frameCount * 1000) / (now - lastFpsUpdate));
+        frameCount = 0;
+        lastFpsUpdate = now;
+      }
+
+      if (currentMode === "arena") {
+        accumulator += Math.min(dtReal, 0.1);
+
+        const input = processInput();
+        while (accumulator >= FIXED_STEP) {
+          rig.update(FIXED_STEP, input, attackQueued, dashQueued, rollQueued, jumpQueued);
+          attackQueued = false;
+          dashQueued = false;
+          rollQueued = false;
+          jumpQueued = false;
+
+          for (const dummy of targetDummies) {
+            dummy.update(FIXED_STEP);
+          }
+
+          for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.x += p.vx * FIXED_STEP;
+            p.y += p.vy * FIXED_STEP;
+            p.z += p.vz * FIXED_STEP;
+            p.life -= FIXED_STEP;
+            if (p.life <= 0) particles.splice(i, 1);
+          }
+
+          for (let i = floatingTexts.length - 1; i >= 0; i--) {
+            const ft = floatingTexts[i];
+            ft.z += 0.8 * FIXED_STEP;
+            ft.life -= FIXED_STEP;
+            if (ft.life <= 0) floatingTexts.splice(i, 1);
+          }
+
+          accumulator -= FIXED_STEP;
+        }
+
+        if (cameraFollow) {
+          camTargetX = 640 - rig.root.x * SCALE;
+          camTargetY = 470 - rig.root.y * SIN * SCALE;
+          arenaOriginX += (camTargetX - arenaOriginX) * 0.08;
+          arenaOriginY += (camTargetY - arenaOriginY) * 0.08;
+        } else {
+          arenaOriginX += (640 - arenaOriginX) * 0.1;
+          arenaOriginY += (470 - arenaOriginY) * 0.1;
+        }
+
+        renderImmediate();
+
+        hudState.textContent = rig.state === "idle" ? "IDLE (SPRITE OFICIAL)" : rig.state.toUpperCase() + " (RIG MODULAR)";
+        hudWeapons.textContent = rig.weaponsDrawn ? "EMPUNHADAS" : "COSTAS (X)";
+        hudWeapons.style.background = rig.weaponsDrawn ? "#dc2626" : "#7c3aed";
+        const deg = rig.getYawDegrees();
+        hudYaw.textContent = deg + "°";
+        hudCard.textContent = getCardinalDirection(deg);
+        hudVel.textContent = (rig.state === "run" ? STATE_CONFIGS.run.speed : (rig.state === "roll" ? 5.8 : (rig.state === "dash" ? 6.5 : 0))).toFixed(2);
+        hudAlt.textContent = rig.root.z.toFixed(2);
+        hudFps.textContent = fps + " FPS";
+        hudSlipM.textContent = rig.maxSlipPx.toFixed(4) + " px";
+      } else {
+        renderImmediate();
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    requestAnimationFrame((now) => {
+      lastTime = now;
+      requestAnimationFrame(frame);
+    });
+
+    function runInteractiveFootLockTest() {
+      const res = window.RIG01.runFootLockTest(2, 0);
+      alert(`Teste de Footlock (2s):\nMáximo: ${res.footSlipMaxPx.toFixed(4)} px\nMédio: ${res.footSlipMeanPx.toFixed(4)} px\nAmostras: ${res.footLockSamples}\nStatus: ${res.footLockPass ? "PASSOU (< 2 px)" : "FALHOU"}`);
+    }
+
+    // =========================================================================
+    // 10. API DETERMINÍSTICA window.RIG01
+    // =========================================================================
+    window.RIG01 = {
+      version: "3.2-hero",
+      ready: Promise.resolve(),
+
+      setMode(mode) {
+        if (mode === "contact" || mode === "arena" || mode === "gallery") {
+          setAppMode(mode);
+          renderImmediate();
+        }
+      },
+
+      getMode() {
+        return currentMode;
+      },
+
+      setDebug(bool) {
+        debugMode = !!bool;
+        renderImmediate();
+      },
+
+      setState(state) {
+        rig.setState(state);
+        renderImmediate();
+      },
+
+      getState() {
+        return rig.state;
+      },
+
+      setWeaponsDrawn(bool) {
+        rig.weaponsDrawn = !!bool;
+        renderImmediate();
+      },
+
+      isWeaponsDrawn() {
+        return rig.weaponsDrawn;
+      },
+
+      setTime(seconds) {
+        rig.clipTime = seconds;
+        renderImmediate();
+      },
+
+      getTime() {
+        return rig.clipTime;
+      },
+
+      setYaw(degrees) {
+        rig.setYawDegrees(degrees);
+        renderImmediate();
+      },
+
+      getYaw() {
+        return rig.getYawDegrees();
+      },
+
+      setPaused(bool) {
+        rig.paused = !!bool;
+      },
+
+      isPaused() {
+        return rig.paused;
+      },
+
+      step(dt = FIXED_STEP) {
+        rig.update(dt, { active: false, angle: rig.yaw }, false, false, false, false);
+        renderImmediate();
+      },
+
+      reset() {
+        rig.reset();
+        arenaOriginX = 640;
+        arenaOriginY = 470;
+        renderImmediate();
+      },
+
+      runFootLockTest(seconds = 2, yaw = 0) {
+        const testRig = new CharacterRig();
+        testRig.setState("run");
+        testRig.setYawDegrees(yaw);
+
+        const totalSteps = Math.round(seconds / FIXED_STEP);
+
+        for (let i = 0; i < totalSteps; i++) {
+          testRig.update(FIXED_STEP, { active: true, angle: testRig.yaw }, false, false, false, false);
+          testRig.computePose(640, 470, SCALE, true);
+        }
+
+        const maxSlip = testRig.maxSlipPx;
+        const meanSlip = testRig.meanSlipPx;
+
+        return {
+          state: "run",
+          yaw,
+          clipTime: testRig.clipTime,
+          fps,
+          frameCount: totalSteps,
+          footSlipMaxPx: maxSlip,
+          footSlipMeanPx: meanSlip,
+          footLockSamples: testRig.slipSamples.length,
+          footLockPass: maxSlip < 2.0,
+          root: { x: testRig.root.x, y: testRig.root.y },
+          errors: []
+        };
+      },
+
+      getMetrics() {
+        return {
+          state: rig.state,
+          yaw: rig.getYawDegrees(),
+          weaponsDrawn: rig.weaponsDrawn,
+          clipTime: rig.clipTime,
+          fps,
+          frameCount,
+          footSlipMaxPx: rig.maxSlipPx,
+          footSlipMeanPx: rig.meanSlipPx,
+          footLockSamples: rig.slipSamples.length,
+          footLockPass: rig.maxSlipPx < 2.0,
+          root: { x: rig.root.x, y: rig.root.y },
+          errors: []
+        };
+      },
+
+      capturePNG() {
+        renderImmediate();
+        return canvas.toDataURL("image/png");
+      },
+
+      getDebugInfo() {
+        const pose = rig.computePose(arenaOriginX, arenaOriginY, SCALE, false);
+        return {
+          version: "3.2-hero",
+          state: rig.state,
+          weaponsDrawn: rig.weaponsDrawn,
+          clipTime: rig.clipTime,
+          yawDeg: rig.getYawDegrees(),
+          root: rig.root,
+          joints: pose.joints,
+          targets: pose.targets,
+          leftStance: pose.leftStance,
+          rightStance: pose.rightStance,
+          maxSlipPx: rig.maxSlipPx,
+          meanSlipPx: rig.meanSlipPx
+        };
+      }
+    };
+
+    document.body.dataset.ready = "1";
+  })();
+  </script>
+</body>
+</html>

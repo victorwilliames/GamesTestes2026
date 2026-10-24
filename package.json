@@ -1,17 +1,16 @@
 {
   "name": "games-testes-2026-workspace",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "Central de scripts para gerenciar os subprojetos de jogos",
+  "description": "Central Unificada de Jogos e Protótipos - Trajetória GameDev 2026 (Victor Williames)",
   "scripts": {
-    "install:all": "npm.cmd run install:gladiator-v1 && npm.cmd run install:gladiator-v2 && npm.cmd run install:x1moba-v1 && npm.cmd run install:x1moba-v2",
-    "install:gladiator-v1": "npm.cmd run install:all --prefix mini-game-gladiator-v1-tst",
-    "install:gladiator-v2": "npm.cmd install --prefix mini-game-gladiator-v2-tst",
-    "install:x1moba-v1": "npm.cmd install --prefix mini-game-x1moba-v1-tst/jogo",
-    "install:x1moba-v2": "npm.cmd install --prefix mini-game-x1moba-v2-tst-backup/jogo",
-    "dev:gladiator-v1": "npm.cmd run dev --prefix mini-game-gladiator-v1-tst",
-    "dev:gladiator-v2": "npm.cmd run dev --prefix mini-game-gladiator-v2-tst",
-    "dev:x1moba-v1": "npm.cmd run dev --prefix mini-game-x1moba-v1-tst/jogo",
-    "dev:x1moba-v2": "npm.cmd run dev --prefix mini-game-x1moba-v2-tst-backup/jogo"
+    "dev:gladiador-v1": "npm.cmd run dev --prefix game-3D-test-gladiador-v1-threejs-17-07-2026",
+    "dev:gladiador-v2": "npm.cmd run dev --prefix game-3D-test-gladiador-v2-stickman-17-07-2026",
+    "dev:moba-v1": "npm.cmd run dev --prefix game-3D-test-threejs-moba-v1-caitlyn-20-07-2026/jogo",
+    "dev:moba-v2": "npm.cmd run dev --prefix game-3D-test-threejs-moba-v2-grid-15-10-2026/jogo",
+    "dev:canvas-carequinha": "node game-2D-test-antigravity-carequinha-20-10-2026/tools/serve.cjs 5317",
+    "dev:canvas-ruivo": "node game-2D-test-antigravity-ruivo-20-10-2026/tools/serve.cjs 5318",
+    "dev:canvas-deepseek": "node game-2D-test-deepseek-carequinha-20-10-2026/tools/serve.cjs 5319",
+    "dev:canvas-carequinha-v1": "node game-2D-test-carequinha-v1-20-10-2026/tools/serve.cjs 5320"
   }
 }

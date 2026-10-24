@@ -1,0 +1,133 @@
+{
+  "comparisons": 2240,
+  "violations": [],
+  "reaches": [],
+  "foot0": {
+    "yaw": 0,
+    "durationSeconds": 2,
+    "fixedDt": 0.008333333333333333,
+    "steps": 240,
+    "maxPx": 0,
+    "meanPx": 0,
+    "samples": 217,
+    "worldDistance": 6.399999999999985,
+    "pass": true
+  },
+  "foot90": {
+    "yaw": 90,
+    "durationSeconds": 2,
+    "fixedDt": 0.008333333333333333,
+    "steps": 240,
+    "maxPx": 0,
+    "meanPx": 0,
+    "samples": 217,
+    "worldDistance": 6.399999999999985,
+    "pass": true
+  },
+  "dash": {
+    "distance": 2.392177777777778,
+    "state": "idle"
+  },
+  "roll": {
+    "distance": 3,
+    "armed": true,
+    "guard": 3.4833333333333334,
+    "state": "idle"
+  },
+  "chain2": "attack2",
+  "chain3": "attack3",
+  "armedAfterAttack": {
+    "state": "idle",
+    "yaw": 0,
+    "clipTime": 0.008333333333333333,
+    "fps": 0,
+    "frameMs": 0.10000000009313226,
+    "frameCount": 42,
+    "weaponsDrawn": true,
+    "combatTimer": 3.4916666666666667,
+    "drawBlend": 1,
+    "rollCd": 0,
+    "dashCd": 0,
+    "particles": 0,
+    "footSlipMaxPx": 0,
+    "footSlipMeanPx": 0,
+    "footLockSamples": 0,
+    "footLockPass": false,
+    "root": {
+      "x": 0,
+      "y": 0.18749999999999997
+    },
+    "errors": []
+  },
+  "beforeSheath": {
+    "state": "idle",
+    "yaw": 0,
+    "clipTime": 1.4083333333333263,
+    "fps": 0,
+    "frameMs": 0.10000000009313226,
+    "frameCount": 450,
+    "weaponsDrawn": true,
+    "combatTimer": 0.09166666666667658,
+    "drawBlend": 1,
+    "rollCd": 0,
+    "dashCd": 0,
+    "particles": 0,
+    "footSlipMaxPx": 0,
+    "footSlipMeanPx": 0,
+    "footLockSamples": 0,
+    "footLockPass": false,
+    "root": {
+      "x": 0,
+      "y": 0.18749999999999997
+    },
+    "errors": []
+  },
+  "afterSheath": {
+    "state": "idle",
+    "yaw": 0,
+    "clipTime": 1.5249999999999926,
+    "fps": 0,
+    "frameMs": 0.10000000009313226,
+    "frameCount": 464,
+    "weaponsDrawn": false,
+    "combatTimer": 0,
+    "drawBlend": 0.825,
+    "rollCd": 0,
+    "dashCd": 0,
+    "particles": 0,
+    "footSlipMaxPx": 0,
+    "footSlipMeanPx": 0,
+    "footLockSamples": 0,
+    "footLockPass": false,
+    "root": {
+      "x": 0,
+      "y": 0.18749999999999997
+    },
+    "errors": []
+  },
+  "bladesOnBack": 4,
+  "bladesInHands": 4,
+  "contact": [
+    1920,
+    1120
+  ],
+  "motion": [
+    1920,
+    1120
+  ],
+  "version": "1.1",
+  "arm_silhouette": {
+    "samples": 400,
+    "violations": 0,
+    "examples": []
+  },
+  "F_is_roll": "roll",
+  "X_equips": true,
+  "Q_sheathes": true,
+  "doubleTap_W_is_dash": "dash",
+  "Shift_is_dash": "dash",
+  "observed_fps": 188,
+  "errors": [],
+  "consoleerrors": [],
+  "source_sha256": "94b419b65cfb45bcfdb4386b604eb1c384481e35e5293fa9b854d2e959bd3751"
+}

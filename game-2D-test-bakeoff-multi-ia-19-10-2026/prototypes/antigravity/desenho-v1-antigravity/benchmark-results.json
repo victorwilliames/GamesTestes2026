@@ -1,0 +1,10 @@
+{
+  "resolution": "1280x720",
+  "frames": 240,
+  "avgDrawMs": 1.163,
+  "p95DrawMs": 1.7,
+  "p99DrawMs": 13.8,
+  "avgFps": 860,
+  "p95Fps": 588,
+  "p99Fps": 72
+}

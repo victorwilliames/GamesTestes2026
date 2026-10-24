@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cavaleiro — turnaround procedural</title>
+<style>
+  html, body { margin: 0; background: #d8d0c4; font: 14px system-ui, sans-serif; color: #16111c; }
+  canvas { display: block; }
+  p { margin: 8px 16px; }
+</style>
+</head>
+<body>
+<p>Turnaround do cavaleiro desenhado 100% por código (mesmo esqueleto + IK do jogo). Linha 1: 8 direções em guarda. Linha 2: poses-chave do combo. <b>?zoom=2</b> para ampliar.</p>
+<canvas id="c"></canvas>
+<script src="js/core.js"></script>
+<script src="js/ink.js"></script>
+<script src="js/rig.js"></script>
+<script src="js/head.js"></script>
+<script src="js/knight.js"></script>
+<script>
+  const q = new URLSearchParams(location.search);
+  const zoom = parseFloat(q.get('zoom') || '1.6');
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const cv = document.getElementById('c');
+  const cols = 8, cellW = 150, cellH = 230, rows = 2;
+  cv.style.width = cols * cellW * zoom + 'px';
+  cv.style.height = rows * cellH * zoom + 'px';
+  cv.width = cols * cellW * zoom * dpr; cv.height = rows * cellH * zoom * dpr;
+  const ctx = cv.getContext('2d');
+  Cam.px = zoom * dpr;
+
+  function drawAt(col, row, pose, facing, label, cape) {
+    const root = [0, 0, 0];
+    const rig = solveRig(pose, root, facing);
+    // centro da célula em coordenadas projetadas
+    const cx = (col + 0.5) * cellW, cy = row * cellH + cellH - 30;
+    Cam.offX = cx * Cam.px; Cam.offY = cy * Cam.px;
+    setWorldTransform(ctx);
+    // sombra
+    ctx.beginPath(); ctx.ellipse(0, 0, 30, 30 * Cam.sinP, 0, 0, TAU); ctx.fillStyle = 'rgba(40,30,40,0.25)'; ctx.fill();
+    if (cape) { cape.p = null; for (let i = 0; i < 90; i++) cape.update(rig, 1 / 60, [0, 0, 0], i / 60); }
+    drawKnight(ctx, rig, cape, {});
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.font = `${12 * dpr * zoom * 0.7}px system-ui`; ctx.fillStyle = '#16111c'; ctx.textAlign = 'center';
+    ctx.fillText(label, cx * Cam.px, (row * cellH + 16) * Cam.px);
+  }
+  const cape = new Cape();
+  const names = ['frente-cam', '', 'direita', '', 'costas', '', 'esquerda', ''];
+  for (let i = 0; i < 8; i++) {
+    const facing = Math.PI / 4 + (i * TAU) / 8; // 0 = virado para a câmera
+    drawAt(i, 0, IDLE_A, facing, `${Math.round((i * 360) / 8)}° ${names[i]}`, cape);
+  }
+  const atkPoses = [
+    [ATTACKS[0].keys[0].pose, 'corte: antecip.'], [ATTACKS[0].keys[1].pose, 'corte: golpe'],
+    [ATTACKS[1].keys[0].pose, 'revés: antecip.'], [ATTACKS[1].keys[1].pose, 'revés: golpe'],
+    [ATTACKS[2].keys[0].pose, 'salto: antecip.'], [ATTACKS[2].keys[1].pose, 'salto: topo'],
+    [ATTACKS[2].keys[2].pose, 'salto: impacto'], [runPose(0.0), 'corrida'],
+  ];
+  atkPoses.forEach(([p, label], i) => drawAt(i, 1, p, Math.PI / 4 - 0.6, label, cape));
+</script>
+</body>
+</html>

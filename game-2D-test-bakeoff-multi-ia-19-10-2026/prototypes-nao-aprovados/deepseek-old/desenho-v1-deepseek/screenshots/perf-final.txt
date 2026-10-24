@@ -1,0 +1,50 @@
+﻿=== build final: 2026-10-19T19:20:09.9154928-03:00 ===
+=== benchloop (custo de quadro completo) ===
+{"n":100,"res":"1280x720","enemies":4,"msPerFrame":5.425,"fps":184.3}
+{"n":100,"res":"1280x720","enemies":8,"msPerFrame":6.104,"fps":163.8}
+=== bench 8s, 4 inimigos ===
+{
+  "url": "file:///D:/.GITHUB/games/game-2d/prototypes/deepseek/desenho-v1-deepseek/index.html?bench=8&spawn=4",
+  "res": "1280x720",
+  "seconds": 8.05,
+  "frames": 1119,
+  "framesMeasured": 1088,
+  "stallsOver100ms": 31,
+  "stallMsTotal": 3735,
+  "fpsAvg": 252,
+  "fpsP50": 714.3,
+  "fpsP95": 101,
+  "fpsP99": 11.2,
+  "frameP50ms": 1.4,
+  "frameP95ms": 9.9,
+  "frameP99ms": 89.1,
+  "frameMaxMs": 160.5,
+  "drawMs": 13.11,
+  "updMs": 0.05,
+  "kills": 1,
+  "hits": 2,
+  "enemies": 4
+}
+=== bench 8s, 8 inimigos ===
+{
+  "url": "file:///D:/.GITHUB/games/game-2d/prototypes/deepseek/desenho-v1-deepseek/index.html?bench=8&spawn=8",
+  "res": "1280x720",
+  "seconds": 8.06,
+  "frames": 1003,
+  "framesMeasured": 991,
+  "stallsOver100ms": 12,
+  "stallMsTotal": 1350,
+  "fpsAvg": 147.7,
+  "fpsP50": 555.6,
+  "fpsP95": 18.1,
+  "fpsP99": 11.1,
+  "frameP50ms": 1.8,
+  "frameP95ms": 55.2,
+  "frameP99ms": 90.4,
+  "frameMaxMs": 161.6,
+  "drawMs": 3.54,
+  "updMs": 0.07,
+  "kills": 3,
+  "hits": 7,
+  "enemies": 8
+}

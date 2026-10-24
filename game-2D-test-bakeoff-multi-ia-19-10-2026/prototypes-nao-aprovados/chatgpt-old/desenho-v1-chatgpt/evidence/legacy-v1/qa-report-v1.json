@@ -1,0 +1,57 @@
+{
+  "browser": "Chromium Headless",
+  "test_method": "set_content + injection of concatenated ESM for offline sandbox; not HTTP module loading",
+  "console_errors": [],
+  "deterministic": true,
+  "screenshots": {
+    "hero-full": {
+      "path": "hero-full.png",
+      "sha256": "66b200879e363f2d397544b27b032b7d3eaf9300d04533610b272376e204c6b6"
+    },
+    "hero-gameplay": {
+      "path": "hero-gameplay.png",
+      "sha256": "5397e1c1d9e9e7df2772ed427ad6b88f14ddd1c4012e17240b829d878afd4a48"
+    },
+    "hero-head": {
+      "path": "hero-head.png",
+      "sha256": "fed610c63dd4e7896b3e12440a0d3d40aa5fd9ff314cd2e41ebf735e3017e8ce"
+    },
+    "hero-body": {
+      "path": "hero-body.png",
+      "sha256": "b235a7ab72f61cb60cb98e738030d91c57c45891f3b97f55819c645775f2c20a"
+    },
+    "hero-weapons": {
+      "path": "hero-weapons.png",
+      "sha256": "fff71d389cdb46b4b3282d8a05bba552d3aa306f08789157b9a8b3ee3712d13d"
+    },
+    "hero-pivots": {
+      "path": "hero-pivots.png",
+      "sha256": "e97b093dfb15fdc0e90553e2794b36d95953da25277168609676afdd2cf0b57b"
+    },
+    "hero-tpose": {
+      "path": "hero-tpose.png",
+      "sha256": "9aaa565c5193fa418518a7789f5c69e5e4e554eaac3cfb05a52285a99fd86222"
+    }
+  },
+  "renderer_metrics": {
+    "canvasWidth": 900,
+    "canvasHeight": 1050,
+    "hasReferenceImageInCanvas": false,
+    "pose": "tpose",
+    "mode": "joints",
+    "cache": {
+      "layerCount": 6,
+      "keys": [
+        "cape",
+        "legs",
+        "torso",
+        "cloth",
+        "scarf",
+        "head"
+      ]
+    },
+    "renders": 30,
+    "lastMS": 15.8,
+    "errors": []
+  }
+}

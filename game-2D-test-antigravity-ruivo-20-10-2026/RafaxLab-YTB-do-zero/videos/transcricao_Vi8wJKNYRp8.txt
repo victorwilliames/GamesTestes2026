@@ -1,0 +1,674 @@
+[0:00] Fala pessoal, tudo bem? Aqui é o Rafael.
+[0:03] Eu criei esse canal aqui para falar dos
+[0:04] projetos que eu faço por hobby. E nessa
+[0:08] série a gente vai falar do MMO RPG que
+[0:10] eu tô criando. Bom, eh, ficaram algumas
+[0:15] dúvidas, né, de como foi feito e esse
+[0:18] jogo, né, porque eu falei muito que eu
+[0:21] não usei, né, acho que foi um pouquinho
+[0:23] confuso na nos outros vídeos, né, queria
+[0:26] agradecer até as críticas construtivas
+[0:28] aí do pessoal que não entendeu e tudo
+[0:30] mais, mas enfim, para deixar claro aqui,
+[0:33] né, para para tirar qualquer dúvida e
+[0:35] não deixar confusão, nada que vocês eh
+[0:38] tudo que vocês estão vendo nesse jogo
+[0:40] aqui, nada foi feito com imagem, tá? Não
+[0:43] tem nenhuma imagem criada desse jogo
+[0:45] aqui, tá? Tudo isso foi criado através
+[0:48] de código. Todas essas essas imagens
+[0:50] aqui foram criadas através de código,
+[0:52] tá? Eh, então eu queria deixar isso
+[0:55] claro, tá? E nesse vídeo a gente vai
+[0:57] explorar e como eu criei isso, né? Como
+[0:59] eu consegui fazer com que a IA pudesse
+[1:02] eh desenhar essas imagens aqui em tempo
+[1:05] de execução, tá? Que e foi essa a dúvida
+[1:08] que ficou aí com o pessoal. Eh,
+[1:13] como que a IA fez isso daqui? A IA faz o
+[1:15] desenho por código, tá? Então, a gente
+[1:18] tem duas duas coisas aqui que são
+[1:20] importantes dizer. Eh, primeira é o o
+[1:24] personagem com a animação, né, que vocês
+[1:27] estão vendo, né, e os e os e também os
+[1:30] os
+[1:32] bichos, né, os monstros e tudo mais com
+[1:34] as animações. E também a parte do
+[1:37] cenário, né? Eh, então tudo que é parte
+[1:40] de cenário, né, que é que é o cenário,
+[1:43] eh, o cenário ele tem uma parte que é
+[1:45] estática, né? Eh, não esses ventos aqui,
+[1:47] mas a parte estática, ela é desenhado na
+[1:51] na hora que o jogo carrega. Então,
+[1:53] quando o jogo carrega, ele desenha essa
+[1:55] parte aqui, né? E
+[1:58] e aí fica já carregado essa esse
+[2:01] desenho. Tudo que é animado, né? Tudo
+[2:04] que é animação aqui, o do personagem,
+[2:07] tudo mais, eh, é feito na hora que tá
+[2:10] executando, tá? Eh, então o que que ele
+[2:14] faz? Ele desenha isso num canva 2D, né?
+[2:17] Tudo através de código. Tudo através de
+[2:18] código, tá? Eh, e como que e como que
+[2:21] foi feito isso, né? Como que eu cheguei
+[2:23] nessa conclusão aqui de fazer isso
+[2:25] através de código, né? E é assim, eu eu
+[2:28] vou dar os eu vou dar o o crédito para
+[2:31] quem merece, né? Quem quem falou para eu
+[2:33] fazer dessa forma aqui foi o próprio foi
+[2:36] o próprio Cloud, tá? Eh, e aí eu vou
+[2:40] mostrar para vocês quando isso
+[2:41] aconteceu, né? Eu tinha feito vários
+[2:44] testes de vários tipos, né, para poder,
+[2:47] eh, para poder chegar nisso, né, até que
+[2:50] eu cheguei no numa numa parte onde eu
+[2:53] entrei em desespero, tá? Aí aí eu vou
+[2:54] mostrar aqui até meio vergonhoso mostrar
+[2:56] esse prompt, mas foi exatamente assim
+[2:59] que ele mudou a forma de é do meu jogo,
+[3:02] tá?
+[3:04] Então pessoal, esse foi o prompt que eu
+[3:06] coloquei, ó. Esse é isso que vocês estão
+[3:08] vendo aqui na página, tá? É porque eu
+[3:09] carreguei uma página aqui com o
+[3:11] histórico do Cloud, porque a aplicação
+[3:13] do Cloud ele não carrega históricos
+[3:15] muito antigos, né? Então aqui no dia
+[3:17] 28/09,
+[3:19] né? Aí eu falei para ele assim, ó, é, eu
+[3:21] estou construindo e não estou
+[3:23] conseguindo usar nenhuma IA consistente
+[3:26] para poder fazer animações do personagem
+[3:28] do meu game. Você pode rever, por favor,
+[3:30] as animações atuais e fazer uma versão
+[3:33] mínima do jogo com o personagem correndo
+[3:35] e atacando com espada? Use o que achar
+[3:38] necessário para que a animação fique
+[3:40] consistente e bonita. Use como base o
+[3:43] jogo Hades, o Rades, né, para cenário,
+[3:46] personagem, animação e efeito. E aí ele
+[3:48] começou a trabalhar. No momento aqui que
+[3:50] ele começou a trabalhar, ele já viu que
+[3:52] eu tinha algumas sprites que eu consegui
+[3:55] fazer só a corrida, né? Eh, isso que eu
+[4:00] fiz aí. Ele falou aqui, ó, vou montar
+[4:01] uma prancha de folhas, tal. Ele analisou
+[4:03] aqui umas imagens que já estava no
+[4:05] projeto, tá? Lembrando, né? Muita gente
+[4:07] também eh eh me me perguntou, né, como
+[4:12] eu consegui chegar nisso daqui. Foram
+[4:14] muitos testes, tá? Por isso que nos
+[4:16] vídeos anteriores e eu quis explicar por
+[4:19] todo o processo, porque eu não acho que
+[4:21] um prompt só que nem esse daqui vai
+[4:22] resultar na mesma coisa para vocês,
+[4:24] porque eu já tinha um histórico nesse
+[4:26] projeto aqui de fazer várias tentativas,
+[4:29] inclusive ele usou uma das imagens e
+[4:31] referências do de um dos meus testes,
+[4:33] né, que foi essa imagem que eu consegui
+[4:35] gerar aqui. Eu nem lembro onde, mas eu
+[4:37] acho que foi no Grock. E aí peguei essas
+[4:40] essas essas imagens aqui e aí ele pegou,
+[4:42] né, essas imagens que já estava lá no
+[4:44] projeto, tá tento que ele falou assim,
+[4:47] ó, base matemática, câmera isométrica, o
+[4:49] esqueleto, prontos, agora escrevendo
+[4:51] animação, corrida, combo, tá, tá, tal,
+[4:54] investida, agora os contratos, tal. E aí
+[4:57] ele começou a fazer o seguinte, ó.
+[5:00] Eh, ó, agora os contratos entre modos
+[5:02] para os agentes trabalharem paralelo sem
+[5:04] conflito, o boneco de palito para
+[5:06] revisar a animação. Então aqui ele
+[5:08] começou a criar na animação do
+[5:10] personagem, ele começou a criar um
+[5:14] boneco 3D,
+[5:16] né? Mas é ele é só matemática. Aqui é
+[5:18] uma representação, mas ele não é
+[5:19] renderizado, tá vendo? Ele é só um
+[5:21] boneco 3D aqui que ele tem, ele dobra as
+[5:24] pernas, os braços, né? Então ele começou
+[5:27] a fazer esse e nesse nesse formato.
+[5:30] Beleza, ele foi seguindo, né? Eu não
+[5:32] falei mais nada, funciona. Achei um erro
+[5:34] tat tal de câmera, ele fez aqui e tal,
+[5:38] esqueleto, animações e e e
+[5:41] herói. Pá, ele passou testando no
+[5:45] Chrome. Roda eh roda eh webgl necessário
+[5:49] para as abordagens do personagem,
+[5:52] tal.
+[5:54] Ele ele fez toda essa parte aqui que tá
+[5:56] 3D. Trabalhando.
+[5:59] Rodada segue em andamento.
+[6:02] Ó, aqui ele começou a desenhar, ó. Vetor
+[6:04] Canva 2D, tá? Venceu por 2 a 1, ou seja,
+[6:08] ele tentou fazer um 3D e tentou fazer o
+[6:11] canvas 2D. E aí, num juiz que ele
+[6:13] colocou lá, ele falou: "Ó, o juiz que
+[6:16] ele tinha colocado lá para dar o
+[6:17] veredito, ó, leu o veredito dos dois
+[6:19] juízes, tá vendo? Ele fez, ele tentou no
+[6:21] meu desespero de tentar pedir para ele,
+[6:24] ó, me ajuda aí. Que que ele fez? Ele
+[6:25] tem, ele fez duas tentativas, um no 3D e
+[6:29] um no 2D, desenhando no Canva 2D. E aí
+[6:31] ele colocou um juiz para analisar qual
+[6:33] que foi o melhor resultado. E aí ele
+[6:35] eles decidiram aqui que por 2 a 1 o
+[6:38] canvas 2D desenhado seria o melhor
+[6:41] método. Antes de integar, vou olhar as
+[6:43] comparações com os com os próprios
+[6:44] olhos. E aí ele tirou uns prints aqui,
+[6:47] né? Aí você viu que esse daqui foi o
+[6:49] primeiro personagem desenhado, né? E aí
+[6:51] você vê que tudo bem, é legal, ficou
+[6:54] bacana assim, né? Mas eh depois disso eu
+[6:57] dei muita refinada nesse daqui ainda,
+[6:59] né? Então, mas ele já tava atacando, ó.
+[7:01] Então você vê aqui, ó, ele já corria, já
+[7:03] dava espadada. Aí ele começou,
+[7:06] né? Ó, todos os novos agentes concluíram
+[7:08] sem erro, integrando tal, tal. E aí ele
+[7:10] desenhou já esse cenário aqui, ó,
+[7:12] baseado no no no Ades lá, né? Então o
+[7:15] jogo é é bem parecido com o cenário do
+[7:17] Ades lá, desse cenário, né? Então ele
+[7:20] começou a pintar tudo isso daqui
+[7:23] e resultado integrado. Ele colocou aqui
+[7:25] um um espantáho, né? Deu uma um combo,
+[7:28] umas animações. E aí foi partir a partir
+[7:31] disso que eu criei com todo o resto. E
+[7:33] aí aí você fala assim: "Ah, mas como é
+[7:34] que foi o resto?" Né? Aí eu fui
+[7:36] aprimorando, né? Eh, fui aprimorando.
+[7:39] Eh, falava assim: "Ó, o braço tá torto,
+[7:40] arruma o braço, faz um movimento mais
+[7:42] natural e etc." E ele foi ele foi
+[7:45] ajustando isso daqui, tá? Então, eh,
+[7:49] então foi assim que foi criado, tá? Eu
+[7:51] não não vim com essa ideia do nada, né?
+[7:53] Não, não, não, eu não sabia, não era,
+[7:55] não, nunca nunca tinha estudado sobre
+[7:58] essa esse método. Mas assim, no meu
+[8:01] desespero de perguntar para ele, né, e
+[8:03] falar que eu não tinha, eu já tinha
+[8:04] tentado de tudo e não consegui fazer,
+[8:06] ele deu seus pulos e conseguiu trazer
+[8:08] isso daqui. Incrível, né? E aí, isso daí
+[8:11] virou a referência para eu eh quer
+[8:14] dizer, virou aqui o piloto em que eu tô
+[8:17] trabalhando hoje, né, para poder foi
+[8:19] daqui que nasceu, né, depois eu fui
+[8:21] criando, eh, pedindo para ele criar
+[8:22] outras coisas, né, mas sem mudar o o
+[8:25] visual, né, sem mudar o, o estilo de
+[8:27] arte, ele foi criando o restante, né,
+[8:30] então, eh, foi assim que foi criado, né?
+[8:34] E aí uma outra coisa foi e o rosto, né?
+[8:36] Como é que você chegou nesse rosto aqui
+[8:37] e não nisso daqui, né? que tava antes.
+[8:41] Aí teve um outro, uma outra coisa, né?
+[8:44] Pessoal quer chegar em mais detalhes,
+[8:46] né? Quer ficar mais detalhado, tem que
+[8:48] pedir rodadas para ele ir fazendo, tá?
+[8:52] Eh, uma das rodadas para fazer o rosto,
+[8:54] principalmente, que é que é bem
+[8:55] detalhado aqui, né? Tem bastante coisa.
+[8:57] Que que eu fiz? Eh, eu peguei o o o
+[9:04] imagem do que eu fiz no chat EPT, né? e
+[9:07] do do deu a cabeça de um personagem, né?
+[9:11] E falei para ele usar o nano banana para
+[9:13] ele criar as outras referências. Então
+[9:15] aqui ele ele tem ele tinha só a cabeça
+[9:17] de frente, né? Ele criou aqui a versão
+[9:19] sul, né? Norte, leste, oeste, sudeste. E
+[9:23] aí ele foi criando todas as a a as
+[9:28] cabeças, né, de de virada para todos os
+[9:30] lados assim no Nano Banana sozinho, tá?
+[9:32] Eu conectei do Nano Banana, ele foi
+[9:33] criando e aí eu falei também para ele,
+[9:36] olha, coloca um crítico no final para
+[9:38] que ele chegue mais próximo, ele dê o
+[9:40] veredito de de OK se quando tiver mais
+[9:42] próximo do das referências que você
+[9:44] criou. E aí ele foi, né, eh, olhando,
+[9:48] cara, ele foi pegando parte do olho e
+[9:51] colocou no no nos quadros e foi pegando
+[9:54] quadro a quadro, pixel a pixel e foi
+[9:56] montando isso daqui. Levou tempo, tá?
+[9:58] Acho que levou, sei lá, umas 10 horas
+[10:00] para ele conseguir criar o rosto, né?
+[10:02] Mas ele conseguiu criar o rosto com
+[10:04] detalhes aqui. Eh, acho que 10 horas
+[10:07] levou e o masculino e o feminino, tá?
+[10:09] Mas acho que deve ter levado as 10 horas
+[10:11] para fazer os dois os as duas cabeças
+[10:14] aqui, né? E aí depois eu fui criando
+[10:16] cabelos diferente e tudo mais. Eh, bom,
+[10:20] enfim, foi assim que foi criado, tá? É,
+[10:23] agora que que eu vou fazer? Eu vou
+[10:25] tentar recriar isso com vocês, tá? Então
+[10:28] vou tentar ajudar vocês aqui recriando
+[10:31] isso daqui. Então eu pedi uma ajuda
+[10:32] aqui, né? E também dei uma na uma
+[10:36] pincelada aqui num num prompt, tá? Que
+[10:39] eu vou começar do zero um novo projeto
+[10:41] aqui e vou colocar esse prompt e a gente
+[10:44] vai ver o resultado.
+[10:47] Primeira coisa que eu vou fazer aqui é
+[10:51] pedir pro pro chat EPT. Aí pode ser
+[10:53] qualquer IA, né, que consiga criar a
+[10:55] imagem, né, para ele criar uma imagem de
+[10:58] referência de um rosto que eu quero, tá?
+[11:00] Então vou colocar aqui, ó, crie
+[11:03] rosto de um crie o rosto de um
+[11:07] personagem
+[11:09] de RPG.
+[11:13] Eh, com cara de anime
+[11:18] eh masculino
+[11:20] com cabelo
+[11:23] moicano.
+[11:27] Eh, somente o
+[11:30] somente a cabeça
+[11:33] e o pescoço
+[11:37] eh em um fundo verde. Então, o fundo
+[11:40] verde ajuda assim a depois o cloud poder
+[11:45] isolar, né, só o que tem dado ali.
+[11:47] Então, eu vou fazer isso. Eu vou criar
+[11:49] um aqui.
+[11:55] Vamos ver o que que ele vai criar aqui
+[11:57] para mim.
+[12:11] Então ele já criou aqui um, né? Ele
+[12:14] criou olhando pro lado. Eu não, eu não
+[12:15] quero esse daqui. Eu vou pedir para ele
+[12:18] colocar olhando pra frente, pra frente,
+[12:20] né? Então quero
+[12:24] que crie com o personagem
+[12:29] virado para o sul.
+[12:36] e olhando para frente e não para câmera.
+[12:45] Beleza? Então ele ficou aqui, né? Eu vou
+[12:48] pegar isso daqui. Eu poderia já ter pego
+[12:50] essa daqui e também, né? Mas eu quis
+[12:52] facilitar aqui. Eu vou copiar essa
+[12:54] imagem aqui. E agora eu vou lá pro
+[12:57] cloud. Antes do cloud, eu vou criar uma
+[12:58] pasta nova aqui, né, nos meus projetos.
+[13:02] Então, se eu vir aqui e
+[13:05] vou criar aqui, ó, eh, demo YouTube,
+[13:11] tá? E aí aqui eu vou criar um novo
+[13:16] novo chat aqui.
+[13:20] Aqui eu vou apontar
+[13:24] lá para aquela pasta.
+[13:28] Hum.
+[13:33] Demo YouTube.
+[13:35] OK.
+[13:37] Tr workspace. Beleza. Eu vou colar aqui,
+[13:41] tá? Esse daqui foi o personagem, né? E
+[13:43] agora eu tenho uma, eu tenho aqui minha
+[13:44] colinha do meu prompt, tá? Que aí quem
+[13:48] quiser pausa o vídeo aí, né? E lê. Eu
+[13:51] vou ler aqui com vocês também, ó. Cria
+[13:53] um piloto de RPG isométrico, câmera 3/4,
+[13:57] igual o meu, tá? para rodar no navegador
+[13:59] usando o Canva 2D. O piloto é só um
+[14:02] pequeno campo aberto com um cavaleiro
+[14:05] que dá um combo de espada de três golpes
+[14:07] no estilo rades. E aí eu vou, em vez de
+[14:11] colocar screenshot aqui, eu vou copiar
+[14:17] o rad aqui da da Steam.
+[14:21] Aí ele se vira
+[14:23] no estilo Raders.
+[14:25] Aí, coloquei aqui sem webgl, sem indine,
+[14:29] não quero engine, não quero imagens, né?
+[14:32] Eh,
+[14:35] eh, tudo é tudo é desenho por código. O
+[14:38] personagem é um esqueleto 3D invisível
+[14:40] com IK de dois ossos em braços e pernas,
+[14:43] que é pintado em 2D e dá o movimento ao
+[14:46] personagem. Que que é o IK, né? o eh
+[14:51] os dois ossos aqui são os dois ossos do
+[14:53] braço antebraço, né, e das pernas
+[14:56] também, né, a coxa e a e a parte de
+[14:58] baixo da perna. O ik é que é quando, eu
+[15:02] não lembro a o que que quer dizer, né,
+[15:05] mas é quando você vai pegar alguma
+[15:06] coisa, por exemplo, você vai pegar um
+[15:07] copo em cima da mesa, né? Você não
+[15:10] pensa: "Ah, eu vou mexer o antebraço
+[15:12] assim, eu vou mexer o braço daquele
+[15:13] jeito". Não, você vai lá e você mira no
+[15:15] copo e pega. Aí o movimento ele é ele é
+[15:17] natural. Então a IA consegue fazer esse
+[15:20] movimento natural, né? Isso é o que faz,
+[15:22] por exemplo, ele atacar pra frente e
+[15:24] fazer o movimento do braço, tá? Que é é
+[15:28] então dois ossos e braço e pernas que é
+[15:30] pintado em 2D e dá o movimento ao
+[15:32] personagem. A animação comp chaves, e
+[15:35] com antecipação e golpes de recupera de
+[15:38] golpes e recuperação. Aqui é firula, né?
+[15:40] Para ele poder fazer certinho as
+[15:42] animações. Estilo HQ, né? que é o estilo
+[15:45] que eu gosto, que eu fiz o meu também.
+[15:46] Forma chapadas com dois ou três tons e
+[15:48] contores de tinta escura.
+[15:50] É, árvores, arbustos e pedra são
+[15:53] pintados por código, tá? Então, a parte
+[15:55] do cenário no mesmo estilo do HQ.
+[15:57] Pintados é uma vez é num canva fora da
+[16:00] tela e depois reaproveitado. Só o
+[16:03] balanço do vento é animado.
+[16:06] O chão é pintado uma vez num canva fora
+[16:08] da tela. Só o personagem, o rastro da
+[16:11] espada é o e o e e o vento são
+[16:13] desenhados a cada quadro. Então, e o e
+[16:17] pintado aqui fora da tela é que quando
+[16:19] carregar o jogo tudo vai est pintado já
+[16:21] o que é estático, né? E o que vai e o
+[16:23] que tem movimento é o que vai ser
+[16:24] pintado e a a nível de execução, né? Na
+[16:28] hora da execução.
+[16:30] Usar as teclas e WASD para movimentar e
+[16:34] o clique para atacar. Faça o personagem
+[16:36] em uma armadura e usa a referência anexa
+[16:38] de rosto do personagem. Você tem o
+[16:41] Gemini com o nano banana para usar caso
+[16:43] precise criar referências. Por quê?
+[16:46] Porque ele vai, no meu jogo, por
+[16:48] exemplo, ele é um jogo isométrico, né?
+[16:49] Então ele tem que andar oito, oito
+[16:51] posições, né? E então ele aqui ele só
+[16:55] tem uma posição, né? Ele tá só pra
+[16:57] frente e nem tá na câmera que a gente
+[16:58] precisa. Então, a IA vai poder criar
+[17:01] essas outras referências usando o nano
+[17:03] banana sem eu precisar ter que criar.
+[17:06] Eh, obviamente se eu fosse lá e criar
+[17:07] essas referências também, né, também
+[17:09] daria para fazer isso, né, eh, e colar
+[17:12] aqui ele e usar. Antes de entregar, use
+[17:15] um agente crítico para avaliar o
+[17:17] resultado artístico e geral. Abra no
+[17:19] navegador, tire screenshots e corrige o
+[17:22] que aparecer, tá? É, então vai ser um
+[17:25] prompt só aqui. Vamos ver se eu consigo
+[17:27] tirar algum resultado, tá bom? Eu vou
+[17:29] rodar aqui e aí, né, no OPO 5. Max e aí
+[17:34] eu volto com o resultado, tá? Então,
+[17:36] bora lá. Vou deixar rodando aqui, né? E
+[17:40] aí eu vou cortar esse vídeo aqui para
+[17:41] não ficar muito longo, né? Porque aqui
+[17:43] ele vai demorar um pouquinho. Depois
+[17:45] quando ele terminar eu volto com o
+[17:47] resultado e falo quanto tempo durou.
+[17:49] Fala, pessoal. Então, voltando aqui, né?
+[17:53] já até outro dia, né? Nem o mesmo dia
+[17:55] que eu deixei rodando o começo ali, mas
+[17:58] não foi porque demorou tanto assim, não.
+[18:00] Foi porque eu tive que pausar aqui para
+[18:02] fazer outras coisas e não consegui e
+[18:04] terminar aqui. Mas enfim, eu voltei aqui
+[18:07] com o resultado, tá? Eu vou explicar o
+[18:08] que eu fiz aqui porque é o primeiro
+[18:11] resultado e depois uma uma melhoria que
+[18:14] eu fiz para vocês entenderem que eh
+[18:17] precisa fazer refinamentos, né? Não não
+[18:20] vai ser num prompt só que vai que vão
+[18:22] sair as coisas.
+[18:23] Eh, então para vocês entenderem, né, eu,
+[18:28] antes de mais nada, eu vou eu vou
+[18:29] explicar o que eu fiz, né? A primeira a
+[18:31] primeira coisa que eu fiz foi eh com
+[18:34] aquele prompt, só aquele prompt que a
+[18:35] gente colocou ali no início, né? Ele
+[18:37] gerou já um joguinho ali, né, com com o
+[18:40] personagem, né, o rosto personagem
+[18:42] estava bem ruinzinho, vou mostrar pra
+[18:43] vocês. E aí eu pedi pr ele fazer uma
+[18:46] outra rodada para refinamento
+[18:48] do rosto do personagem para ficar mais
+[18:51] perto de um rosto mais bonitinho, né? E
+[18:55] e aí para vocês entenderem, né? Aí eu
+[18:57] fiz só pra versão sul, né? Só para o a
+[19:00] parte quando ele anda para baixo, né?
+[19:01] porque eu não queria fazer por todos,
+[19:02] porque senão ia começar a gastar token
+[19:05] aqui. Isso daqui é só um piloto para
+[19:06] vocês entenderem o processo, né? Mas eh,
+[19:09] então eu fiz só por uma posição, mas
+[19:11] mais para vocês entenderem, tá? Então,
+[19:14] eh, então teve essas duas rodadas, né,
+[19:16] onde um eu pedi o jogo e ele saiu com
+[19:18] alguma algum resultado ali e outro para
+[19:19] eu pedir para dar uma melhorada no
+[19:21] rosto, né? E aí eu quero já trazer aqui
+[19:24] eh eh o o essas duas rodadas, né, o
+[19:27] quanto o quanto demorou, né? Então, para
+[19:29] fazer o jogo primeiro, né, que eu vou
+[19:31] mostrar para vocês como ficou, ele
+[19:33] demorou 1 hora 59 minutos para rodar,
+[19:35] gastou 21.000 e 21.7000 e milhões de
+[19:40] tokens, né?
+[19:42] E e o outro para fazer a a o rosto, né?
+[19:45] Para fazer só a versão sul do rosto, né?
+[19:48] Ele ele gastou 44 milhões de tokens e e
+[19:50] demorou 2 horas 28 para vocês ver como o
+[19:53] processo tá demorado dele ficar, né? é,
+[19:56] é indo e voltando e comparando e vendo
+[19:58] se tá certo, né, até chegar. Então,
+[20:01] quando eu tô falando aqui que ele tá
+[20:02] criando o rosto, ele tá desenhando isso
+[20:04] via código, tá? Aquilo que a gente falou
+[20:06] no começo, não tem nenhuma imagem
+[20:07] envolvida nisso. O o cloud, ele tá
+[20:11] recriando aquela imagem via código, tá?
+[20:14] E aí, que que eu fiz aqui? Como no
+[20:16] começo aqui eu já não consigo mais ver o
+[20:17] começo da conversa aqui no meu cloud, eu
+[20:20] exportei a conversa inteira aqui para
+[20:22] uma página HTML, para vocês terem uma
+[20:24] ideia, tá? Então aqui a página HTML aqui
+[20:28] foi o primeiro prompt que a gente deu,
+[20:30] né, que foi ali no começo, né, e a gente
+[20:32] deu aqui a referência para ele e aí ele
+[20:35] começou a trabalhar, né, o Cloud criou
+[20:37] as referências aqui no isso aqui foi
+[20:40] criado no Nano Banana, né, do no Gemini.
+[20:43] Então ele criou para ele ter ali umas
+[20:44] referências e tudo mais. E aí ele
+[20:47] começou a criar, ó, ele já desenhou uma
+[20:49] coisa aqui, um personagem, né, que
+[20:53] andando aqui até de forma estranha. e
+[20:55] tal, o rosto bem bem ruinzinho, né? Mas
+[20:59] enfim, ele começou a desenhar alguma
+[21:00] coisa e já começou a desenhar um cenário
+[21:02] também, né? Ele começou a desenhar o
+[21:04] cenário. O cenário fica bem legal,
+[21:05] gostei, tal, e foi e foi desenhando, tá?
+[21:09] Então eu vou eu vou mostrar para vocês.
+[21:11] Ele fez as outras posições, a cabeça,
+[21:12] né? São oito posições, então ele rodou
+[21:14] aqui e tal, né? Ele fez aqui uma, é um
+[21:18] teste aí, uma animação de espada, né?
+[21:21] viu que ele já tentou mexer aqui eh eh a
+[21:23] o personagem e tal, isso tudo sozinho,
+[21:26] tá? Eu não coloquei mais nenhuma eh mais
+[21:28] nada aqui nesse nesse nisso daqui. Aí
+[21:30] ele respondeu falando que o projeto tá
+[21:32] rodando, né? Tirou uns prints aqui,
+[21:37] colocou o agente crítico para ele para
+[21:39] ele poder fazer dar uma olhada. Ele
+[21:41] testou, tá? Isso daqui tudo no browser,
+[21:43] tá? Ele abre o browser, testa, roda e
+[21:45] depois volta pro agente crítico. Ele vai
+[21:47] corrigindo isso daqui. É. É,
+[21:51] e deixa eu ver aqui. E beleza. Aí ele
+[21:55] entregou, né, mais ou menos isso daqui,
+[21:57] tá? Eu não vou, eu não vou ter mais essa
+[21:59] versão aqui porque eu já eu já pedi para
+[22:00] ele consertar, mas vocês vão ver, é a
+[22:03] mesma. É, no final aqui vocês vão ver é
+[22:05] ele rodando. Só a única diferença é que
+[22:07] o rosto aqui na versão sul vai est
+[22:08] diferente, tá? O resto tá tudo igual. Só
+[22:10] pedi para mexer no rosto a partir daqui.
+[22:12] Então eu vi, ele tava andando, tava
+[22:14] andando meio estranho, né? Isso daqui
+[22:15] obviamente tem que dar uma melhorada,
+[22:17] tem que pedir para ele melhorar o
+[22:18] movimento, a espadada e tudo mais. É
+[22:20] aquilo que eu falei, é um processo, tá
+[22:22] gente? Não é um prompt só. É, muita
+[22:24] gente aí acha que vai criar um jogo com
+[22:26] prompt só e vai sair jogando. Um jogo de
+[22:29] qualidade. É bem complicado nesse
+[22:31] momento fazer isso. Talvez no futuro vai
+[22:33] até acontecer isso, né? E aí, eh,
+[22:36] beleza, né? Só que o rosto não ficou do
+[22:39] jeito que eu queria. Eu queria mostrar
+[22:40] para vocês o processo de construir o
+[22:41] rosto também, né? Foi uma coisa que o
+[22:43] pessoal pediu bastante. Então, que que
+[22:45] eu fiz aqui no próximo prompt? Eu pedi
+[22:47] isso daqui, ó. Eh,
+[22:50] deixa eu colocar aqui que aqui aqui já
+[22:52] tá certinho aqui, ó. Já vai direto pro
+[22:54] lugar, ó. O rosto do personagem não está
+[22:56] nada parecido com a imagem de referência
+[22:58] que eu mandei. Isso é uma outra coisa
+[22:59] importante que vocês têm que perceber,
+[23:01] né? Eh, o Cloud, ele viu que ele deu, a
+[23:05] gente deu muito contexto para ele, né?
+[23:06] Muita coisa para ele fazer e ele não
+[23:08] conseguiu focar numa coisa específica.
+[23:10] Então, ele fez ali o básico, né? Mas o
+[23:12] rosto não ficou legal, mesmo a gente
+[23:13] dando a mesma referência. Mas olha a
+[23:15] diferença agora quando a gente pede para
+[23:16] ele focar no no que a gente quer, né? Ó,
+[23:18] o rosto do personagem não está é
+[23:20] parecido com a imagem, referência que eu
+[23:21] mandei. Eu quero que você trabalhe para
+[23:23] melhorar os detalhes do rosto para que
+[23:25] chegue o mais próximo da imagem de
+[23:27] referência. Vamos começar apenas com a
+[23:28] posição sul. Analise quadro a quadro, os
+[23:31] detalhes, posição dos olhos, boca,
+[23:33] nariz, cabelo, etc. Coloque um crítico
+[23:35] para analisar o resultado e só me
+[23:38] entregue quando a qualidade estiver
+[23:39] próximo da imagem de referência em
+[23:41] níveis de detalhe, tá? E aí ele começou
+[23:44] a trabalhar. E olha só que legal, ele
+[23:45] vai, ó, quadro a quadro mesmo, vai
+[23:47] pegando parte, ó, ele vai dividindo, vai
+[23:50] medindo, tá? Isso daqui é tudo trabalho
+[23:52] que ele faz e que ele vai fazendo, ó.
+[23:54] Então, ele vai pegando aos poucos,
+[23:56] pedaço por pedaço, né? E vai melhorando,
+[23:58] ó. Aí já vai melhorando o cabelo, ó. Já
+[24:00] vai começando a dar uma desenhada nas
+[24:02] coisas. E aí deixa ele trabalhar. Isso é
+[24:05] o que demorou aquelas 2 horas e pouco
+[24:06] lá. Ele foi vendo, ó. Aqui vai colocando
+[24:10] lado a lado, ó, o que o que tava na
+[24:12] imagem, o que ele desenhou, né? Pode ver
+[24:14] que o olho ficou bem legalzinho aqui, ó.
+[24:16] Ele vai colocando, ele vai comparando,
+[24:18] ó, boca com boca, nariz com nariz, né? E
+[24:20] ele vai fazendo o trabalho dele, tá? Até
+[24:23] entregar aquilo que a gente pediu, né?
+[24:26] Que foi essa parte final aqui, né? E aí
+[24:29] depois e eu pedi para ele para ele rodar
+[24:32] esse servidor aqui pra gente poder
+[24:33] testar. E aqui tá o resultado, tá? Ó,
+[24:36] você pode ver que para baixo ele tá já
+[24:39] com o rosto mais detalhado, né? Ele até
+[24:41] colocou aqui, ó, piscando o olhinho aqui
+[24:43] no no cantinho, né? No cantinho ali, ele
+[24:46] colocou piscando o olho já. O personagem
+[24:48] ainda tá e eh tá tá do jeito que a gente
+[24:50] quer, né? Um jogo bonito. Não, não tá.
+[24:52] Ele tá andando meio torto. Tá vendo que
+[24:53] a espada tá meio para trás? Mas isso que
+[24:55] eu falei eh isso daqui é só um teste,
+[24:57] né? uma demonstração para mostrar para
+[24:58] vocês como foi o processo de criação,
+[25:01] né, do meu e do Lock, né, e que isso
+[25:05] daqui precisa ser melhorado. Obviamente
+[25:06] você tem que pedir, olha, é, não tá
+[25:07] legal esse movimento. De vez em quando
+[25:09] você pega um sprite genérico de um de um
+[25:12] eh de um personagem correndo e fala para
+[25:15] ele e fazer, né, esse mesmo personagem,
+[25:18] dá umas referências para ele. Mas, ó, já
+[25:20] tá andando, né? Já tá desenhado a o
+[25:23] ambiente, o cenário ficou bem legal. Ele
+[25:25] colocou umas animações aqui, ó, de
+[25:26] vento, né? As árvores se mexendo, ó, o
+[25:29] personagem com rosto já bem detalhado,
+[25:32] né? E eu poderia, obviamente, depois
+[25:33] descer pra armadura ou pedir para a arma
+[25:36] dele ficar mais detalhada, né? O golpe
+[25:38] aqui, ó, já consigo dar os três golpes
+[25:40] que eu pedi, né? Então, é, já consigo
+[25:43] andar para todos os lados, né? Então, é
+[25:45] isso, galera. É mostrar para vocês que é
+[25:49] possível fazer, tá? Nada disso daqui não
+[25:51] tem, não envolve nenhuma imagem, não tem
+[25:53] uma imagem aqui. Tudo é desenhado e por
+[25:56] código, né, feito aí pelo cloud, né? Eh,
+[26:00] os arquivos de código ele fica lá dentro
+[26:02] do servidor, né, com com tudo e com com
+[26:05] todos esses desenhos aqui na não foi e
+[26:08] não foi usado nenhuma imagem, tá? Então,
+[26:10] foi dessa forma que eu criei, que eu
+[26:12] consegui chegar nesse resultado aqui,
+[26:14] né? Obviamente com e é isso que eu
+[26:16] queria falar, né? É, sempre o pessoal
+[26:19] criticou aí que eu falei bastante, né,
+[26:20] nos outros vídeos, mas eu tenho que
+[26:21] passar falar para vocês o processo, né?
+[26:23] O processo não é simples, né? Não é você
+[26:25] colocar um um prompt só e sair com esse
+[26:28] resultado aqui. É, foi um processo para
+[26:31] chegar nisso daqui, né? E eu gastei
+[26:32] muito token para poder chegar aqui. Eh,
+[26:35] então, infelizmente hoje ainda não é
+[26:38] possível você com um com um prompt só e
+[26:41] fazer um jogo inteiro, né? Você vai
+[26:43] fazer parte, vai trabalhar uma coisa
+[26:45] específica, vai ficar bom. ou você vai
+[26:48] eh fazendo aos poucos, que é o que eu
+[26:50] sugeri nos outros vídeos, né? Vai
+[26:52] fazendo aos poucos, vai aumentando assim
+[26:54] a a
+[26:56] a o que o seu jogo faz, né, a qualidade
+[26:58] do seu jogo para poder chegar nesse
+[27:01] nesse nível de detalhe que eu que eu tô
+[27:02] mostrando para vocês aqui, tá? Então é
+[27:05] isso, galera. Espero que vocês tenham
+[27:06] gostado do vídeo, né? Espero que eu
+[27:08] tenha sido um pouco mais direto aqui ao
+[27:10] ponto, né? Muita gente questionou aí que
+[27:12] eu fiquei dando volta a volta e não
+[27:13] expliquei direito. É, não muita gente,
+[27:15] né? umas poucas críticas aí, mas espero
+[27:18] que agora tenha ido um pouquinho mais a
+[27:19] fundo aqui, né, explicado como que foi o
+[27:22] processo de criação eh do personagem, da
+[27:25] animação e do cenário sem usar nenhuma
+[27:28] imagem, tá bom? Então, vou ficando por
+[27:30] aqui. Espero que vocês tenham gostado do
+[27:31] vídeo, deixa o like aí, né? Escreve aí
+[27:34] nos comentários, tá? Esse Tech Bite
+[27:36] aqui, que é a sessão que eu tô fazendo
+[27:38] para eh ajudar vocês aí a criar os seus
+[27:41] jogos. É uma sessão que eu vou fazer sob
+[27:44] demanda, tá? Quando tiver alguma coisa
+[27:45] específica que eu for mostrar do meu
+[27:47] jogo e vocês quiserem saber como eu fiz,
+[27:49] eu crio um vídeo aí explicando, tá bom?
+[27:52] E é isso, gente. Valeu, um abraço para
+[27:54] vocês e até mais. Tchau.

@@ -1,0 +1,153 @@
+{
+  "generatedAt": "2026-10-19T13:31:19.602Z",
+  "browser": "Edg/155.0.4283.62",
+  "platform": "win32",
+  "node": "v24.16.0",
+  "html": "prototypes\\rig-01-antigravity\\index-rig.html",
+  "htmlSha256": "8144d96aae08c2f7d760157b8a8b00dacb39093625013c5eb814349ee0ac1608",
+  "footLock": {
+    "yaw0": {
+      "state": "run",
+      "yaw": 0,
+      "clipTime": 0.39999999999999947,
+      "fps": 60,
+      "frameCount": 240,
+      "footSlipMaxPx": 1.1368683772161603e-13,
+      "footSlipMeanPx": 1.7763568394002505e-14,
+      "footLockSamples": 80,
+      "footLockPass": true,
+      "root": {
+        "x": 0,
+        "y": 4.799999999999986
+      },
+      "errors": []
+    },
+    "yaw90": {
+      "state": "run",
+      "yaw": 90,
+      "clipTime": 0.39999999999999947,
+      "fps": 60,
+      "frameCount": 240,
+      "footSlipMaxPx": 1.1368683772161603e-13,
+      "footSlipMeanPx": 1.9895196601282804e-14,
+      "footLockSamples": 80,
+      "footLockPass": true,
+      "root": {
+        "x": 4.799999999999986,
+        "y": 2.9391523179536565e-16
+      },
+      "errors": []
+    },
+    "pass": true
+  },
+  "perf": {
+    "avgFps": 496,
+    "targetFps": 60,
+    "pass": true
+  },
+  "captures": [
+    {
+      "file": "01-rig-arena-idle.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 41410,
+      "sha256": "ee109838b7898576ec6e5a6171b8893f2b9ea9967c7b4d6b173e3f7372268569",
+      "state": "idle",
+      "yaw": 0,
+      "clipTime": 0.5,
+      "footSlipMaxPx": 0
+    },
+    {
+      "file": "02-rig-run-footlock.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 41572,
+      "sha256": "2a2e8f2077e80b94acfa49e753daf80ac1b33d30957cd0e3ae728db930e2d947",
+      "state": "run",
+      "yaw": 0,
+      "clipTime": 0.2,
+      "footSlipMaxPx": 4.949999999999989
+    },
+    {
+      "file": "03-rig-dash.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 41536,
+      "sha256": "a9c197da7099fdb8d044ff3e5831985c9be9dee62b2bc5cd43fcb1c27fdd90b8",
+      "state": "dash",
+      "yaw": 0,
+      "clipTime": 0.12,
+      "footSlipMaxPx": 34.27961154130787
+    },
+    {
+      "file": "04-rig-combo-1.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 42209,
+      "sha256": "003043150943d67cc298ad123ff17f475ed4b14033354a59ca649ab7c466502b",
+      "state": "attack1",
+      "yaw": 0,
+      "clipTime": 0.14,
+      "footSlipMaxPx": 2.6999999999999886
+    },
+    {
+      "file": "05-rig-combo-2.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 41955,
+      "sha256": "802a156d23180c51f5a80a7299603bb8323e1ff56824911841f44ba11a27b2f7",
+      "state": "attack2",
+      "yaw": 0,
+      "clipTime": 0.14,
+      "footSlipMaxPx": 7.199999999999989
+    },
+    {
+      "file": "06-rig-combo-3.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 45369,
+      "sha256": "b112c488f4a22b5aac8dfca423cfcad4ce0ba1a9d1c036a53491aa3ffe1cb96f",
+      "state": "attack3",
+      "yaw": 0,
+      "clipTime": 0.22,
+      "footSlipMaxPx": 2.6999999999999886
+    },
+    {
+      "file": "07-rig-debug.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 49189,
+      "sha256": "686e89242f31930dab5d251fe9130675d200830938700380509bd40b96faf0ab",
+      "state": "run",
+      "yaw": 45,
+      "clipTime": 0.25,
+      "footSlipMaxPx": 9.781048989159817
+    },
+    {
+      "file": "07-rig-roll-air.png",
+      "width": 1280,
+      "height": 720,
+      "bytes": 48783,
+      "sha256": "5bcdd14afced32505da11093b8982d6aae6b1dc3a5584bc431b0bfacdcb2cb02",
+      "state": "roll",
+      "yaw": 0,
+      "clipTime": 0.2,
+      "footSlipMaxPx": 11.088457268119896
+    },
+    {
+      "file": "08-rig-contact-sheet.png",
+      "width": 1920,
+      "height": 1120,
+      "bytes": 289992,
+      "sha256": "13f73db2dd8b82cfff9de538aa39bfdeb8aba107f0bca41509befea08319e308",
+      "state": "idle",
+      "yaw": 0,
+      "clipTime": 0,
+      "footSlipMaxPx": 0
+    }
+  ],
+  "errors": {
+    "runtime": [],
+    "console": []
+  }
+}

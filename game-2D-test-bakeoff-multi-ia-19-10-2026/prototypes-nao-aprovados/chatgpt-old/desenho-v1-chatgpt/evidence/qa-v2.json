@@ -1,0 +1,112 @@
+Reference loaded: True
+{
+  "errors": [],
+  "deterministic": true,
+  "reference_loaded": true,
+  "tests": [
+    {
+      "case": "v2-idle-S.png",
+      "metrics": {
+        "canvasWidth": 960,
+        "canvasHeight": 1060,
+        "hasReferenceImageInCanvas": false,
+        "pose": "neutral",
+        "mode": "compare",
+        "orientation": "S",
+        "cache": {
+          "layerCount": 6,
+          "keys": [
+            "cape",
+            "legs",
+            "torso",
+            "cloth",
+            "scarf",
+            "head"
+          ]
+        },
+        "renders": 5,
+        "lastMS": 13.8,
+        "errors": [],
+        "integratedRig01": false
+      }
+    },
+    {
+      "case": "v2-idle-SE.png",
+      "metrics": {
+        "canvasWidth": 960,
+        "canvasHeight": 1060,
+        "hasReferenceImageInCanvas": false,
+        "pose": "neutral",
+        "mode": "compare",
+        "orientation": "SE",
+        "cache": {
+          "layerCount": 6,
+          "keys": [
+            "cape",
+            "legs",
+            "torso",
+            "cloth",
+            "scarf",
+            "head"
+          ]
+        },
+        "renders": 7,
+        "lastMS": 12.3,
+        "errors": [],
+        "integratedRig01": false
+      }
+    },
+    {
+      "case": "v2-run-S.png",
+      "metrics": {
+        "canvasWidth": 960,
+        "canvasHeight": 1060,
+        "hasReferenceImageInCanvas": false,
+        "pose": "run",
+        "mode": "compare",
+        "orientation": "S",
+        "cache": {
+          "layerCount": 6,
+          "keys": [
+            "cape",
+            "legs",
+            "torso",
+            "cloth",
+            "scarf",
+            "head"
+          ]
+        },
+        "renders": 9,
+        "lastMS": 99.5,
+        "errors": [],
+        "integratedRig01": false
+      }
+    },
+    {
+      "case": "v2-attack-S.png",
+      "metrics": {
+        "canvasWidth": 960,
+        "canvasHeight": 1060,
+        "hasReferenceImageInCanvas": false,
+        "pose": "attack",
+        "mode": "compare",
+        "orientation": "S",
+        "cache": {
+          "layerCount": 6,
+          "keys": [
+            "cape",
+            "legs",
+            "torso",
+            "cloth",
+            "scarf",
+            "head"
+          ]
+        },
+        "renders": 11,
+        "lastMS": 83.8,
+        "errors": [],
+        "integratedRig01": false
+      }
+    }
+  ]
+}

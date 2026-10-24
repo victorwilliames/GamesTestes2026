@@ -1,0 +1,539 @@
+{
+  "generatedAt": "2026-10-19T15:07:44.093Z",
+  "browser": "Edg/155.0.4283.62",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+  "platform": "win32",
+  "node": "v24.16.0",
+  "html": "prototypes\\rig-01-deepseek\\index-hero.html",
+  "htmlSha256": "6881c9a23fbf1c13583a99f8adc478adbdec93624a8c170349ec04743cfe880b",
+  "htmlSha256After": "6881c9a23fbf1c13583a99f8adc478adbdec93624a8c170349ec04743cfe880b",
+  "sameBuild": true,
+  "viewport": {
+    "arena": "1280x720",
+    "contact": "1920x1120",
+    "combo": "1920x720",
+    "gallery": "1280x720",
+    "deviceScaleFactor": 1
+  },
+  "apiCapture": {
+    "ok": false,
+    "error": "null"
+  },
+  "apiCaptureNote": "file:// + local PNG references taint the canvas; CDP page screenshots are the evidence for 09-13.",
+  "deterministicPose": {
+    "first": {
+      "x": 68.31200000000001,
+      "y": 418.60434238128687
+    },
+    "second": {
+      "x": 640.312,
+      "y": 418.4497582309425
+    },
+    "equal": false
+  },
+  "apiChecks": {
+    "durations": {
+      "idle": 2,
+      "run": 0.8,
+      "dash": 0.42,
+      "attack1": 0.33999999999999997,
+      "attack2": 0.35000000000000003,
+      "attack3": 0.56
+    },
+    "clamps": {
+      "idle": {
+        "clamps": [],
+        "drawOrder": 60,
+        "drawCount": 60
+      },
+      "run": {
+        "clamps": [],
+        "drawOrder": 60,
+        "drawCount": 60
+      },
+      "dash": {
+        "clamps": [],
+        "drawOrder": 61,
+        "drawCount": 61
+      },
+      "attack1": {
+        "clamps": [],
+        "drawOrder": 66,
+        "drawCount": 66
+      },
+      "attack2": {
+        "clamps": [],
+        "drawOrder": 66,
+        "drawCount": 66
+      },
+      "attack3": {
+        "clamps": [],
+        "drawOrder": 61,
+        "drawCount": 61
+      }
+    },
+    "bounds": {
+      "east": {
+        "x": 5.5,
+        "y": 0.0009918925591994488
+      },
+      "west": {
+        "x": -5.5,
+        "y": 0.0029727721220062413
+      }
+    },
+    "assets": {
+      "loaded": true,
+      "errors": [],
+      "headCrop": {
+        "x": 160,
+        "y": 0,
+        "w": 920,
+        "h": 645,
+        "pivotX": 467,
+        "pivotY": 645
+      },
+      "heads": [
+        "s",
+        "se",
+        "e",
+        "ne",
+        "n",
+        "nw",
+        "w",
+        "sw"
+      ],
+      "refs": [
+        "s",
+        "se",
+        "e",
+        "ne",
+        "n",
+        "nw",
+        "w",
+        "sw"
+      ]
+    },
+    "mode": "arena"
+  },
+  "galleryCheck": {
+    "gallery": "gallery",
+    "combo": "combo",
+    "back": "arena"
+  },
+  "performance": {
+    "samples": 2397,
+    "seconds": 6.00020000000298,
+    "avgFps": 399.32,
+    "perSecondFps": [
+      466.3,
+      500.9,
+      414.3,
+      351,
+      356
+    ],
+    "worstSecondFps": 351,
+    "frameMs": {
+      "p50": 2,
+      "p95": 3.2,
+      "p99": 5,
+      "max": 82.9
+    },
+    "drawMs": 3.617,
+    "apiFps": 565.7425785370691,
+    "frameCount": 3131,
+    "errors": [],
+    "targetFps": 200,
+    "floorFps": 200,
+    "effectiveFrameMs": 2.504,
+    "targetMet": true,
+    "method": "Uncapped requestAnimationFrame throughput after 1.5s warm-up; 6s sample; 1280x720 native buffer.",
+    "flags": [
+      "--disable-frame-rate-limit",
+      "--disable-gpu-vsync"
+    ],
+    "caveat": "Headless Edge on this host. Mobile/low-end hardware is not validated by this run."
+  },
+  "networkRequests": [
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/index-hero.html?capture=contact",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/derived/head-s.png",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/derived/head-se.png",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/derived/head-e.png",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/derived/head-ne.png",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/derived/head-n.png",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/derived/head-nw.png",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/derived/head-w.png",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/derived/head-sw.png",
+    "file:///D:/.GITHUB/games/game-2d/assets/references/ref-2d-hero/hero-complet-idle/hero-idle-s.png",
+    "file:///D:/.GITHUB/games/game-2d/assets/references/ref-2d-hero/hero-complet-idle/hero-idle-se.png",
+    "file:///D:/.GITHUB/games/game-2d/assets/references/ref-2d-hero/hero-complet-idle/hero-idle-e.png",
+    "file:///D:/.GITHUB/games/game-2d/assets/references/ref-2d-hero/hero-complet-idle/hero-idle-ne.png",
+    "file:///D:/.GITHUB/games/game-2d/assets/references/ref-2d-hero/hero-complet-idle/hero-idle-n.png",
+    "file:///D:/.GITHUB/games/game-2d/assets/references/ref-2d-hero/hero-complet-idle/hero-idle-nw.png",
+    "file:///D:/.GITHUB/games/game-2d/assets/references/ref-2d-hero/hero-complet-idle/hero-idle-w.png",
+    "file:///D:/.GITHUB/games/game-2d/assets/references/ref-2d-hero/hero-complet-idle/hero-idle-sw.png",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/index-hero.html?capture=run",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/index-hero.html?capture=combo",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/index-hero.html?capture=debug",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/index-hero.html?capture=gallery",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/index-hero.html?capture=idle",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/index-hero.html?capture=fps"
+  ],
+  "runtimeErrors": [],
+  "consoleErrors": [],
+  "captures": [
+    {
+      "file": "09-hero-idle-8dir.png",
+      "preset": "contact",
+      "width": 1920,
+      "height": 1120,
+      "bytes": 336634,
+      "sha256": "9a54204334c298d8f3d25bc4fe4c06ef730d3f21e1693a1e000c5961387228ba",
+      "state": "idle",
+      "mode": "contact",
+      "yaw": 0,
+      "phase": "breath",
+      "clipTime": 0.35,
+      "root": {
+        "x": 0,
+        "y": 0
+      },
+      "footSlipMaxPx": 0,
+      "footSlipMeanPx": null,
+      "footLockSamples": 0,
+      "footLockPass": false,
+      "footTests": null,
+      "assets": {
+        "loaded": true,
+        "errors": [],
+        "headCrop": {
+          "x": 160,
+          "y": 0,
+          "w": 920,
+          "h": 645,
+          "pivotX": 467,
+          "pivotY": 645
+        },
+        "heads": [
+          "s",
+          "se",
+          "e",
+          "ne",
+          "n",
+          "nw",
+          "w",
+          "sw"
+        ],
+        "refs": [
+          "s",
+          "se",
+          "e",
+          "ne",
+          "n",
+          "nw",
+          "w",
+          "sw"
+        ]
+      },
+      "clamps": [],
+      "jointCount": 23,
+      "targetCount": 4,
+      "drawCount": 922,
+      "inputBuffer": {
+        "queued": false,
+        "age": 0,
+        "limit": 0.25
+      }
+    },
+    {
+      "file": "10-hero-run.png",
+      "preset": "run",
+      "width": 1280,
+      "height": 720,
+      "bytes": 208998,
+      "sha256": "d4109652eb5e56617d97545597b258498ab93606a440507d67a2974da7e101d6",
+      "state": "run",
+      "mode": "arena",
+      "yaw": 45,
+      "phase": "contact L",
+      "clipTime": 0.13,
+      "root": {
+        "x": 0.85,
+        "y": 0.35
+      },
+      "footSlipMaxPx": 0,
+      "footSlipMeanPx": 0,
+      "footLockSamples": 92,
+      "footLockPass": true,
+      "footTests": {
+        "yaw0": {
+          "yaw": 0,
+          "seconds": 2,
+          "maxPx": 0,
+          "meanPx": 0,
+          "samples": 92,
+          "clampedSamples": 0,
+          "pass": true
+        },
+        "yaw90": {
+          "yaw": 90,
+          "seconds": 2,
+          "maxPx": 1.1368683772161603e-13,
+          "meanPx": 1.2357264969740872e-15,
+          "samples": 92,
+          "clampedSamples": 0,
+          "pass": true
+        }
+      },
+      "assets": {
+        "loaded": true,
+        "errors": [],
+        "headCrop": {
+          "x": 160,
+          "y": 0,
+          "w": 920,
+          "h": 645,
+          "pivotX": 467,
+          "pivotY": 645
+        },
+        "heads": [
+          "s",
+          "se",
+          "e",
+          "ne",
+          "n",
+          "nw",
+          "w",
+          "sw"
+        ],
+        "refs": [
+          "s",
+          "se",
+          "e",
+          "ne",
+          "n",
+          "nw",
+          "w",
+          "sw"
+        ]
+      },
+      "clamps": [],
+      "jointCount": 23,
+      "targetCount": 4,
+      "drawCount": 60,
+      "inputBuffer": {
+        "queued": false,
+        "age": 0,
+        "limit": 0.25
+      }
+    },
+    {
+      "file": "11-hero-combo.png",
+      "preset": "combo",
+      "width": 1920,
+      "height": 720,
+      "bytes": 113673,
+      "sha256": "2864d10647c08eb2f747d2e9dba708aa917822c73942c3acf932eb3264b42e8a",
+      "state": "idle",
+      "mode": "combo",
+      "yaw": 0,
+      "phase": "breath",
+      "clipTime": 0.35,
+      "root": {
+        "x": 0,
+        "y": 0
+      },
+      "footSlipMaxPx": 0,
+      "footSlipMeanPx": null,
+      "footLockSamples": 0,
+      "footLockPass": false,
+      "footTests": null,
+      "assets": {
+        "loaded": true,
+        "errors": [],
+        "headCrop": {
+          "x": 160,
+          "y": 0,
+          "w": 920,
+          "h": 645,
+          "pivotX": 467,
+          "pivotY": 645
+        },
+        "heads": [
+          "s",
+          "se",
+          "e",
+          "ne",
+          "n",
+          "nw",
+          "w",
+          "sw"
+        ],
+        "refs": [
+          "s",
+          "se",
+          "e",
+          "ne",
+          "n",
+          "nw",
+          "w",
+          "sw"
+        ]
+      },
+      "clamps": [],
+      "jointCount": 23,
+      "targetCount": 4,
+      "drawCount": 0,
+      "inputBuffer": {
+        "queued": false,
+        "age": 0,
+        "limit": 0.25
+      }
+    },
+    {
+      "file": "12-hero-debug.png",
+      "preset": "debug",
+      "width": 1280,
+      "height": 720,
+      "bytes": 290203,
+      "sha256": "43ccf3af09ed07b78519835065280bb4a57a873fb1dae4aceb0cbcb9a9fb57e9",
+      "state": "attack1",
+      "mode": "arena",
+      "yaw": 0,
+      "phase": "active",
+      "clipTime": 0.1598,
+      "root": {
+        "x": 0,
+        "y": 0.24595201824241808
+      },
+      "footSlipMaxPx": 0,
+      "footSlipMeanPx": 0,
+      "footLockSamples": 92,
+      "footLockPass": true,
+      "footTests": {
+        "yaw0": {
+          "yaw": 0,
+          "seconds": 2,
+          "maxPx": 0,
+          "meanPx": 0,
+          "samples": 92,
+          "clampedSamples": 0,
+          "pass": true
+        },
+        "yaw90": {
+          "yaw": 90,
+          "seconds": 2,
+          "maxPx": 1.1368683772161603e-13,
+          "meanPx": 1.2357264969740872e-15,
+          "samples": 92,
+          "clampedSamples": 0,
+          "pass": true
+        }
+      },
+      "assets": {
+        "loaded": true,
+        "errors": [],
+        "headCrop": {
+          "x": 160,
+          "y": 0,
+          "w": 920,
+          "h": 645,
+          "pivotX": 467,
+          "pivotY": 645
+        },
+        "heads": [
+          "s",
+          "se",
+          "e",
+          "ne",
+          "n",
+          "nw",
+          "w",
+          "sw"
+        ],
+        "refs": [
+          "s",
+          "se",
+          "e",
+          "ne",
+          "n",
+          "nw",
+          "w",
+          "sw"
+        ]
+      },
+      "clamps": [],
+      "jointCount": 23,
+      "targetCount": 4,
+      "drawCount": 66,
+      "inputBuffer": {
+        "queued": false,
+        "age": 0,
+        "limit": 0.25
+      }
+    },
+    {
+      "file": "13-hero-gallery.png",
+      "preset": "gallery",
+      "width": 1280,
+      "height": 720,
+      "bytes": 162660,
+      "sha256": "8dc383e45a2e27f01f912a1804df009986e9fbbfb5445d260986f92a34660e58",
+      "state": "idle",
+      "mode": "gallery",
+      "yaw": 0,
+      "phase": "breath",
+      "clipTime": 0.35,
+      "root": {
+        "x": 0,
+        "y": 0
+      },
+      "footSlipMaxPx": 0,
+      "footSlipMeanPx": null,
+      "footLockSamples": 0,
+      "footLockPass": false,
+      "footTests": null,
+      "assets": {
+        "loaded": true,
+        "errors": [],
+        "headCrop": {
+          "x": 160,
+          "y": 0,
+          "w": 920,
+          "h": 645,
+          "pivotX": 467,
+          "pivotY": 645
+        },
+        "heads": [
+          "s",
+          "se",
+          "e",
+          "ne",
+          "n",
+          "nw",
+          "w",
+          "sw"
+        ],
+        "refs": [
+          "s",
+          "se",
+          "e",
+          "ne",
+          "n",
+          "nw",
+          "w",
+          "sw"
+        ]
+      },
+      "clamps": [],
+      "jointCount": 23,
+      "targetCount": 4,
+      "drawCount": 0,
+      "inputBuffer": {
+        "queued": false,
+        "age": 0,
+        "limit": 0.25
+      }
+    }
+  ]
+}

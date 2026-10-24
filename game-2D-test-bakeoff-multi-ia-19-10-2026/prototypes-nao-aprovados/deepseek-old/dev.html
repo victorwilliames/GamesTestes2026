@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>DS · bancada de desenho (dev)</title>
+<style>
+  body { margin:0; background:#20242a; color:#dfe6ee; font:13px/1.5 "Segoe UI",sans-serif; }
+  #wrap { display:flex; gap:10px; padding:10px; align-items:flex-start; flex-wrap:wrap; }
+  canvas { background:#c9d0d6; image-rendering:auto; }
+  .col { display:flex; flex-direction:column; gap:6px; }
+  .lbl { font:600 12px monospace; letter-spacing:.04em; opacity:.85; }
+  img { background:#c9d0d6; display:block; max-width:none; }
+  .bar { display:flex; gap:8px; flex-wrap:wrap; padding:8px 10px; background:#171a1f; }
+  .bar button, .bar select { background:#2b3138; color:#dfe6ee; border:1px solid #3c444d; border-radius:6px; padding:4px 8px; font:12px monospace; }
+  .bar button.on { background:#3c6ea5; border-color:#5f9ad6; }
+</style>
+</head>
+<body>
+<div class="bar" id="bar"></div>
+<div id="wrap"></div>
+<script src="desenho-v1-deepseek/src/00-core.js"></script>
+<script src="desenho-v1-deepseek/src/04-weapon.js"></script>
+<script src="desenho-v1-deepseek/src/01-head.js"></script>
+<script src="desenho-v1-deepseek/src/02-body.js"></script>
+<script src="desenho-v1-deepseek/src/03-limbs.js"></script>
+<script src="desenho-v1-deepseek/src/05-skeleton.js"></script>
+<script src="desenho-v1-deepseek/src/06-hero.js"></script>
+<script src="desenho-v1-deepseek/src/07-arena.js"></script>
+<script src="desenho-v1-deepseek/src/08-enemy.js"></script>
+<script src="desenho-v1-deepseek/src/09-combat.js"></script>
+<script src="desenho-v1-deepseek/src/10-game.js"></script>
+<script>
+/* Bancada de desenvolvimento: mostra uma peça isolada em escala grande,
+ * opcionalmente ao lado do recorte oficial correspondente. */
+(function () {
+  const q = new URLSearchParams(location.search);
+  const view = q.get('view') || 'weapon';
+  const scale = Number(q.get('scale') || 2);
+  const side = Number(q.get('side') || -1);
+  const ref = q.get('ref');
+  const extra = q.get('js');
+  const wrap = document.getElementById('wrap');
+
+  function mk(w, h, label, refFile, refScale) {
+    const col = document.createElement('div');
+    col.className = 'col';
+    const l = document.createElement('div'); l.className = 'lbl'; l.textContent = label;
+    col.appendChild(l);
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    if (q.get('bg')) c.style.background = q.get('bg');
+    col.appendChild(c);
+    if (refFile) {
+      const l2 = document.createElement('div'); l2.className = 'lbl'; l2.textContent = 'referência oficial (somente comparação)';
+      const im = document.createElement('img');
+      im.src = '../../assets/references/ref-2d-hero/' + refFile;
+      const s = refScale || 0.5;
+      im.width = Math.round(1254 * s); im.height = Math.round(1254 * s);
+      col.appendChild(l2); col.appendChild(im);
+    }
+    wrap.appendChild(col);
+    return c;
+  }
+
+  const draw = {
+    weapon(ctx, w, h) {
+      const cxp = 120 * scale;
+      ctx.save();
+      ctx.translate(w * 0.5 + (side < 0 ? cxp : -cxp), h * 0.56 + 40 * scale);
+      ctx.scale(scale, scale);
+      DS.drawWeapon(ctx, side, {});
+      DS.drawHandGrip(ctx, side, 'back');
+      DS.drawWeapon(ctx, side, {});
+      DS.drawHandGrip(ctx, side, 'front');
+      ctx.restore();
+    },
+    head(ctx, w, h) {
+      ctx.save();
+      ctx.translate(w * 0.5, h * 0.72);
+      ctx.scale(scale, scale);
+      DS.drawHead(ctx, { yaw: Number(q.get('yaw') || 0), t: Number(q.get('t') || 0) });
+      ctx.restore();
+    },
+    body(ctx, w, h) {
+      ctx.save();
+      ctx.translate(w * 0.5, h * 0.9);
+      ctx.scale(scale, scale);
+      DS.drawBody(ctx, { yaw: Number(q.get('yaw') || 0) });
+      ctx.restore();
+    },
+    limbs(ctx, w, h) {
+      ctx.save();
+      ctx.translate(w * 0.5, h * 0.6);
+      ctx.scale(scale, scale);
+      DS.drawArm(ctx, -1, { angle: 0.6 }, 'all');
+      ctx.restore();
+    },
+    /* Peça isolada com eixos na articulação: mostra o alinhamento da arte. */
+    part(ctx, w, h) {
+      const which = q.get('which') || 'thigh';
+      const sd = Number(q.get('side') || 1);
+      const loc = q.get('loc');
+      ctx.save();
+      ctx.translate(w * 0.5, h * 0.5);
+      ctx.scale(scale, scale);
+      if (loc) { const a = loc.split(',').map(Number); ctx.translate(a[0], a[1]); ctx.rotate((a[2] || 0)); }
+      ctx.strokeStyle = 'rgba(220,40,60,.55)'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(-900, 0); ctx.lineTo(900, 0); ctx.stroke();
+      ctx.strokeStyle = 'rgba(40,90,230,.55)';
+      ctx.beginPath(); ctx.moveTo(0, -900); ctx.lineTo(0, 900); ctx.stroke();
+      const P = {
+        thigh: () => { ctx.scale(1.16, 1.6); DS.drawThigh(ctx, sd); },
+        shin: () => { ctx.scale(1, 1.5); DS.drawShin(ctx, sd); },
+        boot: () => DS.drawBoot(ctx, sd),
+        uarm: () => DS.drawUpperArm(ctx, sd),
+        farm: () => DS.drawForearm(ctx, sd),
+      }[which];
+      if (P) P();
+      ctx.restore();
+    },
+    hero(ctx, w, h) {
+      const name = q.get('pose') || 'idle';
+      const t = Number(q.get('t') || 0);
+      const yaw = Number(q.get('yaw') || 0.25);
+      const facing = Number(q.get('facing') || 1);
+      const p = (DS.POSE[name] || DS.POSE.idle)(t);
+      ctx.save();
+      ctx.translate(w * 0.5, h * 0.95);
+      ctx.scale(scale, scale);
+      if (q.get('floor')) { ctx.fillStyle = '#8f9a86'; ctx.fillRect(-600, 0, 1200, 400); }
+      DS.contactShadow(ctx, 0, DS.SK.GROUND + 8, 200, 0.5);
+      DS.drawHero(ctx, { pose: p, yaw, facing, x: 0, y: -DS.SK.GROUND, only: q.get('only') || 'all' });
+      if (q.get('debug')) {
+        DS.heroDebug(ctx, p, facing);
+        const f = DS.fk(p);
+        ctx.fillStyle = 'rgba(255,0,120,0.9)';
+        for (const k in f) { const v = f[k]; if (Array.isArray(v)) { ctx.fillRect(v[0] - 3, v[1] - 3, 6, 6); } }
+        ctx.strokeStyle = 'rgba(0,90,255,0.6)';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(-400, DS.SK.GROUND); ctx.lineTo(400, DS.SK.GROUND); ctx.stroke();
+        window.__DS_DBG = { fk: f, pose: p };
+      }
+      ctx.restore();
+    },
+    arena(ctx, w, h) {
+      const z = 0.24;
+      DS.arena.drawGround(ctx, { x: 3000 - w / z / 2, y: 1900 - h / z / 2 }, w, h, w / z);
+    },
+    /* Comparação honesta: referência oficial + herói procedural na MESMA altura. */
+    compare(ctx, w, h) {
+      const s = Number(q.get('scale') || 0.5);      // escala do herói
+      const name = q.get('pose') || 'idle';
+      const p = (DS.POSE[name] || DS.POSE.idle)(Number(q.get('t') || 0));
+      const file = q.get('refimg') || 'hero-complet-idle/hero-idle-s.png';
+      const ground = h - Number(q.get('pad') || 60);
+      const HEROH = 1361, REFH = 1219;               // alturas reais conhecidas
+      const im = new Image();
+      im.onload = () => {
+        const k = s * HEROH / REFH;                  // deixa as duas na mesma altura
+        ctx.drawImage(im, 40, ground - REFH * k, 1254 * k, 1254 * k);
+        ctx.save();
+        ctx.translate(w - 40 - 627 * k, ground - 1254 * k + 1233 * k);
+        ctx.scale(k, k);
+        ctx.translate(627, -1233);
+        DS.contactShadow(ctx, 626, 1234, 520, 0.35);
+        ctx.restore();
+        ctx.save();
+        ctx.translate(w - 40 - 626 * s, ground - 1233 * s + DS.SK.GROUND * s);
+        ctx.scale(s, s);
+        DS.drawHero(ctx, { pose: p, yaw: Number(q.get('yaw') || 0.25) });
+        ctx.restore();
+        ctx.strokeStyle = 'rgba(20,120,255,.5)';
+        ctx.beginPath(); ctx.moveTo(0, ground + 1); ctx.lineTo(w, ground + 1); ctx.stroke();
+        window.__DS_READY = true;
+      };
+      im.onerror = () => { window.__DS_READY = true; };
+      im.src = '../../assets/references/ref-2d-hero/' + file;
+    },
+  };
+
+  const refs = { weapon: ['hero-part-weapons.png', 0.5], head: ['hero-part-head.png', 0.5], hero: ['hero-complet-idle/hero-idle-s.png', 0.5] };
+  const cv = mk(W(), H(), 'peça: ' + view + ' · escala ' + scale, q.get('refimg') || (refs[view] ? refs[view][0] : null), refs[view] ? refs[view][1] : 0.5);
+  function W() { return Math.round(Number(q.get('w') || 700)); }
+  function H() { return Math.round(Number(q.get('h') || 700)); }
+  const ctx = cv.getContext('2d');
+  if (q.get('bg2')) { ctx.fillStyle = q.get('bg2'); ctx.fillRect(0, 0, cv.width, cv.height); }
+  try { if (draw[view]) draw[view](ctx, cv.width, cv.height); } catch (e) { console.error(e); document.title = 'ERRO: ' + e.message; }
+  if (extra) { try { eval(extra); } catch (e) { console.error(e); } }
+  window.__DS_READY = true;
+  window.__DS_INFO = Object.assign({ view, scale, side, yaw: Number(q.get('yaw') || 0) }, window.__DS_DBG ? { dbg: window.__DS_DBG } : {});
+  window.DS = window.DS;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+{
+  "url": "file:///D:/.GITHUB/games/game-2d/prototypes/deepseek/desenho-v1-deepseek/index.html",
+  "headless": true,
+  "ready": true,
+  "gpu": "ANGLE (AMD, AMD Radeon(TM) Graphics (0x0000164C) Direct3D11 vs_5_0 ps_5_0, D3D11)",
+  "browser": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  "res": "1280x720",
+  "enemies": 4,
+  "seconds": 6,
+  "rafGapMs": {
+    "n": 120,
+    "med": 1.4,
+    "min": 1,
+    "max": 35.2
+  },
+  "fps": {
+    "avg": 168.6,
+    "p95": 95.2,
+    "p99": 10.7
+  },
+  "drawMs": 2.95,
+  "frames": 1074,
+  "errors": [],
+  "raw": [
+    {
+      "fps": 215.8,
+      "p95": 181.8,
+      "p99": 181.8,
+      "draw": 8.33,
+      "upd": 0.13,
+      "frameMed": 4.4,
+      "frames": 17,
+      "kills": 0,
+      "hits": 0,
+      "hero": {
+        "x": 3000,
+        "y": 2000,
+        "hp": 100,
+        "atk": -1,
+        "comboT": 0
+      },
+      "enemies": 4
+    },
+    {
+      "fps": 420.8,
+      "p95": 344.8,
+      "p99": 181.8,
+      "draw": 2.95,
+      "upd": 0.04,
+      "frameMed": 1.9,
+      "frames": 445,
+      "kills": 0,
+      "hits": 0,
+      "hero": {
+        "x": 3000,
+        "y": 2000,
+        "hp": 100,
+        "atk": -1,
+        "comboT": 0
+      },
+      "enemies": 4
+    },
+    {
+      "fps": 160.8,
+      "p95": 95.2,
+      "p99": 7.6,
+      "draw": 1.93,
+      "upd": 0.03,
+      "frameMed": 2.2,
+      "frames": 557,
+      "kills": 0,
+      "hits": 0,
+      "hero": {
+        "x": 3000,
+        "y": 2000,
+        "hp": 100,
+        "atk": -1,
+        "comboT": 0
+      },
+      "enemies": 4
+    },
+    {
+      "fps": 160.3,
+      "p95": 70.9,
+      "p99": 8.6,
+      "draw": 4.32,
+      "upd": 0.03,
+      "frameMed": 2,
+      "frames": 757,
+      "kills": 0,
+      "hits": 0,
+      "hero": {
+        "x": 3000,
+        "y": 2000,
+        "hp": 100,
+        "atk": -1,
+        "comboT": 0
+      },
+      "enemies": 4
+    },
+    {
+      "fps": 168.6,
+      "p95": 85.5,
+      "p99": 10.7,
+      "draw": 1.48,
+      "upd": 0,
+      "frameMed": 1.7,
+      "frames": 909,
+      "kills": 0,
+      "hits": 0,
+      "hero": {
+        "x": 3000,
+        "y": 2000,
+        "hp": 100,
+        "atk": -1,
+        "comboT": 0
+      },
+      "enemies": 4
+    },
+    {
+      "fps": 152.1,
+      "p95": 14.2,
+      "p99": 10.5,
+      "draw": 1.16,
+      "upd": 0.02,
+      "frameMed": 1.6,
+      "frames": 1074,
+      "kills": 0,
+      "hits": 0,
+      "hero": {
+        "x": 3000,
+        "y": 2000,
+        "hp": 100,
+        "atk": -1,
+        "comboT": 0
+      },
+      "enemies": 4
+    }
+  ]
+}

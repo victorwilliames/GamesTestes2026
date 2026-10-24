@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://dmckv8s7qpl1n"]
+
+[ext_resource type="Script" path="res://scenes/hero/caitlyn.gd" id="1_caitlyn"]
+[ext_resource type="PackedScene" uid="uid://bstfxuary6y7x" path="res://assets/characters/caitlyn/CaitlynComplete.glb" id="2_caitlyn_glb"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_hero"]
+radius = 0.5
+height = 2.0
+
+[node name="Hero" type="CharacterBody3D"]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_caitlyn")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CapsuleShape3D_hero")
+
+[node name="ModelGroup" type="Node3D" parent="."]
+transform = Transform3D(0.055, 0, 0, 0, 0.055, 0, 0, 0, 0.055, 0, 0, 0)
+
+[node name="CaitlynModel" parent="ModelGroup" instance=ExtResource("2_caitlyn_glb")]

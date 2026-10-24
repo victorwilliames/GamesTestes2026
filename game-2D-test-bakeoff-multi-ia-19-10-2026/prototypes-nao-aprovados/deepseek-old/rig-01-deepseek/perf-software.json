@@ -1,0 +1,39 @@
+{
+  "status": "supplementary probe, not the declared Gate 1 performance environment",
+  "generatedAt": "2026-10-19T11:14:00-03:00",
+  "build": "index-rig.html",
+  "buildSha256": "44c981e5495d8323f2a36d890c44629b2b4353703866a091855a72db5d708f5f",
+  "browser": "Edg/155.0.4283.62",
+  "platform": "Windows 11 Pro 10.0.26300, AMD Ryzen 5 5500U, AMD Radeon integrated graphics",
+  "viewport": "1280x720 native canvas buffer, deviceScaleFactor 1",
+  "flags": [
+    "--disable-frame-rate-limit",
+    "--disable-gpu-vsync",
+    "--disable-gpu"
+  ],
+  "method": "Uncapped requestAnimationFrame throughput after 1.5 s warm-up; 6 s sample; software rendering forced with --disable-gpu.",
+  "result": {
+    "samples": 2218,
+    "seconds": 6.0,
+    "avgFps": 369.52,
+    "frameMs": {
+      "p50": 2.7,
+      "p95": 3.6,
+      "p99": 4.0,
+      "max": 5.0
+    },
+    "drawMs": 0.374
+  },
+  "priorRun": {
+    "buildSha256": "562eb9ece3d9631607e9a2579ef341acae537e67dd2ccffece9e25d7355aba4d",
+    "avgFps": 255.44,
+    "frameMs": {
+      "p50": 3.8,
+      "p95": 5.7,
+      "p99": 6.8,
+      "max": 47.2
+    },
+    "note": "Same app path, measured while other browser processes were active; kept to document run-to-run variance."
+  },
+  "interpretation": "The final probe clears 200 fps and p99 <= 5 ms, but the earlier loaded run did not. This fallback does not validate mobile hardware or replace the required S20 FE-or-weaker test."
+}

@@ -1,0 +1,17 @@
+name: Validate procedural P0
+on:
+  push:
+    paths:
+      - 'prototypes/procedural-p0/**'
+      - 'scripts/check-p0.mjs'
+      - '.github/workflows/validate-p0.yml'
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node scripts/check-p0.mjs

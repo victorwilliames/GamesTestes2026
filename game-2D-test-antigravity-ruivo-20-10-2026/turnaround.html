@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bancada de Inspeção Turnaround 8 Direções - Red-Haired Knight</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: #14171d;
+      color: #e6ebed;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px;
+      min-height: 100vh;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    h1 {
+      font-size: 26px;
+      color: #ffd23f;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+    p {
+      color: #9cb0b8;
+      font-size: 14px;
+    }
+    .panel {
+      background: #1c222b;
+      border: 1px solid #2e3846;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    canvas {
+      background: #252c38;
+      border: 2px solid #3d4a5c;
+      border-radius: 8px;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.4);
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      max-width: 700px;
+    }
+    .btn-group {
+      display: flex;
+      background: #12161e;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #2a3442;
+    }
+    button {
+      background: transparent;
+      border: none;
+      color: #cbd5e1;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    button:hover {
+      background: #232c39;
+      color: #ffd23f;
+    }
+    button.active {
+      background: #ffd23f;
+      color: #12161e;
+    }
+    .slider-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      max-width: 500px;
+      font-size: 13px;
+    }
+    input[type=range] {
+      flex: 1;
+      accent-color: #ffd23f;
+    }
+    .back-link {
+      margin-top: 16px;
+      color: #79dcff;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>INSPEÇÃO DE TURNAROUND (360° / 8 DIREÇÕES)</h1>
+    <p>Red-Haired Knight — Armadura Prateada, Cabelo Escarlate & Rig 3D com IK</p>
+  </header>
+
+  <div class="panel">
+    <canvas id="turnCanvas" width="560" height="480"></canvas>
+
+    <div class="slider-box">
+      <span>Rotação (0° - 360°):</span>
+      <input type="range" id="angleSlider" min="0" max="360" value="0" step="45">
+      <span id="angleValue">0° (Sul / Frente)</span>
+    </div>
+
+    <div class="controls">
+      <div class="btn-group" id="dirBtns">
+        <button data-deg="0" class="active">0° Sul</button>
+        <button data-deg="45">45° SE</button>
+        <button data-deg="90">90° Leste</button>
+        <button data-deg="135">135° NE</button>
+        <button data-deg="180">180° Norte</button>
+        <button data-deg="225">225° NO</button>
+        <button data-deg="270">270° Oeste</button>
+        <button data-deg="315">315° SO</button>
+      </div>
+
+      <div class="btn-group" id="animBtns">
+        <button data-anim="idle" class="active">Idle</button>
+        <button data-anim="run">Run</button>
+        <button data-anim="combo1">Combo 1</button>
+        <button data-anim="combo2">Combo 2</button>
+        <button data-anim="combo3">Combo 3</button>
+      </div>
+
+      <div class="btn-group">
+        <button id="btnAutoSpin">Auto-Girar [OFF]</button>
+        <button id="btnSkeleton">Esqueleto [OFF]</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top: 16px; display: flex; gap: 16px;">
+    <a href="index.html" class="back-link">← Voltar para a Arena do Jogo</a>
+    <a href="bancada-comparacao.html" class="back-link" style="color: #ffd23f;">🔬 Abrir Bancada de Comparação 1:1 (Prancha)</a>
+  </div>
+
+  <script src="js/core.js"></script>
+  <script src="js/ink.js"></script>
+  <script src="js/hero_vectors.js"></script>
+  <script src="js/rig.js"></script>
+  <script src="js/head.js"></script>
+  <script src="js/hero.js"></script>
+  <script>
+    const canvas = document.getElementById('turnCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const cam = new IsoCamera({
+      yaw: 45 * Math.PI / 180,
+      pitch: 34 * Math.PI / 180,
+      scale: 1.7,
+      originX: canvas.width * 0.5,
+      originY: canvas.height * 0.75
+    });
+
+    const rig = new KnightRig();
+    const hero = new Hero(rig, cam);
+    hero.scale = 1.0;
+
+    let currentAngleDeg = 0;
+    let autoSpin = false;
+
+    const angleSlider = document.getElementById('angleSlider');
+    const angleValue = document.getElementById('angleValue');
+    const dirBtns = document.getElementById('dirBtns');
+    const animBtns = document.getElementById('animBtns');
+    const btnAutoSpin = document.getElementById('btnAutoSpin');
+    const btnSkeleton = document.getElementById('btnSkeleton');
+
+    function updateAngle(deg) {
+      currentAngleDeg = deg;
+      angleSlider.value = deg;
+      angleValue.textContent = `${Math.round(deg)}°`;
+      rig.setFacing(cam.yaw + (deg * Math.PI) / 180);
+
+      // Atualiza botões de direção
+      const btns = dirBtns.querySelectorAll('button');
+      btns.forEach(b => {
+        b.classList.toggle('active', parseInt(b.dataset.deg) === Math.round(deg));
+      });
+    }
+
+    angleSlider.addEventListener('input', (e) => {
+      autoSpin = false;
+      btnAutoSpin.textContent = 'Auto-Girar [OFF]';
+      updateAngle(parseFloat(e.target.value));
+    });
+
+    dirBtns.addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON') {
+        autoSpin = false;
+        btnAutoSpin.textContent = 'Auto-Girar [OFF]';
+        updateAngle(parseFloat(e.target.dataset.deg));
+      }
+    });
+
+    animBtns.addEventListener('click', (e) => {
+      if (e.target.tagName === 'BUTTON') {
+        animBtns.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        rig.setAnimation(e.target.dataset.anim);
+      }
+    });
+
+    btnAutoSpin.addEventListener('click', () => {
+      autoSpin = !autoSpin;
+      btnAutoSpin.textContent = `Auto-Girar [${autoSpin ? 'ON' : 'OFF'}]`;
+    });
+
+    btnSkeleton.addEventListener('click', () => {
+      hero.debugSkeleton = !hero.debugSkeleton;
+      btnSkeleton.textContent = `Esqueleto [${hero.debugSkeleton ? 'ON' : 'OFF'}]`;
+    });
+
+    let lastTime = performance.now();
+    function loop(now) {
+      requestAnimationFrame(loop);
+      const dt = Math.min(0.1, (now - lastTime) / 1000);
+      lastTime = now;
+
+      if (autoSpin) {
+        currentAngleDeg = (currentAngleDeg + dt * 45) % 360;
+        updateAngle(currentAngleDeg);
+      }
+
+      hero.update(dt);
+
+      // Limpar
+      ctx.fillStyle = '#222834';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Grade sutil de piso para referência
+      ctx.strokeStyle = '#2d3545';
+      ctx.lineWidth = 1;
+      const ox = canvas.width * 0.5;
+      const oy = canvas.height * 0.58;
+      ctx.beginPath();
+      ctx.ellipse(ox, oy, 140, 75, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Renderizar o herói
+      hero.draw(ctx);
+    }
+
+    // Inicialização
+    updateAngle(0);
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

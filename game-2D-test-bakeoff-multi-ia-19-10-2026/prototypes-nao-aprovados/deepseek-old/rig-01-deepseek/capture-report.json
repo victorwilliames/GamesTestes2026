@@ -1,0 +1,454 @@
+{
+  "generatedAt": "2026-10-19T14:15:49.338Z",
+  "browser": "Edg/155.0.4283.62",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+  "platform": "win32",
+  "node": "v24.16.0",
+  "html": "prototypes\\rig-01-deepseek\\index-rig.html",
+  "htmlSha256": "44c981e5495d8323f2a36d890c44629b2b4353703866a091855a72db5d708f5f",
+  "htmlSha256After": "44c981e5495d8323f2a36d890c44629b2b4353703866a091855a72db5d708f5f",
+  "sameBuild": true,
+  "viewport": {
+    "arena": "1280x720",
+    "contact": "1920x1120",
+    "deviceScaleFactor": 1
+  },
+  "apiCapture": {
+    "prefix": "data:image/png;base64,",
+    "length": 80322
+  },
+  "deterministicPose": {
+    "first": {
+      "x": 640.27,
+      "y": 412.40844462293103
+    },
+    "second": {
+      "x": 640.27,
+      "y": 412.40844462293103
+    },
+    "equal": true
+  },
+  "apiChecks": {
+    "durations": {
+      "idle": 2,
+      "run": 0.8,
+      "dash": 0.42,
+      "attack1": 0.33999999999999997,
+      "attack2": 0.35000000000000003,
+      "attack3": 0.56
+    },
+    "clamps": {
+      "idle": {
+        "clamps": [],
+        "drawOrder": 41,
+        "drawCount": 41
+      },
+      "run": {
+        "clamps": [],
+        "drawOrder": 41,
+        "drawCount": 41
+      },
+      "dash": {
+        "clamps": [],
+        "drawOrder": 41,
+        "drawCount": 41
+      },
+      "attack1": {
+        "clamps": [],
+        "drawOrder": 41,
+        "drawCount": 41
+      },
+      "attack2": {
+        "clamps": [],
+        "drawOrder": 41,
+        "drawCount": 41
+      },
+      "attack3": {
+        "clamps": [],
+        "drawOrder": 41,
+        "drawCount": 41
+      }
+    },
+    "combo": {
+      "queuedA1": true,
+      "queuedA2": true,
+      "afterA1": "attack2",
+      "afterA2": "attack3",
+      "afterFinish": "idle"
+    },
+    "dash": {
+      "state": "idle",
+      "root": {
+        "x": 0,
+        "y": 2.4
+      },
+      "cooldown": 0.6,
+      "clamps": 0
+    },
+    "bounds": {
+      "east": {
+        "x": 5.5,
+        "y": 0.0009918925591994488
+      },
+      "west": {
+        "x": -5.5,
+        "y": 0.0029727721220062413
+      }
+    },
+    "step": {
+      "first": 0.016666666666666666,
+      "second": 0.03333333333333333,
+      "secondDelta": 0.016666666666666666
+    },
+    "impactTimes": {
+      "a1": 0.1598,
+      "a2": 0.15,
+      "a3": 0.19
+    },
+    "mirror": {
+      "yaw0": {
+        "L": 658.27,
+        "R": 622.27
+      },
+      "yaw180": {
+        "L": 621.73,
+        "R": 657.73
+      }
+    }
+  },
+  "performance": {
+    "samples": 6576,
+    "seconds": 5.99989999999851,
+    "avgFps": 1095.85,
+    "worstSecondFps": 750.2,
+    "perSecondFps": [
+      947.5,
+      1061.5,
+      750.2,
+      1041.4,
+      1431.6
+    ],
+    "frameMs": {
+      "p50": 0.8,
+      "p95": 1.4,
+      "p99": 1.7,
+      "max": 138.5
+    },
+    "drawMs": 0.412,
+    "apiFps": 2027.585685226393,
+    "frameCount": 7766,
+    "errors": [],
+    "targetFps": 200,
+    "floorFps": 200,
+    "effectiveFrameMs": 0.913,
+    "targetMet": true,
+    "method": "Uncapped requestAnimationFrame throughput after 1.5s warm-up; 6s sample; 1280x720 native buffer.",
+    "flags": [
+      "--disable-frame-rate-limit",
+      "--disable-gpu-vsync"
+    ],
+    "caveat": "Headless Edge on this machine. Mobile and low-end hardware are not validated by this run."
+  },
+  "networkRequests": [
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/index-rig.html?capture=idle",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/index-rig.html?capture=run",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/index-rig.html?capture=dash",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/index-rig.html?capture=a1",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/index-rig.html?capture=a2",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/index-rig.html?capture=a3",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/index-rig.html?capture=debug",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/index-rig.html?capture=contact",
+    "file:///D:/.GITHUB/games/game-2d/prototypes/rig-01-deepseek/index-rig.html?capture=fps"
+  ],
+  "runtimeErrors": [],
+  "consoleErrors": [],
+  "domErrors": [],
+  "captures": [
+    {
+      "file": "01-rig-arena-idle.png",
+      "preset": "idle",
+      "width": 1280,
+      "height": 720,
+      "bytes": 33526,
+      "sha256": "05bce25584aada7a7d4cf0ae533ad44374107a9d69d9e5bca1214609f0a7d94b",
+      "state": "idle",
+      "mode": "arena",
+      "yaw": 0,
+      "phase": "breath",
+      "clipTime": 0.35,
+      "root": {
+        "x": 0,
+        "y": 0
+      },
+      "footSlipMaxPx": 0,
+      "footSlipMeanPx": null,
+      "footLockSamples": 0,
+      "footLockPass": false,
+      "footTests": null,
+      "clamps": [],
+      "jointCount": 23,
+      "targetCount": 4,
+      "drawCount": 41,
+      "inputBuffer": {
+        "queued": false,
+        "age": 0,
+        "limit": 0.25
+      }
+    },
+    {
+      "file": "02-rig-run-footlock.png",
+      "preset": "run",
+      "width": 1280,
+      "height": 720,
+      "bytes": 33817,
+      "sha256": "71234a2edd69dd050d330659270010a1243d85cd0390965d8b4008434287e75b",
+      "state": "run",
+      "mode": "arena",
+      "yaw": 90,
+      "phase": "contact L",
+      "clipTime": 0.13,
+      "root": {
+        "x": 1.2,
+        "y": 0
+      },
+      "footSlipMaxPx": 5.684341886080802e-14,
+      "footSlipMeanPx": 1.2357264969740872e-15,
+      "footLockSamples": 92,
+      "footLockPass": true,
+      "footTests": {
+        "yaw0": {
+          "yaw": 0,
+          "seconds": 2,
+          "maxPx": 5.684341886080802e-14,
+          "meanPx": 1.2357264969740872e-15,
+          "samples": 92,
+          "clampedSamples": 0,
+          "pass": true
+        },
+        "yaw90": {
+          "yaw": 90,
+          "seconds": 2,
+          "maxPx": 5.684341886080802e-14,
+          "meanPx": 3.707179490922262e-15,
+          "samples": 92,
+          "clampedSamples": 0,
+          "pass": true
+        }
+      },
+      "clamps": [],
+      "jointCount": 23,
+      "targetCount": 4,
+      "drawCount": 41,
+      "inputBuffer": {
+        "queued": false,
+        "age": 0,
+        "limit": 0.25
+      }
+    },
+    {
+      "file": "03-rig-dash.png",
+      "preset": "dash",
+      "width": 1280,
+      "height": 720,
+      "bytes": 33612,
+      "sha256": "982e9c06788fc250b579769b7d627ab4fa9aa3fc58e94a96151aed7d7e323a2b",
+      "state": "dash",
+      "mode": "arena",
+      "yaw": 90,
+      "phase": "burst",
+      "clipTime": 0.16,
+      "root": {
+        "x": 1.8420479999999997,
+        "y": 1.1279290935378916e-16
+      },
+      "footSlipMaxPx": 0,
+      "footSlipMeanPx": null,
+      "footLockSamples": 0,
+      "footLockPass": false,
+      "footTests": null,
+      "clamps": [],
+      "jointCount": 23,
+      "targetCount": 4,
+      "drawCount": 41,
+      "inputBuffer": {
+        "queued": false,
+        "age": 0,
+        "limit": 0.25
+      }
+    },
+    {
+      "file": "04-rig-combo-1.png",
+      "preset": "a1",
+      "width": 1280,
+      "height": 720,
+      "bytes": 34163,
+      "sha256": "db8ff60641b6284378d2ee1ccf437212f9c3018da9e5a369fa6d7db183c2c204",
+      "state": "attack1",
+      "mode": "arena",
+      "yaw": 0,
+      "phase": "active",
+      "clipTime": 0.1598,
+      "root": {
+        "x": 0,
+        "y": 0.09595201824241807
+      },
+      "footSlipMaxPx": 0,
+      "footSlipMeanPx": null,
+      "footLockSamples": 0,
+      "footLockPass": false,
+      "footTests": null,
+      "clamps": [],
+      "jointCount": 23,
+      "targetCount": 4,
+      "drawCount": 41,
+      "inputBuffer": {
+        "queued": false,
+        "age": 0,
+        "limit": 0.25
+      }
+    },
+    {
+      "file": "05-rig-combo-2.png",
+      "preset": "a2",
+      "width": 1280,
+      "height": 720,
+      "bytes": 33195,
+      "sha256": "bdfeb72dae9483a9102d77ecb5c0f0bd4df1fb02796eba5f6228d1cd75a02672",
+      "state": "attack2",
+      "mode": "arena",
+      "yaw": 0,
+      "phase": "active",
+      "clipTime": 0.15,
+      "root": {
+        "x": 0,
+        "y": 0.10476366443108695
+      },
+      "footSlipMaxPx": 0,
+      "footSlipMeanPx": null,
+      "footLockSamples": 0,
+      "footLockPass": false,
+      "footTests": null,
+      "clamps": [],
+      "jointCount": 23,
+      "targetCount": 4,
+      "drawCount": 41,
+      "inputBuffer": {
+        "queued": false,
+        "age": 0,
+        "limit": 0.25
+      }
+    },
+    {
+      "file": "06-rig-combo-3.png",
+      "preset": "a3",
+      "width": 1280,
+      "height": 720,
+      "bytes": 34794,
+      "sha256": "b438d42d6b95d929870ba7a0c7c66cc2eb8c9d18d0f8b90185bac90981a86bb5",
+      "state": "attack3",
+      "mode": "arena",
+      "yaw": 0,
+      "phase": "active",
+      "clipTime": 0.19,
+      "root": {
+        "x": 0,
+        "y": 0.030952499289508578
+      },
+      "footSlipMaxPx": 0,
+      "footSlipMeanPx": null,
+      "footLockSamples": 0,
+      "footLockPass": false,
+      "footTests": null,
+      "clamps": [],
+      "jointCount": 23,
+      "targetCount": 4,
+      "drawCount": 41,
+      "inputBuffer": {
+        "queued": false,
+        "age": 0,
+        "limit": 0.25
+      }
+    },
+    {
+      "file": "07-rig-debug.png",
+      "preset": "debug",
+      "width": 1280,
+      "height": 720,
+      "bytes": 99862,
+      "sha256": "ef606620587145ee6416ff1509a6a5c862a6cf8f4ca60c9a98e3e0c243777a93",
+      "state": "attack1",
+      "mode": "arena",
+      "yaw": 0,
+      "phase": "active",
+      "clipTime": 0.1598,
+      "root": {
+        "x": 0,
+        "y": 0.09595201824241807
+      },
+      "footSlipMaxPx": 5.684341886080802e-14,
+      "footSlipMeanPx": 1.2357264969740872e-15,
+      "footLockSamples": 92,
+      "footLockPass": true,
+      "footTests": {
+        "yaw0": {
+          "yaw": 0,
+          "seconds": 2,
+          "maxPx": 5.684341886080802e-14,
+          "meanPx": 1.2357264969740872e-15,
+          "samples": 92,
+          "clampedSamples": 0,
+          "pass": true
+        },
+        "yaw90": {
+          "yaw": 90,
+          "seconds": 2,
+          "maxPx": 5.684341886080802e-14,
+          "meanPx": 3.707179490922262e-15,
+          "samples": 92,
+          "clampedSamples": 0,
+          "pass": true
+        }
+      },
+      "clamps": [],
+      "jointCount": 23,
+      "targetCount": 4,
+      "drawCount": 41,
+      "inputBuffer": {
+        "queued": false,
+        "age": 0,
+        "limit": 0.25
+      }
+    },
+    {
+      "file": "08-rig-contact-sheet.png",
+      "preset": "contact",
+      "width": 1920,
+      "height": 1120,
+      "bytes": 303495,
+      "sha256": "90cce94eb7d422ebb7a6ddb9441b393cc5bcff9618cef619bdd5f358dd83febb",
+      "state": "idle",
+      "mode": "contact",
+      "yaw": 0,
+      "phase": "breath",
+      "clipTime": 0,
+      "root": {
+        "x": 0,
+        "y": 0
+      },
+      "footSlipMaxPx": 0,
+      "footSlipMeanPx": null,
+      "footLockSamples": 0,
+      "footLockPass": false,
+      "footTests": null,
+      "clamps": [],
+      "jointCount": 23,
+      "targetCount": 4,
+      "drawCount": 2296,
+      "inputBuffer": {
+        "queued": false,
+        "age": 0,
+        "limit": 0.25
+      }
+    }
+  ]
+}

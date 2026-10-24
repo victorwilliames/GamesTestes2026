@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Traçado do rosto (ferramenta de desenvolvimento)</title>
+<link rel="icon" href="data:,">
+<style>
+  html, body { margin: 0; background: #222; color: #ddd; font: 13px system-ui, sans-serif; }
+  canvas { display: block; }
+  p { margin: 6px 10px; }
+</style>
+</head>
+<body>
+<p>Ferramenta de desenvolvimento: confere o traçado vetorial de <code>js/face_data.js</code> sobre a imagem de referência (que só esta página carrega). <b>?mode=overlay|vector|side</b></p>
+<canvas id="c"></canvas>
+<script src="js/core.js"></script>
+<script src="js/ink.js"></script>
+<script src="js/face_data.js"></script>
+<script>
+  const mode = new URLSearchParams(location.search).get('mode') || 'overlay';
+  const img = new Image();
+  img.src = 'referencias/rosto_referencia.png';
+  img.onload = () => {
+    const W = 1254, H = 1254, side = mode === 'side';
+    const cv = document.getElementById('c');
+    cv.width = side ? W * 2 : W; cv.height = H;
+    const c = cv.getContext('2d');
+    if (mode !== 'vector') c.drawImage(img, 0, 0);
+    if (side) { c.fillStyle = '#0f0'; c.fillRect(W, 0, W, H); c.translate(W, 0); }
+    const A = mode === 'overlay' ? 0.55 : 1;
+    const poly = (pts, fill, stroke, lw = 2) => {
+      c.beginPath(); pathPoly(c, pts);
+      if (fill) { c.globalAlpha = A; c.fillStyle = fill; c.fill(); c.globalAlpha = 1; }
+      if (stroke) { c.lineWidth = lw; c.strokeStyle = stroke; c.stroke(); }
+    };
+    const line = (pts, col, lw) => { c.globalAlpha = A; inkLine(c, pts, lw, col); c.globalAlpha = 1; };
+    const taper = (pts, col) => {
+      c.beginPath(); pathTaper(c, pts.map(p => [p[0], p[1]]), t => {
+        const f = t * (pts.length - 1), i = Math.min(pts.length - 2, Math.floor(f)), u = f - i;
+        return lerp(pts[i][2], pts[i + 1][2], u);
+      });
+      c.globalAlpha = A; c.fillStyle = col; c.fill(); c.globalAlpha = 1;
+    };
+    const F = FACE_REF;
+    // pele e laterais
+    if (mode !== 'overlay') {
+      const hull = convexHull(F.jaw.concat(F.sides).concat([[400, 300], [856, 300], [629, 260]]));
+      poly(hull, '#f0a86c', '#240c0c', 4);
+    }
+    for (const b of F.buzz) poly(b, '#b47854', '#00ffff', 1);
+    for (const s of F.shade) poly(s.pts, s.tone === 'mid' ? '#dd8456' : '#cc6c48', mode === 'overlay' ? '#ff00ff' : null, 1);
+    for (const s of F.light) poly(s.pts, '#fcb484', mode === 'overlay' ? '#ffff00' : null, 1);
+    for (const e of F.ears) { poly(e.outline, '#f0a86c', '#00ffff', 2); poly(e.concha, '#a84824', null); line(e.helix, '#9c4824', 3); }
+    for (const b of F.brows) poly(b, '#3a1d10', mode === 'overlay' ? '#00ffff' : null, 1);
+    for (const e of F.eyes) {
+      poly(e.white, '#f3e6e2', mode === 'overlay' ? '#00ffff' : null, 1);
+      c.beginPath(); c.arc(e.iris[0], e.iris[1], e.iris[2], 0, TAU); c.globalAlpha = A; c.fillStyle = '#3478ac'; c.fill(); c.globalAlpha = 1;
+      c.beginPath(); c.arc(e.pupil[0], e.pupil[1], e.pupil[2], 0, TAU); c.fillStyle = '#0b1a2e'; c.fill();
+      for (const g of e.glint) { c.beginPath(); c.arc(g[0], g[1], g[2], 0, TAU); c.fillStyle = '#fff'; c.fill(); }
+      taper(e.lid, '#1a0d10');
+      line(e.crease, '#8a4a36', 2); line(e.lower, '#7a3d2c', 1.6);
+      for (const l of e.lashes) line(l, '#1a0d10', 2);
+    }
+    for (const w of F.nose.wings) line(w, '#9c4824', 2);
+    for (const n of F.nose.nostrils) taper(n, '#2a0f0c');
+    taper(F.mouth.line, '#240c0c');
+    poly(F.mouth.upper, '#d98a5e', mode === 'overlay' ? '#00ffff' : null, 1);
+    line(F.mouth.lowerLine, '#9c4824', 2);
+    line(F.jaw, '#240c0c', 6);
+    poly(F.hairMass, '#2c110d', mode === 'overlay' ? '#ffffff' : null, 1);
+    const tones = { base: '#6c3018', mid: '#8a4426', light: '#b8693a' };
+    for (const l of F.locks) {
+      taper(l.pts, tones[l.tone]);
+      if (mode === 'overlay') line(l.pts.map(p => [p[0], p[1]]), '#ffffff', 1);
+    }
+  };
+</script>
+</body>
+</html>

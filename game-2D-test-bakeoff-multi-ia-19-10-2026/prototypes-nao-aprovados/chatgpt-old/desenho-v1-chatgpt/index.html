@@ -1,0 +1,463 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>HERO-02 | Desenho procedural V1</title><style>
+:root{font-family:Inter,system-ui,-apple-system,sans-serif;color:#f1e9dc;background:#171819}*{box-sizing:border-box}body{margin:0}.toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:16px;padding:18px 24px;border-bottom:1px solid #38342e;background:#20201f}.brand{margin-right:auto}h1{font-size:16px;letter-spacing:.05em;margin:0;font-weight:730}.subtitle{color:#aaa194;font-size:11px;margin:5px 0 0}label{font-size:12px;color:#ada599;display:flex;align-items:center;gap:8px}select,button{color:#f5ede1;background:#31302d;border:1px solid #555047;border-radius:6px;padding:8px 11px;font:inherit;font-size:12px}button{cursor:pointer}select:focus,button:focus-visible{outline:2px solid #e2a07d}.info{padding:10px 24px;color:#b7ae9e;font-size:11px;background:#262321;border-bottom:1px solid #413b34}.info strong{color:#ffbd96}.stage{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:1460px;margin:auto;padding:16px}.panel{background:#242423;border:1px solid #464039;border-radius:10px;overflow:hidden;min-width:0}.panel header{display:flex;justify-content:space-between;align-items:center;padding:12px 15px;border-bottom:1px solid #464039;font-size:12px;font-weight:660;min-height:44px}.chip{font-size:10px;font-weight:600;color:#b7a994;background:#34302c;padding:4px 7px;border-radius:4px}.drawing{height:min(78vh,860px);min-height:460px;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 40%,#575047,#353431 75%);position:relative;overflow:hidden}.drawing canvas{width:100%;height:100%;display:block}.drawing img{width:100%;height:100%;object-fit:contain;image-rendering:auto}.missing{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#aaa396;font-size:12px;line-height:1.7;padding:30px;background:#36322e}.missing[hidden]{display:none}.stage.single{grid-template-columns:minmax(320px,810px);justify-content:center}.stage.single .ref{display:none}.bottom{max-width:1460px;margin:auto;padding:5px 22px 26px;color:#a9a093;font-size:12px;line-height:1.6}.bottom code{color:#e4c0a6}.visually-hidden{position:absolute;left:-9999px}@media(max-width:800px){.toolbar{padding:14px}.stage{grid-template-columns:1fr}.stage.single{grid-template-columns:1fr}.drawing{height:66vh}}
+</style></head><body>
+<div class="toolbar"><div class="brand"><h1>HERO–02 / DESENHO PROCEDURAL V1</h1><p class="subtitle">Canvas 2D autoral · pintura e poses pela mesma geometria · sem sprites no renderer</p></div>
+<label>Visualização <select id="mode"><option value="compare">01 · Comparação</option><option value="solo">02 · Procedural isolado</option><option value="joints">03 · Pivôs e articulações</option></select></label>
+<label>Enquadramento <select id="view"><option value="hero">Herói completo</option><option value="head">Apenas cabeça</option><option value="body">Corpo sem cabeça</option><option value="weapons">Armas</option></select></label>
+<label>Escala <select id="scale"><option value="1">Grande</option><option value="0.75">Intermediária</option><option value="0.45">Gameplay</option></select></label>
+<label>Pose <select id="pose"><option value="neutral">Idle</option><option value="run">Corrida · checkpoint</option><option value="attack">Ataque · checkpoint</option><option value="tpose">T · diagnóstico</option></select></label>
+<label>Direção <select id="orientation"><option value="S">Sul · frontal</option><option value="SE">Sudeste · provisória</option></select></label>
+<button id="capture">Salvar PNG procedural</button></div>
+<div class="info"><span id="boot" style="font-weight:700;color:#f5ce86">Inicializando Canvas…</span> · VERIFICAÇÃO: a referência é exibida em <strong>&lt;img&gt; separado</strong>, nunca desenhada no canvas procedural. Pivôs são guias. Corrida/ataque são poses estáticas da mesma pintura; integração real com RIG-01 ainda pendente. <span id="status"></span></div>
+<main id="stage" class="stage"><section class="panel ref"><header>Referência oficial <span class="chip">PNG original · somente comparação</span></header><div class="drawing"><img id="reference" alt="Referência oficial do HERO-02"><div class="missing" id="missing" hidden><div>Referência não encontrada automaticamente.<p>Coloque esta pasta dentro do projeto ou selecione o PNG oficial abaixo.</p><label style="display:block;margin:12px auto;color:#f1e9dc">Carregar referência local <input id="chooseRef" type="file" accept="image/png" style="display:block;margin:8px auto;max-width:240px"></label><button id="resetRef" type="button">Tentar caminho original</button></div></div></div></section><section class="panel"><header>Renderer procedural <span class="chip">Canvas 2D · código próprio</span></header><div class="drawing"><canvas id="hero" width="900" height="1050" aria-label="HERO-02 desenhado inteiramente por caminhos e pintura Canvas 2D"></canvas></div></section></main>
+<footer class="bottom">Referências preservadas em <code>../../assets/references/ref-2d-hero/</code>. Nenhum arquivo de referência é embutido ou convertido em pixels. <span id="metrics"></span></footer>
+<!-- BUILT_STANDALONE: do not edit compiled JS by hand; edit src/ and run tools/build_standalone.py -->
+<script id="standalone-code">
+// ===== src/geometry.js =====
+// Geometrias autorais locais. SVG path strings são interpretadas nativamente pelo Canvas Path2D.
+function shape(d){return new Path2D(d)}
+function stroke(ctx,d,color='#1b1011',w=3){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke(typeof d==='string'?shape(d):d);ctx.restore()}
+function fill(ctx,d,color){ctx.save();ctx.fillStyle=color;ctx.fill(typeof d==='string'?shape(d):d);ctx.restore()}
+function layer(ctx,x,y,angle,painter,scale=1){ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.scale(scale,scale);painter();ctx.restore()}
+function seeded(seed){let s=(seed>>>0)||1;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return(s>>>0)/4294967296}}
+function line(ctx,coords,color,w=2){ctx.save();ctx.beginPath();ctx.moveTo(coords[0],coords[1]);for(let i=2;i<coords.length;i+=2)ctx.lineTo(coords[i],coords[i+1]);ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineCap='round';ctx.stroke();ctx.restore()}
+const P={ink:'#211414',inkSoft:'#482827',skin:'#f1ad79',skinLight:'#ffdaa8',skinOrange:'#dd7849',skinDark:'#a95838',hair:'#332321',hairMid:'#624136',hairLight:'#a86d50',hairDeep:'#1d1719',red:'#a81317',redLight:'#eb2821',redShadow:'#630a13',leather:'#3a2524',leatherHi:'#77503b',metal:'#342b31',metalLight:'#d5aaa0',metalHot:'#dc512b',gold:'#866044',bone:'#e6d5b9',boneDark:'#967e6c'};
+
+// ===== src/materials.js =====
+
+// Pintura em camadas, material mate e ranhuras pseudoaleatórias fixas no espaço local.
+// O mesmo seed gera SEMPRE as mesmas marcas, mesmo se a peça for rotacionada futuramente.
+const defs={hair:{n:950,colors:['#aa684d','#d59670','#0d0a11','#684036','#d0a07a'],length:[3,20],width:[.6,2.35],direction:-.53},skin:{n:390,colors:['#ffe0aa','#b76747','#d98150','#ffebbb'],length:[2,9],width:[.45,1.6],direction:-.3},cloth:{n:640,colors:['#ec3a2e','#390b11','#fc6645','#9d171d'],length:[3,18],width:[.6,2.2],direction:.17},leather:{n:480,colors:['#926849','#1b1416','#bb7e57','#503024'],length:[2,16],width:[.5,2.1],direction:-.32},steel:{n:510,colors:['#ead3b4','#130f14','#b35b49','#656168'],length:[2,18],width:[.4,2],direction:-.85},bone:{n:160,colors:['#f4e4c9','#a48e7b','#fff0d6'],length:[2,8],width:[.5,1.4],direction:.1}};
+function material(ctx,d,{base,shadow,light,kind='leather',box=[-100,-100,200,200],seed=1,ink=3.5,texture=1,inner=[]}={}){
+ const path=shape(d); ctx.save();ctx.fillStyle=base;ctx.fill(path);
+ ctx.save();ctx.clip(path);
+ // Two large organic colour masses per shape are more convincing than a flat fill.
+ // Offset internal ink/paint contours are clipped locally, so they stay on the surface under rig transforms.
+ if(kind==='hair'||kind==='leather'||kind==='steel'){
+   ctx.save();ctx.translate(kind==='hair'?-9:6,kind==='hair'?13:7);
+   ctx.strokeStyle=kind==='hair'?'#160c12':kind==='steel'?'#130d13':'#170e13';
+   ctx.globalAlpha=kind==='hair'?.72:.38;ctx.lineWidth=kind==='hair'?32:17;ctx.stroke(path);
+   ctx.restore();
+   ctx.save();ctx.translate(kind==='hair'?8:-4,kind==='hair'?-8:-4);
+   ctx.strokeStyle=kind==='hair'?'#e1a07d':kind==='steel'?'#e7baa6':'#d99c71';
+   ctx.globalAlpha=kind==='hair'?.15:.15;ctx.lineWidth=kind==='hair'?15:9;ctx.stroke(path);
+   ctx.restore();
+ }
+ for(const it of inner){ctx.fillStyle=it[1];ctx.fill(shape(it[0]))}
+ const def=defs[kind],rand=seeded(seed),[x,y,w,h]=box;
+ // Manchas pintadas em baixa opacidade, sem ruído de pixel dependente do frame.
+ if(shadow){ctx.globalAlpha=.11;ctx.fillStyle=shadow;for(let i=0;i<def.n/7;i++){const px=x+rand()*w,py=y+rand()*h,r=5+rand()*20;ctx.beginPath();ctx.ellipse(px,py,r,r*(.25+rand()*.4),rand()*3,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1}
+ for(let i=0;i<Math.round(def.n*texture);i++){
+   const px=x+rand()*w,py=y+rand()*h,lg=def.length[0]+rand()*(def.length[1]-def.length[0]);
+   const a=def.direction+(kind==='hair'?((seed%9)-4)*.155:0)+(rand()-.5)*1.55;ctx.strokeStyle=def.colors[Math.floor(rand()*def.colors.length)];
+   ctx.globalAlpha=.10+rand()*.46;ctx.lineWidth=def.width[0]+rand()*(def.width[1]-def.width[0]);
+   ctx.beginPath();ctx.moveTo(px,py);ctx.quadraticCurveTo(px+lg*Math.cos(a)*.35+(rand()-.5)*3,py+lg*Math.sin(a)*.35,px+lg*Math.cos(a),py+lg*Math.sin(a));ctx.stroke();
+ }
+ // Fine painted hatching that follows the material flow, not a live random raster texture.
+ if(kind==='hair'||kind==='skin'||kind==='steel'){
+   const phase=((seed*17)%91)/91;
+   for(let i=0;i<(kind==='hair'?75:40);i++){
+    const xx=x+rand()*w,yy=y+rand()*h,lg=5+rand()*(kind==='hair'?46:23);
+    const ang=def.direction+(kind==='hair'?((seed%9)-4)*.155:0)+(rand()-.5)*.5;
+    ctx.globalAlpha=(kind==='hair'?.06:.04)+rand()*(kind==='hair'?.26:.17);
+    ctx.lineWidth=.7+rand()*2.9;ctx.strokeStyle=kind==='hair'?(i%4===0?'#d39a72':'#211217'):kind==='skin'?'#ed884f':i%3?'#f3a87b':'#170e13';
+    ctx.beginPath();ctx.moveTo(xx,yy);
+    ctx.bezierCurveTo(xx+Math.cos(ang)*lg*.34,yy+Math.sin(ang)*lg*.33-3,xx+Math.cos(ang)*lg*.66,yy+Math.sin(ang)*lg*.66+2,xx+Math.cos(ang)*lg,yy+Math.sin(ang)*lg);
+    ctx.stroke();
+   }
+ }
+ ctx.globalAlpha=1;ctx.restore();
+ if(light)stroke(ctx,d,light,.65);
+ stroke(ctx,d,P.ink,ink);
+ // Aresta intencionalmente instável, com trechos de tinta e reforços sobrepostos.
+ ctx.save();ctx.globalAlpha=.28;ctx.strokeStyle='#0f0c12';ctx.lineWidth=ink*1.7;ctx.setLineDash([7,16,3,28]);ctx.lineDashOffset=seed%37;ctx.stroke(path);ctx.restore();
+ ctx.save();ctx.globalAlpha=.48;ctx.strokeStyle='#9e624b';ctx.lineWidth=Math.max(.6,ink*.28);ctx.setLineDash([13,9,3,28]);ctx.lineDashOffset=(seed*7)%23;ctx.stroke(path);ctx.restore();
+ ctx.restore();
+}
+function scratches(ctx,arr,color='#d29a72',width=1.6){for(const d of arr)stroke(ctx,d,color,width)}
+function chains(ctx,x1,y1,x2,y2,dir=1){
+ // Corrente de elos encaixados ao longo de arco, não pontos desconectados.
+ const sag=dir*87;
+ const bez=t=>{const u=1-t;return [u*u*x1+2*u*t*((x1+x2)/2)+t*t*x2,u*u*y1+2*u*t*(Math.max(y1,y2)+sag)+t*t*y2]};
+ const positions=[];let last=bez(0);positions.push(last);
+ for(let i=1;i<=350;i++){const p=bez(i/350);if(Math.hypot(p[0]-last[0],p[1]-last[1])>=7.6){positions.push(p);last=p}}
+ ctx.save();for(let i=0;i<positions.length;i++){
+ const [x,y]=positions[i],before=positions[Math.max(0,i-1)],after=positions[Math.min(positions.length-1,i+1)];
+ const a=Math.atan2(after[1]-before[1],after[0]-before[0]);
+ ctx.save();ctx.translate(x,y);ctx.rotate(a+((i%2)? .33:-.33));ctx.lineWidth=4.7;ctx.strokeStyle='#1e1515';ctx.beginPath();ctx.ellipse(0,0,7.8,5.1,0,0,Math.PI*2);ctx.stroke();ctx.lineWidth=2.2;ctx.strokeStyle=(i%2)?'#af7553':'#75472f';ctx.stroke();ctx.lineWidth=1;ctx.strokeStyle='#dbad7c';ctx.beginPath();ctx.ellipse(-.8,-.6,6.1,3.2,0,Math.PI*1.06,Math.PI*1.90);ctx.stroke();ctx.restore();
+ }ctx.restore();
+}
+
+// ===== src/rig-adapter.js =====
+// RIG-01-compatible 2D static-pose adapter. This is NOT the real external RIG-01 engine.
+// Contract: an actual rig must supply rotations for anatomical anchors in this coordinate space.
+const ARM_SHOULDER=[143,594];
+const ARM_FIST=[145,175];
+const ANGLES={neutral:[0,0],tpose:[-.68,-.68],run:[.35,-.43],attack:[-.18,-1.11],idle:[0,0]};
+function armAngle(pose,side){
+ const v=ANGLES[pose]??ANGLES.neutral;
+ return side<0?v[0]:v[1];
+}
+function shoulderHand(side,pose){
+ const a=armAngle(pose,side),[x,y]=ARM_FIST;const cs=Math.cos(a),sn=Math.sin(a);
+ return [side*(ARM_SHOULDER[0]+x*cs-y*sn),ARM_SHOULDER[1]+x*sn+y*cs];
+}
+// Provide no-op fallback for head/body in case external rig is unavailable.
+function localBodyPose(pose){return {
+ headShift:pose==='run'?[-4,-13]:pose==='attack'?[8,4]:[0,0],
+ torsoAngle:pose==='attack'?.045:pose==='run'?-.035:0,
+ leftLegAngle:pose==='run'?.09:0,rightLegAngle:pose==='run'?-.09:0
+}}
+// RIG-01.1 produces 3D joint coordinates (shoulderL/R, elbowL/R, wristL/R etc).
+// This converts a snapshot to PART-local arm angles without creating new anatomical painters.
+function adaptRig01Snapshot(data){
+ if(!data?.joints)return null;
+ const p=data.joints,angles={};
+ for(const [side,suffix] of [['left','L'],['right','R']]){
+   const a=p['shoulder'+suffix],w=p['wrist'+suffix];
+   if(!a||!w)continue;
+   const sign=side==='left'?-1:1;
+   // +Z in RIG-01 maps to upward canvas (-Y); +Y depth compresses into 3/4 screen projection.
+   angles[side]=Math.atan2(-(w.z-a.z),sign*(w.x-a.x)+.001);
+ }
+ return Object.keys(angles).length===2?angles:null;
+}
+
+// ===== src/head.js =====
+
+
+const hair=(ctx,d,seed,box,base=P.hair,detail=[])=>{
+ material(ctx,d,{base,shadow:P.hairDeep,light:'#6e493c',kind:'hair',seed,box,ink:3.9,texture:1.15});
+ scratches(ctx,detail,'#b77c5e',1.75);
+};
+function paintHead(ctx){
+ ctx.save();
+ // Massa de cabelo traseira: silhueta recortada, sem círculos elementares.
+ hair(ctx,'M -228 210 C -278 202 -300 165 -328 150 L -274 125 Q -296 98 -288 68 Q -210 108 -150 99 L -187 39 Q -93 55 -48 75 Q -40 8 -28 0 Q 79 33 135 93 L 164 25 Q 205 59 210 128 L 253 93 Q 288 120 260 159 L 312 158 Q 291 214 247 228 L 314 256 L 256 277 L 299 326 L 257 334 L 289 380 L 234 370 L 217 457 Q 0 497 -226 460 L -256 402 L -306 416 Q -293 359 -271 341 L -318 333 L -286 286 L -337 256 Z',81,[-343,0,660,482],P.hairDeep);
+ // Mechas traseiras inclinadas à esquerda, cada uma com volume próprio.
+ hair(ctx,'M -71 211 Q -172 176 -254 91 Q -266 136 -213 200 Q -180 235 -99 249 Z',11,[-267,85,195,162],P.hair,[ 'M -239 119 Q -210 161 -160 183','M -229 140 Q -184 193 -138 209']);
+ hair(ctx,'M -114 239 Q -248 187 -331 151 Q -306 218 -238 244 Q -290 246 -333 255 Q -268 303 -152 290 Z',12,[-330,145,220,170],P.hairMid,['M -291 192 Q -224 235 -158 248','M -298 257 Q -244 273 -197 271']);
+ hair(ctx,'M -123 247 Q -225 259 -311 331 Q -239 335 -187 313 Q -238 351 -299 404 Q -197 396 -123 324 Z',13,[-305,245,192,163],P.hair,['M -269 320 Q -223 290 -169 279','M -254 389 Q -204 352 -150 330']);
+ hair(ctx,'M 126 244 Q 219 197 309 161 Q 299 235 227 266 Q 292 260 309 296 Q 259 335 178 317 Z',14,[116,155,200,171],P.hairMid,['M 286 183 Q 242 223 195 241','M 290 292 Q 250 302 210 298']);
+ hair(ctx,'M 147 307 Q 235 299 294 376 L 224 367 L 249 423 Q 184 406 130 347 Z',15,[120,290,175,140],P.hair,['M 261 363 Q 227 337 188 329']);
+ // Orelhas pintadas, fora da máscara facial.
+ material(ctx,'M -158 366 C -209 349 -220 404 -196 445 Q -171 475 -135 457 L -125 389 Z',{base:'#ea8f60',shadow:P.skinDark,kind:'skin',seed:202,box:[-216,347,91,125],ink:3.6,inner:[['M -181 389 Q -205 401 -184 439 Q -161 447 -154 413 Z','#cc6c4e'],['M -173 397 Q -186 407 -170 430','#f9b27c']]});
+ material(ctx,'M 155 364 C 211 349 225 400 204 443 Q 179 477 136 449 L 128 393 Z',{base:'#f6a36e',shadow:P.skinDark,kind:'skin',seed:205,box:[128,345,95,132],ink:3.6,inner:[['M 175 390 Q 206 389 200 417 Q 196 448 168 443 Q 182 421 175 390 Z','#d77851']]});
+ // Face pintada, menor que o crânio de cabelo; queixo baixo e achatado.
+ material(ctx,'M -141 297 Q -186 338 -177 433 Q -176 488 -117 518 Q -72 542 0 543 Q 92 545 148 506 Q 181 478 178 414 Q 186 337 131 298 Q 45 273 -44 282 Q -112 281 -141 297 Z',{base:'#f7ac71',shadow:'#c56c49',light:'#fbbe86',kind:'skin',box:[-185,280,371,270],seed:218,ink:4.4,texture:1.3,inner:[['M -161 441 Q -139 503 -70 520 Q 7 544 88 517 Q 148 491 167 452 L 164 487 Q 108 555 -9 540 Q -127 542 -166 477 Z','#e78a54'],['M -148 316 Q -103 295 -65 297 L -102 333 Z','#ffd3a0'],['M 53 297 Q 105 286 147 323 Q 105 306 86 318 Z','#ffd19a']]});
+ // Volumes nas bochechas, cicatriz e sombra sob a franja.
+ fill(ctx,'M -159 438 Q -144 478 -105 478 Q -138 491 -165 467 Z','#e88659');fill(ctx,'M 153 439 Q 148 479 113 490 L 159 464 Z','#e78755');
+ stroke(ctx,'M -93 493 L -77 498','#e18b5d',2);stroke(ctx,'M 99 471 L 115 464','#cf7451',1.4);
+ // Brancos dos olhos NÃO redondos: olhos incisivos / angulados.
+ material(ctx,'M -118 389 Q -95 376 -50 386 Q -44 414 -59 440 Q -94 452 -115 428 Z',{base:'#f3e4d1',kind:'bone',box:[-118,386,77,67],seed:228,ink:3});
+ material(ctx,'M 38 387 Q 83 369 126 389 L 112 431 Q 88 454 55 440 Z',{base:'#f6e8d4',kind:'bone',box:[37,386,94,68],seed:231,ink:3});
+ // Íris escarlates, pupilas estreitas, reflexos mínimos.
+ material(ctx,'M -110 389 Q -87 383 -58 389 Q -57 416 -75 439 Q -97 445 -108 423 Z',{base:'#b81323',shadow:'#5f0610',kind:'cloth',box:[-111,385,61,61],seed:243,ink:2.6,texture:.65});
+ material(ctx,'M 52 387 Q 80 375 113 387 Q 117 413 96 437 Q 73 447 55 425 Z',{base:'#b91320',shadow:'#630b10',kind:'cloth',box:[52,378,65,65],seed:246,ink:2.6,texture:.65});
+ fill(ctx,'M -89 393 Q -80 389 -79 398 L -80 431 L -91 427 Z','#4e0916');fill(ctx,'M 82 390 Q 94 390 94 401 L 90 432 L 82 432 Z','#4d0a17');
+ fill(ctx,'M -106 393 L -101 390 L -101 405 Z','#e6625a');fill(ctx,'M 107 394 L 113 395 L 107 408 Z','#e36b58');
+ // Sobrancelhas angulares cortam a base da franja; expressão canônica séria.
+ fill(ctx,'M -137 377 Q -115 365 -98 369 L -33 392 L -62 392 L -104 383 L -128 388 Z',P.hairDeep);
+ fill(ctx,'M 23 394 Q 68 358 127 361 L 133 369 Q 90 371 46 401 Z',P.hairDeep);
+ stroke(ctx,'M -137 378 Q -103 367 -64 382','#8a4638',1.6);stroke(ctx,'M 58 381 Q 105 366 129 367','#875044',1.2);
+ // Nariz e boca discretos, sem sorriso genérico.
+ fill(ctx,'M -7 441 Q -1 434 4 439 L 6 444 Q -1 452 -7 446 Z','#d87b50');stroke(ctx,'M -19 484 Q 2 479 23 480','#382022',3.5);stroke(ctx,'M -17 486 Q 0 483 19 484','#bd6852',.85);
+ // Camadas frontais enormes sobrepostas e NÃO mechas isósceles.
+ hair(ctx,'M -21 148 Q -49 158 -111 189 Q -196 232 -245 357 Q -206 337 -182 334 Q -213 376 -250 427 Q -154 379 -111 313 Q -51 253 3 214 Z',31,[-255,141,261,295],P.hair,[ 'M -13 173 Q -100 190 -179 303','M -34 205 Q -96 253 -176 363','M -80 214 Q -132 273 -200 336','M -119 261 Q -166 329 -215 388']);
+ hair(ctx,'M -16 117 Q -110 91 -201 46 Q -202 131 -129 194 Q -83 226 -34 231 L 23 177 Z',32,[-205,40,230,198],P.hairMid,['M -182 83 Q -151 140 -83 183','M -170 109 Q -115 174 -55 199']);
+ hair(ctx,'M -12 144 Q -74 110 -46 6 Q 46 30 121 112 Q 149 157 134 205 L 76 185 Q 31 140 -12 144 Z',33,[-56,3,198,213],P.hairMid,['M -30 28 Q 2 99 87 150','M -14 21 Q 53 63 112 124','M 5 67 Q 48 111 116 157']);
+ hair(ctx,'M 117 173 Q 140 120 176 37 Q 222 91 197 167 Q 181 202 145 227 Z',34,[111,31,117,200],P.hair,['M 177 63 Q 193 116 166 174','M 165 108 Q 162 149 147 192']);
+ hair(ctx,'M 150 204 Q 212 137 270 110 Q 265 185 208 229 Q 255 217 299 231 Q 262 277 189 276 Z',35,[147,107,152,172],P.hairMid,['M 258 137 Q 225 202 176 234','M 261 243 Q 218 261 186 262']);
+ hair(ctx,'M 68 177 Q 114 171 177 201 Q 215 255 198 344 Q 164 310 145 283 Q 145 329 145 390 Q 110 356 99 330 Q 50 267 68 177 Z',36,[59,175,167,226],P.hair,['M 95 199 Q 157 228 175 314','M 120 208 Q 158 248 163 291','M 121 274 Q 134 315 136 348']);
+ hair(ctx,'M -69 188 Q -27 154 53 171 Q 66 219 26 290 Q -17 344 -61 389 L -109 426 Q -91 369 -88 330 Q -119 359 -159 397 Q -142 295 -69 188 Z',37,[-161,161,225,268],P.hairMid,['M 24 189 Q -56 237 -105 346','M 37 215 Q -28 283 -83 377','M 5 226 Q -38 257 -103 366','M -29 209 Q -91 263 -131 349']);
+ // Fios agudos sobre os cantos dos olhos.
+ fill(ctx,'M -166 341 Q -148 365 -119 403 Q -147 391 -167 380 Z','#26181a');
+ fill(ctx,'M 180 329 Q 163 370 133 407 Q 141 360 159 330 Z','#2a1a1c');
+ // Pequenos rabiscos de tinta independentes (registrados no espaço da cabeça).
+ scratches(ctx,['M -205 298 L -191 284','M 207 292 L 226 268','M -151 405 L -160 426','M -51 123 L -38 145','M 232 200 L 242 186'],'#bc7957',1.4);
+ ctx.restore();
+}
+
+// ===== src/body.js =====
+
+
+
+const ANCHORS={neck:[0,531],leftShoulder:[-147,600],rightShoulder:[147,600],leftElbow:[-222,662],rightElbow:[222,662],leftWrist:[-279,752],rightWrist:[279,752],hip:[0,751],leftHip:[-89,754],rightHip:[89,754],leftKnee:[-103,862],rightKnee:[103,862],leftAnkle:[-104,938],rightAnkle:[104,938],leftWeapon:[-283,752],rightWeapon:[283,752],scarf:[25,530],cape:[121,542]};
+const skin=(ctx,d,seed,box)=>material(ctx,d,{base:P.skin,shadow:P.skinDark,light:'#ffcb91',kind:'skin',seed,box,ink:3.4,texture:1.15});
+const leather=(ctx,d,seed,box,base=P.leather)=>material(ctx,d,{base,shadow:'#150f15',kind:'leather',seed,box,ink:3.4,texture:1.15});
+const cloth=(ctx,d,seed,box,base=P.red)=>material(ctx,d,{base,shadow:P.redShadow,kind:'cloth',seed,box,ink:3.5,texture:1.1});
+function paintCape(ctx){
+ cloth(ctx,'M 105 536 Q 171 528 198 574 Q 268 608 334 629 L 397 648 Q 357 652 375 683 L 425 724 Q 357 704 318 715 L 375 765 Q 291 736 236 735 L 277 791 Q 204 766 179 717 Q 118 695 92 620 Z',401,[90,532,341,263],P.red);
+ fill(ctx,'M 152 569 Q 243 621 338 654 Q 276 659 224 640 Q 303 684 344 713 Q 248 694 177 648 Z','#dd1719');
+ fill(ctx,'M 190 631 Q 260 680 374 713 L 345 711 Q 274 695 228 683 Z','#6e0713');
+ scratches(ctx,['M 160 576 Q 244 614 334 641','M 193 607 Q 266 648 358 667','M 169 651 Q 245 694 330 708','M 209 686 Q 258 722 294 732'],'#ed4632',3);
+}
+function paintLegs(ctx,pose='neutral'){for(const side of [-1,1])paintLeg(ctx,side,pose)}
+function paintLeg(ctx,side,pose='neutral'){
+ ctx.save();ctx.translate(side*89,754);ctx.scale(side,1);ctx.rotate(pose==='run'?(side<0?.11:-.11):pose==='attack'?(side<0?-.08:.08):0);ctx.translate(-89,-754);
+ skin(ctx,'M 46 780 Q 96 769 142 796 L 151 848 Q 134 896 111 918 L 60 915 Q 53 869 42 836 Z',500+(side+1)*10,[39,780,120,146]);
+ // dark wrapped greaves and massive layered boots.
+ leather(ctx,'M 58 836 Q 103 825 148 838 Q 168 876 154 926 L 163 994 Q 129 1033 38 1019 Q 20 983 41 948 Z',520+(side+1)*10,[24,823,149,209],'#3a2725');
+ material(ctx,'M 43 951 Q 82 921 125 942 Q 174 948 183 985 Q 190 1016 150 1025 L 30 1021 Q 19 996 43 951 Z',{base:'#4c312d',shadow:'#221718',kind:'leather',box:[23,922,170,106],seed:542+(side+1)*3,ink:4.2});
+ // Toe patches: angular stitched leather rather than smooth oval.
+ leather(ctx,'M 54 974 Q 77 949 118 950 Q 155 956 162 987 L 151 1005 L 45 1005 Q 41 987 54 974 Z',565+(side+1)*8,[44,946,121,63],'#72503b');
+ stroke(ctx,'M 39 1010 Q 92 1019 178 1007','#130f13',8);stroke(ctx,'M 36 1012 Q 91 1026 172 1017','#ab7451',2.8);
+ // Múltiplas tiras de couro por cima da canela, sobrepostas.
+ for(let i=0;i<4;i++){
+ const y=850+i*24;
+ leather(ctx,`M ${49-i*2} ${y} Q 98 ${y-16} ${152+i} ${y-9} L ${153+i} ${y+6} Q 102 ${y+1} ${44-i} ${y+22} Z`,590+i+(side+1)*5,[40,y-17,123,42]);
+ stroke(ctx,`M 51 ${y+5} Q 102 ${y-8} 143 ${y-5}`,'#ac7251',1.45);
+ }
+ scratches(ctx,['M 66 980 L 109 956','M 88 998 L 129 983','M 57 1003 L 79 1001'],'#bb845e',1.2);
+ ctx.restore();
+}
+function paintTorso(ctx){
+ // Torso descoberto, escapular e peitoral modelados manualmente, não cápsula.
+ skin(ctx,'M -132 574 Q -156 586 -155 635 L -123 691 Q -116 737 -75 750 Q -14 773 69 749 Q 126 734 135 681 Q 155 609 124 574 Q 79 560 44 572 Q -11 587 -54 572 Q -102 556 -132 574 Z',602,[-158,560,312,212]);
+ fill(ctx,'M -126 621 Q -76 602 -22 622 Q -44 668 -102 671 Q -129 649 -126 621 Z','#ffd09a');
+ fill(ctx,'M 13 618 Q 83 605 117 624 Q 118 656 68 670 Q 18 670 13 618 Z','#ffd09a');
+ fill(ctx,'M -120 648 Q -87 674 -34 662 L -56 693 Q -103 706 -127 672 Z','#d57a53');
+ fill(ctx,'M 113 648 Q 85 672 38 667 L 56 690 Q 100 694 123 667 Z','#d37a51');
+ fill(ctx,'M -32 672 L -1 683 L 32 668 L 20 704 L -9 718 L -29 703 Z','#d98157');
+ fill(ctx,'M -71 715 Q -35 703 -7 716 Q 28 704 74 706 L 68 735 Q 28 745 1 738 Q -43 744 -70 732 Z','#e18b5f');
+ stroke(ctx,'M -119 630 Q -75 651 -20 647','#ae5a43',2.4);stroke(ctx,'M 19 646 Q 81 651 112 630','#aa533d',2.4);
+ stroke(ctx,'M -3 636 Q -9 674 -1 694','#ae5c45',2.1);stroke(ctx,'M -40 697 Q -14 687 0 698 Q 17 690 42 697','#ad5e46',2.2);
+ stroke(ctx,'M -64 723 Q -23 714 0 722 Q 28 717 65 716','#b66f4e',2.2);
+ // Abdômen com quatro volumes e sombras irregulares, nunca um único preenchimento liso.
+ fill(ctx,'M -55 684 Q -36 692 -9 684 L -13 702 Q -34 713 -58 703 Z','#f3b47e');
+ fill(ctx,'M 7 684 Q 33 695 56 682 L 57 702 Q 37 714 12 705 Z','#ffbe87');
+ fill(ctx,'M -50 707 Q -31 714 -8 708 L -9 724 Q -37 733 -49 721 Z','#eaa06b');
+ fill(ctx,'M 11 710 Q 30 713 50 706 L 47 723 Q 24 736 14 724 Z','#e99a66');
+ stroke(ctx,'M -60 706 Q -36 708 -14 706 M 12 706 Q 41 710 59 703','#b66b4d',2.25);
+ stroke(ctx,'M -62 730 Q -31 737 -4 729 M 7 729 Q 31 737 61 727','#b4714e',1.8);
+ stroke(ctx,'M -30 674 Q -20 689 -20 704 M 34 672 Q 26 691 29 703','#d47750',1.5);
+
+ fill(ctx,'M -88 635 Q -83 629 -78 639 Q -81 646 -87 642 Z','#b97856');fill(ctx,'M 84 637 Q 92 628 96 640 Q 95 647 87 646 Z','#b97856');
+}
+// Braços recebem transformada local no OMBRO. O T-pose é apenas um parâmetro estático.
+function paintArm(ctx,side,pose='neutral'){
+ ctx.save();ctx.translate(side*143,594);ctx.scale(side,1);
+ // deslocamento da geometria da peça (braço direito tem orientação positiva local)
+ ctx.rotate(armAngle(pose,side));
+ skin(ctx,'M -4 -12 Q 20 -18 42 11 Q 70 50 71 76 L 112 120 Q 130 139 143 159 Q 125 192 90 185 L 55 137 Q 32 109 15 84 Q -5 62 -17 24 Z',700+side*3,[-20,-20,170,215]);
+ fill(ctx,'M 23 19 Q 59 53 48 84 Q 33 88 25 70 Z','#ffc18c');
+ fill(ctx,'M 51 81 Q 71 89 78 113 L 66 126 L 50 105 Z','#bb6a4c');
+ stroke(ctx,'M 40 35 Q 65 65 53 89','#ce714b',2);
+ // Camadas sobre o antebraço. Textura preso à superfície local.
+ for(let i=0;i<4;i++){
+   const d=[
+   'M 52 79 Q 75 67 92 91 L 101 104 Q 83 100 65 113 L 55 106 Z',
+   'M 66 103 Q 88 88 107 115 L 118 129 Q 97 121 80 141 Z',
+   'M 83 128 Q 101 112 122 133 L 131 147 Q 113 145 97 162 Z',
+   'M 99 152 Q 116 135 137 153 L 144 169 Q 128 162 112 183 Z'
+   ][i];leather(ctx,d,721+i*7+side*7,[52+i*16,65+i*24,96,65],i%2?'#402c29':'#392625');
+ }
+ // Punching fist, not an oval fist.
+ // Wrist underlying the gripping hand is drawn here; outer fingers are painted over the grip.
+ skin(ctx,'M 117 146 Q 143 134 164 154 Q 175 171 160 187 L 125 196 Q 101 183 109 162 Z',782+side*4,[101,140,77,69]);
+ stroke(ctx,'M 149 157 Q 140 172 146 188','#a85b3e',2.5);stroke(ctx,'M 160 162 Q 154 174 158 181','#bd6945',1.9);
+ leather(ctx,'M 113 159 L 133 149 L 142 162 L 121 186 L 107 178 Z',793+side*3,[104,145,43,47]);
+ ctx.restore();
+}
+function paintCloth(ctx){
+ // Saiote irregular de tecido pesado, em múltiplos panos individuais.
+ leather(ctx,'M -120 747 Q -42 755 2 752 Q 62 757 121 747 L 134 781 L 120 825 L 84 817 L 69 853 L 37 832 L 10 874 L -12 842 L -51 862 L -61 835 L -101 840 L -92 818 L -131 801 Z',807,[-134,739,275,143],'#382829');
+ fill(ctx,'M -107 773 L -89 830 L -61 809 L -46 858 L -30 792 L -7 853 L 23 786 L 44 838 L 79 782 L 106 816 L 112 758 Z','#271c1f');
+ scratches(ctx,['M -111 785 L -86 813','M -73 784 L -55 821','M -20 777 L -19 815','M 28 779 L 38 808','M 94 783 L 81 823'],'#876252',2.5);
+ // Bandanas vermelhas rasgadas abaixo do cinto.
+ cloth(ctx,'M -89 737 Q -35 724 -10 752 L -47 840 L -57 808 L -75 822 L -66 784 L -110 803 Z',811,[-112,720,110,132]);
+ cloth(ctx,'M -11 749 L 42 745 Q 23 821 8 881 L -4 846 L -16 858 L -25 791 Z',812,[-27,743,72,139],P.redLight);
+ cloth(ctx,'M 42 749 L 108 741 L 119 793 L 83 777 L 75 813 L 61 776 L 45 798 Z',813,[35,739,91,80],P.red);
+ // Cinto com faixas grossas, esquerda/direita e correntes.
+ leather(ctx,'M -123 728 Q -57 715 2 722 Q 70 715 128 730 L 123 757 Q 69 746 0 752 Q -58 750 -119 763 Z',831,[-125,713,257,53],'#302022');
+ cloth(ctx,'M -126 727 Q -45 710 -5 730 L -4 745 Q -80 734 -127 749 Z',833,[-127,709,124,43],P.red);
+ cloth(ctx,'M 8 729 Q 67 709 123 730 L 129 749 Q 66 728 8 748 Z',834,[7,709,124,40]);
+ chains(ctx,-65,762,-151,790,1);chains(ctx,63,764,150,792,1);
+ // ÚNICA caveira do herói, no centro do cinto. Não reaparece em outra região.
+ material(ctx,'M -34 712 Q -23 695 -1 697 Q 23 696 35 717 Q 40 736 25 748 L 19 761 L 12 758 L 8 766 L -1 760 L -11 766 L -16 756 L -24 762 L -26 747 Q -45 736 -34 712 Z',{base:P.bone,shadow:P.boneDark,kind:'bone',box:[-44,696,82,71],seed:851,ink:3.6});
+ fill(ctx,'M -28 724 Q -22 713 -11 719 Q -5 730 -17 738 L -26 735 Z','#241a1c');fill(ctx,'M 10 721 Q 24 712 31 722 L 23 740 Q 10 738 10 721 Z','#241a1c');fill(ctx,'M -4 738 L 0 732 L 7 742 Q 0 748 -4 738 Z','#2b1a1c');
+ stroke(ctx,'M -11 749 L -10 757 M -1 748 L 0 759 M 9 749 L 10 757','#59413b',2);
+}
+function paintScarf(ctx){
+ cloth(ctx,'M -128 508 Q -67 517 0 520 Q 86 514 133 503 L 143 544 Q 98 595 16 610 Q -71 614 -131 564 L -152 549 Z',904,[-158,496,306,122],P.redLight);
+ fill(ctx,'M -135 541 Q -66 579 16 583 Q 96 580 139 539 L 126 564 Q 50 612 -26 596 Q -104 588 -141 559 Z','#800b16');
+ cloth(ctx,'M -131 552 Q -61 574 5 569 Q 95 568 132 545 L 120 574 Q 45 622 -45 599 Q -105 591 -131 568 Z',906,[-135,538,268,76]);
+ fill(ctx,'M -114 558 Q -56 580 5 578 Q 78 579 117 552 Q 89 582 25 588 Q -73 592 -114 570 Z','#ef3327');
+ stroke(ctx,'M -133 542 Q -33 576 128 535','#5b0910',3.5);stroke(ctx,'M -106 585 Q 1 614 111 580','#f84736',2.3);
+ scratches(ctx,['M -93 550 L -58 558','M -63 577 L -14 590','M 37 581 L 79 567','M -104 566 L -75 575'],'#ff6147',1.8);
+}
+
+// ===== src/weapons.js =====
+
+
+
+// Weapon local coordinate space: 0,0 at center of palm. Positive X points OUTWARD.
+// Blade is deliberately one broad crescent with hooked upper/lower tips, not separate floating spikes.
+function blade(ctx,side){
+ const outer='M 86 -26 Q 115 -40 136 -59 L 155 -86 Q 159 -49 178 -41 Q 194 -45 205 -81 Q 211 -56 223 -48 Q 245 -77 256 -165 Q 308 -125 318 -62 Q 333 32 284 111 Q 242 171 178 185 Q 212 138 211 89 Q 204 51 188 59 L 177 91 Q 163 82 156 60 Q 145 43 132 47 L 118 62 Q 109 32 87 23 Z';
+ material(ctx,outer,{base:'#32262b',shadow:'#140e13',kind:'steel',box:[86,-170,244,350],seed:1280+(side+1),ink:5.1,texture:2.15,inner:[
+  ['M 92 -20 Q 127 -30 155 -57 Q 173 -24 179 -16 Q 223 -40 254 -145 Q 246 -79 276 -25 Q 270 28 239 63 Q 182 51 146 37 L 102 15 Z','#61504e'],
+  ['M 259 -159 Q 309 -107 308 -42 Q 306 47 258 112 Q 280 54 282 -24 Q 282 -94 259 -159 Z','#d2b6ad'],
+  ['M 259 -144 Q 307 -91 310 -25 Q 313 77 196 172 Q 233 116 252 67 Q 293 -33 277 -98 Z','#a51b1b'],
+  ['M 282 -116 Q 336 -32 310 68 Q 273 156 179 181 Q 221 132 257 62 Q 308 -24 282 -116 Z','#ee481e'],
+  ['M 291 -72 Q 334 6 290 90 Q 261 139 187 180 Q 245 120 275 46 Q 309 -20 291 -72 Z','#ff9d1b'],
+  ['M 142 40 Q 189 19 253 41 Q 248 98 201 154 Q 223 82 183 70 Z','#b21419'],
+  ['M 157 39 Q 189 35 214 81 L 194 140 Q 206 87 157 39 Z','#d92620'],
+  ['M 140 0 Q 190 -20 235 -3 Q 265 24 256 72 Q 233 56 204 45 Q 172 24 132 27 Z','#64302c'],
+  ['M 164 16 L 194 22 L 225 59 L 203 53 Z','#9c1e1b'],
+  ['M 115 -8 Q 152 -35 201 -18 Q 154 0 121 6 Z','#a98f8a']
+ ]});
+ // Inner serrations: teeth are cut INTO the hooked edge rather than disconnected triangles.
+ fill(ctx,'M 145 -66 Q 141 -37 155 -32 Q 170 -28 187 -52 Q 177 -20 156 -22 Q 141 -31 145 -66 Z','#211920');
+ fill(ctx,'M 205 -77 Q 200 -41 215 -38 Q 231 -39 247 -75 Q 246 -38 222 -24 Q 200 -24 205 -77 Z','#211920');
+ stroke(ctx,'M 140 -52 Q 149 -18 168 -26 M 198 -55 Q 194 -21 215 -28 M 221 -7 Q 244 -31 251 -74','#d5a299',2.8);
+ // Molten lower rim and handmade scabbed steel, all clipped to the silhouette.
+ ctx.save();ctx.clip(new Path2D(outer));
+ for(let i=0;i<6;i++){
+   const yy=5+i*20,xx=170+i*7;
+   fill(ctx,`M ${xx-11} ${yy} L ${xx+5} ${yy-10} L ${xx+18} ${yy+7} L ${xx+4} ${yy+17} Z`,i%2?'#b01619':'#631216');
+   stroke(ctx,`M ${xx-6} ${yy+5} L ${xx+6} ${yy-6} L ${xx+13} ${yy+4}`,i%2?'#ff5421':'#f3a13f',i%2?2:2.6);
+ }
+ // Molten pitting and irregular distressed metal patches across the broad inner body.
+ for(let i=0;i<44;i++){
+  const a=i*2.39996323,rr=Math.sqrt((i+1)/44);const x=219+rr*Math.cos(a)*96,y=19+rr*Math.sin(a)*110;
+  const length=4+(i*7)%23;stroke(ctx,`M ${x.toFixed(1)} ${y.toFixed(1)} l ${length.toFixed(1)} ${(-length*.6).toFixed(1)}`,i%3===0?'#fc6827':i%3===1?'#270e18':'#b53024',1.7+(i%4)*.45);
+ }
+ // Corroded metal relief and painterly directional scratches on top of the existing steel texture.
+ scratches(ctx,['M 264 -129 Q 285 -91 281 -55','M 262 -92 L 271 -48','M 251 -35 L 272 1','M 267 23 Q 254 84 213 124','M 236 45 L 224 80','M 185 21 L 213 31','M 172 -12 L 197 -3','M 169 82 L 190 98','M 186 112 L 200 119'], '#ffc3a3',2.1);
+ scratches(ctx,['M 253 -111 Q 261 -65 252 -40','M 254 10 L 238 61','M 244 76 L 217 117','M 200 57 L 214 85','M 150 -7 L 179 3'], '#1a1117',3.0);
+ ctx.restore();
+ // Noticeable hard edge highlights; intentionally not animated flames.
+ stroke(ctx,'M 255 -163 Q 289 -132 308 -86','#ffe3c4',3);
+ stroke(ctx,'M 311 -44 Q 330 58 231 154','#f5a65b',4);
+ stroke(ctx,'M 231 154 Q 204 177 179 184','#ffb34c',3);
+}
+function grip(ctx,side){
+ // Grip attached to palm with visible pommel, wrapped leather and guard.
+ material(ctx,'M -21 -13 Q -17 -20 -6 -16 L 98 -19 L 105 -7 L 100 16 L -10 16 Q -25 11 -21 -13 Z',{base:'#302227',shadow:'#0c0b10',kind:'leather',box:[-26,-23,134,44],seed:1151+side,texture:1.1,ink:4});
+ for(let i=0;i<9;i++){
+   const x=-10+i*11;
+   fill(ctx,`M ${x} -16 L ${x+6} -16 L ${x+17} 16 L ${x+10} 17 Z`,i%2?'#79503d':'#442c2a');
+   stroke(ctx,`M ${x} -16 L ${x+15} 16`,'#171013',1.35);
+ }
+ material(ctx,'M 89 -31 Q 104 -34 110 -26 L 114 29 Q 102 35 88 28 L 91 6 Z',{base:'#754934',shadow:'#24171b',kind:'steel',box:[83,-35,39,72],seed:1256+side,ink:3.5,texture:1.1});
+ stroke(ctx,'M 94 -25 Q 103 0 97 25','#e2ac70',2);
+}
+function handCover(ctx){
+ // The thumb grips OVER the handle, preventing the "weapon floating at the hand" defect.
+ material(ctx,'M -25 -6 Q -23 -22 -9 -24 Q 6 -26 16 -12 L 13 -1 Q 0 1 -4 12 Q -14 20 -24 10 Z',{base:'#e99c66',shadow:'#b46340',kind:'skin',box:[-28,-25,48,47],seed:1356,ink:3.5,texture:1});
+ stroke(ctx,'M -20 -9 Q -10 -13 -3 -7 M -22 0 Q -13 -4 -6 2','#ae6241',1.4);
+}
+// One painter for ALL static/rig poses. Transform derived from EXACT shoulder/arm transform.
+function paintWeapon(ctx,side,pose='neutral',orientation='S'){
+ const angle=armAngle(pose,side);
+ ctx.save();ctx.translate(side*ARM_SHOULDER[0],ARM_SHOULDER[1]);ctx.scale(side,1);ctx.rotate(angle);
+ ctx.translate(...ARM_FIST);
+ ctx.save();ctx.rotate(pose==='attack' && side===1?-.22:pose==='attack'?.06:0);
+ // Chains are bolted into pommel and droop towards hand/wrist; no floating detached links.
+ chains(ctx,2,10,-57,3,1);
+ grip(ctx,side);blade(ctx,side);handCover(ctx);
+ ctx.restore();ctx.restore();
+}
+
+// ===== src/hero.js =====
+
+
+
+
+const painters={cape:paintCape,legs:paintLegs,torso:paintTorso,cloth:paintCloth,scarf:paintScarf,head:paintHead};
+const stack=['cape','legs','torso','cloth','arms','scarf','head','weapons'];
+const CACHE_BOUNDS={cape:[78,519,365,302],legs:[-195,767,399,285],torso:[-165,550,332,226],cloth:[-155,691,315,197],scarf:[-174,490,351,141],head:[-350,-14,701,564]};
+const cache=new Map();
+function drawCached(ctx,key,painter){
+ let entry=cache.get(key);
+ if(!entry){const [x,y,w,h]=CACHE_BOUNDS[key],buffer=document.createElement('canvas');buffer.width=w;buffer.height=h;
+ const bc=buffer.getContext('2d');bc.translate(-x,-y);painter(bc);entry={buffer,x,y};cache.set(key,entry);}
+ ctx.drawImage(entry.buffer,entry.x,entry.y);
+}
+const cacheStats=()=>({layerCount:cache.size,keys:[...cache.keys()]});
+function drawRegion(ctx,key,pose){
+ if(key==='legs' && !['neutral','idle','tpose'].includes(pose)){paintLegs(ctx,pose);return}
+ if(CACHE_BOUNDS[key])drawCached(ctx,key,painters[key]);else painters[key](ctx);
+}
+function drawHero(ctx,{view='hero',pose='neutral',orientation='S',pivots=false}={}){
+ const b=localBodyPose(pose);
+ ctx.save();
+ // A second authored 3/4 portrait treatment, not mirror-flipped; still needs directional fidelity QA.
+ if(orientation==='SE')ctx.transform(.93,.025,-.075,1,23,0);
+ for(const name of stack){
+  if(view==='head'&&!['head','scarf'].includes(name))continue;
+  if(view==='body'&&['head','weapons'].includes(name))continue;
+  if(view==='weapons'&&name!=='weapons')continue;
+  if(name==='arms')for(const side of [-1,1])paintArm(ctx,side,pose);
+  else if(name==='weapons')for(const side of [-1,1])paintWeapon(ctx,side,pose,orientation);
+  else if(name==='head'){ctx.save();ctx.translate(...b.headShift);drawRegion(ctx,name,pose);ctx.restore()}
+  else drawRegion(ctx,name,pose);
+ }
+ if(pivots)paintPivots(ctx,view,pose);
+ ctx.restore();
+}
+function paintPivots(ctx,view,pose){
+ const points={...ANCHORS};
+ for(const side of [-1,1]){
+  const prefix=side<0?'left':'right';points[prefix+'Wrist']=shoulderHand(side,pose);points[prefix+'Weapon']=points[prefix+'Wrist'];
+  const a=armAngle(pose,side),u=side*(143+78*Math.cos(a)-100*Math.sin(a)),v=594+78*Math.sin(a)+100*Math.cos(a);
+  points[prefix+'Elbow']=[u,v];
+ }
+ ctx.save();ctx.globalAlpha=.85;ctx.lineWidth=1.5;ctx.setLineDash([6,6]);ctx.strokeStyle='#61dbda';
+ for(const [a,b] of [['neck','hip'],['leftShoulder','leftElbow'],['leftElbow','leftWrist'],['rightShoulder','rightElbow'],['rightElbow','rightWrist'],['leftHip','leftKnee'],['leftKnee','leftAnkle'],['rightHip','rightKnee'],['rightKnee','rightAnkle']]){
+  const A=points[a],B=points[b];ctx.beginPath();ctx.moveTo(...A);ctx.lineTo(...B);ctx.stroke();
+ }
+ ctx.setLineDash([]);ctx.font='11px monospace';
+ for(const [key,p] of Object.entries(points)){if(view==='head'&&!['neck','scarf'].includes(key))continue;
+ ctx.fillStyle='#123234';ctx.beginPath();ctx.arc(...p,5,0,Math.PI*2);ctx.fill();ctx.fillStyle='#7cfff1';ctx.beginPath();ctx.arc(...p,3,0,Math.PI*2);ctx.fill();ctx.fillText(key,p[0]+8,p[1]-8);}
+ ctx.restore();
+}
+
+// ===== src/app.js =====
+
+const $=id=>document.getElementById(id);
+const c=$('hero'),ctx=c.getContext('2d',{alpha:true});
+const mode=$('mode'),view=$('view'),scale=$('scale'),pose=$('pose'),orientation=$('orientation');
+const root='../../assets/references/ref-2d-hero/';
+const refs={hero:'hero-complet-idle/hero-idle-s.png',head:'hero-parts/hero-part-head.png',body:'hero-parts/hero-part-body-tpose-nocape.png',weapons:'hero-parts/hero-part-weapons.png'};
+const stage=$('stage'),ref=$('reference'),missing=$('missing');
+window.__heroMetrics={renders:0,lastMS:0,errors:[],integratedRig01:false};
+window.addEventListener('error',ev=>window.__heroMetrics.errors.push(String(ev.message)));
+let referenceOverride=null;
+const localPreview='./reference-preview/hero-idle-s-user.png';
+let triedFallback=false;
+function paint(){
+ const start=performance.now(),v=view.value,sc=+scale.value;
+ stage.classList.toggle('single',mode.value!=='compare');
+ const official=v==='hero'&&orientation.value==='SE'?'hero-complet-idle/hero-idle-se.png':refs[v];
+ const path=referenceOverride ?? root+official;
+ if(ref.dataset.path!==path && !(triedFallback && ref.dataset.path===localPreview && !referenceOverride && v==='hero' && orientation.value==='S')){triedFallback=false;ref.dataset.path=path;ref.src=path;}
+ const dpr=Math.min(window.devicePixelRatio||1,2);const W=960,H=1060;
+ c.width=W*dpr;c.height=H*dpr;
+ ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+ const frame={hero:{y:0,h:1040,k:.75},head:{y:0,h:615,k:1.08},body:{y:545,h:510,k:.98},weapons:{y:616,h:368,k:.69}}[v];
+ const k=frame.k*sc*(pose.value==='tpose'&&v==='hero'?.89:1);
+ ctx.save();ctx.translate(W/2,(H-frame.h*k)/2-frame.y*k);ctx.scale(k,k);
+ drawHero(ctx,{view:v,pose:pose.value,orientation:orientation.value,pivots:mode.value==='joints'});
+ ctx.restore();
+ window.__heroMetrics.renders++;window.__heroMetrics.lastMS=Math.round((performance.now()-start)*10)/10;
+ $('metrics').textContent=`Render ${window.__heroMetrics.lastMS} ms · ${cacheStats().layerCount} camadas cacheadas · JavaScript inline, compatível com arquivo local.`;
+ $('status').textContent=`Pose ${pose.value.toUpperCase()} · direção ${orientation.value} · Canvas 2D genuíno · protótipo artístico em revisão.`;
+}
+ref.addEventListener('error',()=>{
+ if(!referenceOverride&&!triedFallback && view.value==='hero' && orientation.value==='S'){
+   triedFallback=true;ref.dataset.path=localPreview;ref.src=localPreview;return;
+ }missing.hidden=false;
+});
+ref.addEventListener('load',()=>missing.hidden=true);
+for(const item of [mode,view,scale,pose,orientation])item.addEventListener('change',paint);
+$('chooseRef').addEventListener('change',ev=>{const file=ev.target.files?.[0];if(!file)return;if(referenceOverride)URL.revokeObjectURL(referenceOverride);referenceOverride=URL.createObjectURL(file);paint();});
+$('resetRef').addEventListener('click',()=>{if(referenceOverride)URL.revokeObjectURL(referenceOverride);referenceOverride=null;paint();});
+$('capture').addEventListener('click',()=>{const a=document.createElement('a');a.download=`HERO02-${pose.value}-${orientation.value}-Canvas.png`;a.href=c.toDataURL('image/png');a.click()});
+window.paintHero=paint;
+window.__verifyProcedural=()=>({canvasWidth:c.width,canvasHeight:c.height,hasReferenceImageInCanvas:false,pose:pose.value,mode:mode.value,orientation:orientation.value,cache:cacheStats(),...window.__heroMetrics});
+paint();
+$('boot').textContent='Canvas carregado';$('boot').style.color='#8cd9a2';
+
+</script></body></html>

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <script>window.onerror = function(m, u, l) { setTimeout(function(){ document.body.insertAdjacentHTML('afterbegin', '<h1 style="color:red;background:yellow;padding:20px;z-index:9999;position:relative;">ERRO JS: ' + m + ' linha: ' + l + '</h1>'); }, 100); };</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bancada de Comparação Visual 1:1 — Prancha vs Procedural</title>
+  <style>
+    :root {
+      --bg: #14171d;
+      --card-bg: #1c222b;
+      --accent: #ffd23f;
+      --border: #2e3846;
+      --text: #e6ebed;
+      --muted: #9cb0b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      padding: 20px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 {
+      font-size: 22px;
+      color: var(--accent);
+      letter-spacing: 0.04em;
+    }
+    .back-btn {
+      background: #252e3b;
+      color: #79dcff;
+      border: 1px solid #3d4a5c;
+      padding: 8px 16px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .back-btn:hover { background: #323d4e; }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      background: var(--card-bg);
+      padding: 14px 20px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .tool-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+    select, button, input[type=range] {
+      background: #12161e;
+      color: #fff;
+      border: 1px solid #3b4657;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    select:focus, button:hover {
+      border-color: var(--accent);
+    }
+
+    .main-view {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 900px) {
+      .main-view { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .card-title {
+      font-size: 14px;
+      font-weight: bold;
+      color: var(--muted);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .canvas-container {
+      position: relative;
+      background: #e2ddd5;
+      border: 2px solid #3b4657;
+      border-radius: 8px;
+      overflow: hidden;
+      width: 320px;
+      height: 380px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .canvas-container canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .prancha-strip {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      overflow-x: auto;
+    }
+    .prancha-strip h2 {
+      font-size: 15px;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    .strip-img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+      border: 1px solid #333d4d;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>BANCADA DE COMPARAÇÃO VISUAL 1:1 (MÉTODO RAFAXLAB)</h1>
+      <p style="font-size: 13px; color: var(--muted); margin-top: 4px;">
+        Auditoria milimétrica: Prancha Oficial (`prancha-turnaround-poses.png`) vs Render Procedural Canvas 2D
+      </p>
+    </div>
+    <a href="index.html" class="back-btn">← Voltar ao Jogo</a>
+  </header>
+
+  <div class="toolbar">
+    <div class="tool-group">
+      <label for="poseSelect"><strong>Pose / Ângulo:</strong></label>
+      <select id="poseSelect">
+        <optgroup label="Turnaround 8 Direções">
+          <option value="dir_0">0° Frente (Sul-Isométrico)</option>
+          <option value="dir_45">45° Sudeste</option>
+          <option value="dir_90">90° Leste (Perfil Direito)</option>
+          <option value="dir_135">135° Nordeste</option>
+          <option value="dir_180">180° Costas (Norte)</option>
+          <option value="dir_225">225° Noroeste</option>
+          <option value="dir_270">270° Oeste (Perfil Esquerdo)</option>
+          <option value="dir_315">315° Sudoeste</option>
+        </optgroup>
+        <optgroup label="Poses de Combate e Locomoção">
+          <option value="corte_antic">Corte: Antecipação</option>
+          <option value="corte_strike">Corte: Golpe</option>
+          <option value="reves_antic">Revés: Antecipação</option>
+          <option value="reves_strike">Revés: Golpe</option>
+          <option value="salto_antic">Salto: Antecipação</option>
+          <option value="salto_impact">Salto: Impacto no Solo</option>
+          <option value="run">Corrida (Run Cycle)</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <div class="tool-group">
+      <label for="onionRange"><strong>Transparência Sobreposta (Onion-Skin):</strong></label>
+      <input type="range" id="onionRange" min="0" max="100" value="0">
+      <span id="onionVal" style="width: 38px;">0%</span>
+    </div>
+
+    <div class="tool-group">
+      <label><input type="checkbox" id="chkGrid"> Grade de Medição (10px)</label>
+      <label><input type="checkbox" id="chkSkeleton"> Esqueleto 3D / IK</label>
+    </div>
+  </div>
+
+  <div class="main-view">
+    <div class="card">
+      <div class="card-title">1. Referência Oficial (Prancha)</div>
+      <div class="canvas-container">
+        <canvas id="refCanvas" width="320" height="380"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">2. Render Procedural Canvas 2D (Com Onion-Skin)</div>
+      <div class="canvas-container">
+        <canvas id="procCanvas" width="320" height="380"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="prancha-strip">
+    <h2>Prancha Oficial Completa (1024 x 384)</h2>
+    <img src="ref/novo-heroi/prancha-turnaround-poses.png" alt="Prancha Oficial" class="strip-img" id="pranchaFull">
+  </div>
+
+  <script src="js/core.js"></script>
+  <script src="js/ink.js"></script>
+  <script src="js/hero_vectors.js"></script>
+  <script src="js/rig.js"></script>
+  <script src="js/head.js"></script>
+  <script src="js/hero.js"></script>
+  <script>
+    const refCanvas = document.getElementById('refCanvas');
+    const refCtx = refCanvas.getContext('2d');
+    const procCanvas = document.getElementById('procCanvas');
+    const procCtx = procCanvas.getContext('2d');
+
+    const poseSelect = document.getElementById('poseSelect');
+    const onionRange = document.getElementById('onionRange');
+    const onionVal = document.getElementById('onionVal');
+    const chkGrid = document.getElementById('chkGrid');
+    const chkSkeleton = document.getElementById('chkSkeleton');
+
+    const pranchaImg = new Image();
+    pranchaImg.src = 'ref/novo-heroi/prancha-turnaround-poses.png';
+
+    const POSE_MAP = {
+      dir_0:     { sx: 0 * 128,   sy: 0,   sw: 128, sh: 192 },
+      dir_45:    { sx: 1 * 128,   sy: 0,   sw: 128, sh: 192 },
+      dir_90:    { sx: 2 * 128,   sy: 0,   sw: 128, sh: 192 },
+      dir_135:   { sx: 3 * 128,   sy: 0,   sw: 128, sh: 192 },
+      dir_180:   { sx: 4 * 128,   sy: 0,   sw: 128, sh: 192 },
+      dir_225:   { sx: 5 * 128,   sy: 0,   sw: 128, sh: 192 },
+      dir_270:   { sx: 6 * 128,   sy: 0,   sw: 128, sh: 192 },
+      dir_315:   { sx: 7 * 128,   sy: 0,   sw: 128, sh: 192 },
+
+      corte_antic:  { sx: 0 * 146, sy: 192, sw: 146, sh: 192 },
+      corte_strike: { sx: 1 * 146, sy: 192, sw: 146, sh: 192 },
+      reves_antic:  { sx: 2 * 146, sy: 192, sw: 146, sh: 192 },
+      reves_strike: { sx: 3 * 146, sy: 192, sw: 146, sh: 192 },
+      salto_antic:  { sx: 4 * 146, sy: 192, sw: 146, sh: 192 },
+      salto_impact: { sx: 5 * 146, sy: 192, sw: 146, sh: 192 },
+      run:          { sx: 6 * 146, sy: 192, sw: 146, sh: 192 }
+    };
+
+    const cam = new IsoCamera({
+      yaw: 45 * Math.PI / 180,
+      pitch: 34 * Math.PI / 180,
+      scale: 1.6,
+      originX: 160,
+      originY: 310
+    });
+
+    const rig = new KnightRig();
+    const hero = new Hero(rig, cam);
+
+    let onionOpacity = 0;
+
+    onionRange.addEventListener('input', (e) => {
+      onionOpacity = parseInt(e.target.value) / 100;
+      onionVal.textContent = `${e.target.value}%`;
+      draw();
+    });
+
+    poseSelect.addEventListener('change', draw);
+    chkGrid.addEventListener('change', draw);
+    chkSkeleton.addEventListener('change', () => {
+      hero.debugSkeleton = chkSkeleton.checked;
+      draw();
+    });
+
+    pranchaImg.onload = draw;
+
+    function draw() {
+      const poseKey = poseSelect.value;
+      const data = POSE_MAP[poseKey] || POSE_MAP['dir_0'];
+      const vPose = (typeof HERO_VECTORS !== 'undefined') ? HERO_VECTORS[poseKey] : null;
+
+      const zoom = 1.6;
+      const dw = data.sw * zoom;
+      const dh = data.sh * zoom;
+      const dx = (refCanvas.width - dw) * 0.5;
+      const dy = (refCanvas.height - dh) * 0.5;
+
+      const cx = (vPose && vPose.cx) || 53;
+      const gy = (vPose && vPose.gy) || 189;
+
+      const targetGroundX = dx + cx * zoom;
+      const targetGroundY = dy + gy * zoom;
+
+      // 1. Painel Esquerdo: Referência
+      refCtx.fillStyle = '#e2ddd5';
+      refCtx.fillRect(0, 0, refCanvas.width, refCanvas.height);
+
+      if (pranchaImg.complete && pranchaImg.naturalWidth > 0) {
+        refCtx.drawImage(
+          pranchaImg,
+          data.sx, data.sy, data.sw, data.sh,
+          dx, dy, dw, dh
+        );
+        if (chkGrid.checked) drawGrid(refCtx);
+      }
+
+      // 2. Painel Direito: Procedural Vetorial
+      procCtx.fillStyle = '#e2ddd5';
+      procCtx.fillRect(0, 0, procCanvas.width, procCanvas.height);
+
+      if (onionOpacity > 0 && pranchaImg.complete) {
+        procCtx.save();
+        procCtx.globalAlpha = onionOpacity;
+        procCtx.drawImage(pranchaImg, data.sx, data.sy, data.sw, data.sh, dx, dy, dw, dh);
+        procCtx.restore();
+      }
+
+      cam.origin.set(targetGroundX, targetGroundY);
+      hero.draw(procCtx, poseKey, zoom);
+
+      if (chkGrid.checked) drawGrid(procCtx);
+    }
+
+    function drawGrid(ctx) {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(120, 80, 60, 0.25)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < 320; x += 10) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0); ctx.lineTo(x, 380);
+        ctx.stroke();
+      }
+      for (let y = 0; y < 380; y += 10) {
+        ctx.beginPath();
+        ctx.moveTo(0, y); ctx.lineTo(320, y);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    // Chamada inicial
+    draw();
+  </script>
+</body>
+</html>

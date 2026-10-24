@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Captura</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #d7dad4; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="cap"></canvas>
+<script src="js/core.js"></script>
+<script src="js/ink.js"></script>
+<script src="js/rig.js"></script>
+<script src="js/head.js"></script>
+<script src="js/hero.js"></script>
+<script>
+(() => {
+  const q = new URLSearchParams(location.search);
+  const mode = q.get('mode') || 'vistas';
+  const cv = document.getElementById('cap');
+  const c = cv.getContext('2d');
+  const mkRig = (yaw, combat) => Pilot.makeRig({ pos: [0, 0, 0], yaw, time: 0.4, speed: 0, combat: combat || { index: -1, time: 0 } });
+  const label = (txt, x, y, size) => {
+    c.fillStyle = '#3a3f3c';
+    c.font = '600 ' + (size || 16) + 'px Segoe UI, sans-serif';
+    c.textAlign = 'center';
+    c.fillText(txt, x, y);
+  };
+  const shadow = (ox, oy, r) => {
+    c.save(); c.translate(ox, oy + 6); c.scale(1, 0.36);
+    c.fillStyle = 'rgba(40,40,45,.22)';
+    c.beginPath(); c.arc(16, 20, r, 0, Math.PI * 2); c.fill(); c.restore();
+  };
+
+  if (mode === 'solo') {
+    cv.width = 900; cv.height = 1150;
+    c.fillStyle = '#d7dad4'; c.fillRect(0, 0, cv.width, cv.height);
+    const yaw = Number(q.get('yaw') || (Math.PI / 4 - 0.45));
+    if (q.get('nohead')) Pilot.drawHead = () => {};
+    const px = Number(q.get('px') || 4.2);
+    c.setTransform(px, 0, 0, px, 450, 1020);
+    const stageLog = [];
+    Pilot.drawHero(c, mkRig(yaw), { headScale: 1, onStage: n => {
+      const d = c.getImageData(330, 1000, 240, 150).data;
+      let cnt = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        if (r > 70 && r < 145 && g > 25 && g < 80 && b > 15 && b < 65) cnt++;
+      }
+      stageLog.push(n + ':' + cnt);
+    } });
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    const strip = c.getImageData(330, 1000, 240, 150).data;
+    let bx0 = 1e9, by0 = 1e9, bx1 = -1, by1 = -1, bn = 0, sx = 0, sy = 0;
+    for (let yy = 0; yy < 150; yy++) for (let xx = 0; xx < 240; xx++) {
+      const o = (yy * 240 + xx) * 4, r = strip[o], g = strip[o + 1], b = strip[o + 2];
+      if (r > 70 && r < 145 && g > 25 && g < 80 && b > 15 && b < 65) {
+        bn++; bx0 = Math.min(bx0, xx + 330); bx1 = Math.max(bx1, xx + 330);
+        by0 = Math.min(by0, yy + 1000); by1 = Math.max(by1, yy + 1000);
+        sx += xx + 330; sy += yy + 1000;
+      }
+    }
+    const cx = bx0 < 1e9 ? Math.round(sx / bn) : 0, cy = bx0 < 1e9 ? Math.round(sy / bn) : 0;
+    label('solo yaw=' + yaw.toFixed(2), 450, 1120, 16);
+    label(stageLog.join('  '), 450, 26, 12);
+    if (bn) {
+      label(`ball center ${cx},${cy} bbox ${bx0},${by0}..${bx1},${by1} n=${bn}`, 450, 48, 15);
+      c.strokeStyle = '#ff00ff'; c.lineWidth = 2;
+      c.strokeRect(bx0, by0, bx1 - bx0, by1 - by0);
+      c.beginPath(); c.moveTo(cx - 8, cy); c.lineTo(cx + 8, cy); c.moveTo(cx, cy - 8); c.lineTo(cx, cy + 8); c.stroke();
+    }
+  } else if (mode === 'vistas') {
+    cv.width = 1600; cv.height = 1180;
+    c.fillStyle = '#d7dad4'; c.fillRect(0, 0, cv.width, cv.height);
+    const yaws = [Math.PI / 4 - 0.45, Math.PI / 4, Math.PI / 2, Math.PI];
+    const labels = ['alvo 3/4', '3/4 frente', 'perfil', 'costas'];
+    const px = 2.7;
+    yaws.forEach((yaw, i) => {
+      const ox = 200 + i * 380, oy = 690;
+      c.setTransform(1, 0, 0, 1, 0, 0); shadow(ox, oy, 92);
+      c.setTransform(px, 0, 0, px, ox, oy);
+      Pilot.drawHero(c, mkRig(yaw), { headScale: 1 });
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      label(labels[i], ox + 16, oy + 38, 17);
+    });
+    c.setTransform(5.0, 0, 0, 5.0, 800, 1000);
+    Pilot.drawHead(c, { pos: [0, 0, 0], yaw: Math.PI / 4 - 0.45, scale: 1 });
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    label('rosto 3/4', 800, 1150, 17);
+  } else if (mode === 'poses') {
+    cv.width = 1600; cv.height = 620;
+    c.fillStyle = '#d7dad4'; c.fillRect(0, 0, cv.width, cv.height);
+    const poses = [[-1, 'idle'], [0, 'golpe 1'], [1, 'golpe 2'], [2, 'golpe 3']];
+    poses.forEach(([idx, name], i) => {
+      const ox = 210 + i * 390, oy = 520;
+      c.setTransform(1, 0, 0, 1, 0, 0); shadow(ox, oy, 82);
+      c.setTransform(2.6, 0, 0, 2.6, ox, oy);
+      Pilot.drawHero(c, mkRig(Math.PI / 4 - 0.30, idx < 0 ? null : { index: idx, time: 0.207 }), { headScale: 1 });
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      label(name, ox + 16, oy + 40, 18);
+    });
+  } else if (mode === 'compare') {
+    cv.width = 1400; cv.height = 830;
+    c.fillStyle = '#d7dad4'; c.fillRect(0, 0, cv.width, cv.height);
+    const img = new Image();
+    img.onload = () => {
+      c.drawImage(img, 40, 24, 373 * 1.6, 465 * 1.6);
+      const px = 3.7, ox = 760, oy = 780;
+      shadow(ox, oy, 90);
+      c.setTransform(px, 0, 0, px, ox, oy);
+      Pilot.drawHero(c, mkRig(Math.PI / 4 - 0.45), { headScale: 1 });
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      label('REFERÊNCIA', 338, 806, 20);
+      label('MEU 3/4', 830, 806, 20);
+      c.strokeStyle = 'rgba(60,60,65,.35)'; c.lineWidth = 1;
+      c.beginPath(); c.moveTo(650, 30); c.lineTo(650, 790); c.stroke();
+      document.title = 'ready';
+    };
+    img.onerror = () => { document.title = 'error'; };
+    img.src = 'artifacts/ref-target.png';
+  }
+})();
+</script>
+</body>
+</html>

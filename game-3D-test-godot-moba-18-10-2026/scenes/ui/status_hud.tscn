@@ -1,0 +1,17 @@
+[gd_scene format=3 uid="uid://df67p8mq2k1s1"]
+
+[ext_resource type="Script" path="res://scenes/ui/status_hud.gd" id="1_hud"]
+
+[node name="StatusHUD" type="PanelContainer"]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 324.0
+offset_bottom = 224.0
+mouse_filter = 2
+script = ExtResource("1_hud")
+
+[node name="ControlsView" type="Control" parent="."]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(264, 214)
+layout_mode = 2
+mouse_filter = 2

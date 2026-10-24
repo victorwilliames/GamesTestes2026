@@ -1203,6 +1203,10 @@ body.console-detail-open .hero-short-description{display:none;}
 .hero-stage,.backdrop-image,.game-card-dock,#details-drawer{transition:none!important;animation:none!important;}
 body.console-detail-open .hero-detail-slot{animation:none!important;}
 }
+
+.console-tech-panel .drawer-subbuilds{position:static!important;left:auto!important;top:auto!important;width:100%!important;max-height:90px;overflow:auto;flex-wrap:wrap;gap:8px;margin:12px 0 0;}
+.console-tech-panel .sub-pill-btn{font:700 .69rem Outfit,sans-serif;padding:7px 10px;border-radius:8px;white-space:normal;}
+.console-aside .console-tech-panel:has(.drawer-subbuilds[style*="display: flex"]){max-height:210px!important;}
 /* =============== END CONSOLE V3 COMPLETE =============== */
 
   </style>
@@ -2102,9 +2106,9 @@ body.console-detail-open .hero-detail-slot{animation:none!important;}
       const actions=drawer.querySelector(".drawer-actions-row");
       const subBuilds=drawer.querySelector(".drawer-subbuilds");
       if(actions)slot.appendChild(actions);
-      if(subBuilds)slot.appendChild(subBuilds);
       const story=drawer.querySelector(".drawer-body > div:nth-child(2)");
       const tech=drawer.querySelector('.drawer-body > div:first-child > div[style*="border-left"]');
+      if(subBuilds && tech)tech.appendChild(subBuilds);
       const aside=document.createElement("aside");
       aside.className="console-aside";
       aside.setAttribute("aria-label","Bastidores e ficha técnica");
